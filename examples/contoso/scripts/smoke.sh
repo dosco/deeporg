@@ -8,7 +8,7 @@ SMOKE_JWT_SECRET="${SMOKE_JWT_SECRET:-contoso-retail-demo-secret}"
 SMOKE_USAGE_TEXT='Contoso Retail GraphJin smoke suite.
 
 Run after starting the demo server:
-  graphjin serve --demo --path examples/contoso
+  deeporg serve --demo --path examples/contoso
 
 Usage:
   examples/contoso/scripts/smoke.sh [--url URL] [--agent|--no-agent]

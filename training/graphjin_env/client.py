@@ -1,4 +1,4 @@
-"""Minimal client for `graphjin env serve`.
+"""Minimal client for `deeporg env serve`.
 
 The server grades episodes with the same function GraphJin's own benchmark
 uses, so a reward collected here and a number on the public board mean the same

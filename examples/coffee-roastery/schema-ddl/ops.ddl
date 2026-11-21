@@ -1,5 +1,5 @@
 # GraphJin DDL for the writable roastery operations source.
-# Applied by `graphjin serve --demo --path examples/coffee-roastery`.
+# Applied by `deeporg serve --demo --path examples/coffee-roastery`.
 
 type customers {
   id: Bigint! @id

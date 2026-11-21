@@ -51,7 +51,7 @@
 # It sends real model traffic through the demo's configured provider. Run it
 # against a live demo with write approvals on (the agentic default):
 #
-#   graphjin serve --demo --path examples/saas-ops
+#   deeporg serve --demo --path examples/saas-ops
 #   examples/saas-ops/scripts/routine-eval.sh --repeats 3 --report /tmp/routine.json
 set -euo pipefail
 

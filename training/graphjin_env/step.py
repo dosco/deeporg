@@ -102,7 +102,7 @@ class StepState:
 
 
 class StepEnvironment:
-    """A client for `graphjin env serve --step`."""
+    """A client for `deeporg env serve --step`."""
 
     def __init__(self, base_url: str = "http://127.0.0.1:8090", timeout: float = 600.0):
         self.base_url = base_url.rstrip("/")

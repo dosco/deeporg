@@ -1,5 +1,5 @@
 // Seed data for the Contoso Retail reference environment (SQLite, in-process).
-// Applied on demo boot by `graphjin serve --demo --path examples/contoso`.
+// Applied on demo boot by `deeporg serve --demo --path examples/contoso`.
 
 const seedOptions = { source: "app", user_id: "demo-seed", role: "user" };
 

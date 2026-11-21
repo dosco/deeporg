@@ -1,5 +1,5 @@
 # GraphJin DDL for the writable SaaS ops source (SQLite, in-process).
-# Applied by `graphjin serve --demo --path examples/saas-ops`.
+# Applied by `deeporg serve --demo --path examples/saas-ops`.
 
 type accounts {
   id: Bigint! @id

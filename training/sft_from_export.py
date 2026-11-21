@@ -1,6 +1,6 @@
 """Turn exported GraphJin trajectories into supervised fine-tuning records.
 
-Input is what `graphjin eval export` writes: one trajectory per line. Output is
+Input is what `deeporg eval export` writes: one trajectory per line. Output is
 one training record per line, each a prompt and the program the policy emitted
 in response.
 
@@ -46,7 +46,7 @@ def records(trajectory: dict[str, Any], min_reward: float) -> Iterator[dict[str,
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("export", help="JSONL written by `graphjin eval export`")
+    parser.add_argument("export", help="JSONL written by `deeporg eval export`")
     parser.add_argument("--out", default="-", help="where to write records (default stdout)")
     parser.add_argument(
         "--min-reward",

@@ -1,5 +1,5 @@
 # GraphJin Database Schema for Webshop Example
-# Use 'graphjin db diff' to preview changes and 'graphjin db sync' to apply
+# Use 'deeporg db diff' to preview changes and 'deeporg db sync' to apply
 
 type users {
   id: BigInt! @id

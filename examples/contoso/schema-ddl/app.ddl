@@ -1,5 +1,5 @@
 # GraphJin DDL for the Contoso Retail reference environment (SQLite, in-process).
-# Applied by `graphjin serve --demo --path examples/contoso`.
+# Applied by `deeporg serve --demo --path examples/contoso`.
 
 type customer {
   id: Bigint! @id

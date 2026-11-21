@@ -9,7 +9,7 @@ USER_ROLE="${GRAPHJIN_SMOKE_USER_ROLE:-warehouse_manager}"
 SMOKE_USAGE_TEXT='Corrugated plant GraphJin smoke suite.
 
 Run after starting the demo server:
-  graphjin serve --demo --path examples/corrugated-plant
+  deeporg serve --demo --path examples/corrugated-plant
 
 Usage:
   examples/corrugated-plant/scripts/smoke.sh [--url URL] [--agent|--no-agent|--agent-eval] [--missing-model-credentials]

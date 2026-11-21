@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "graphjin": {
-      "command": "graphjin",
+      "command": "deeporg",
       "args": [
         "mcp",
         "--path",

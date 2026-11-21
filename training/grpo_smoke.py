@@ -6,7 +6,7 @@ every model call the environment parks, and get n graded rewards back. The
 advantages are all zero — which is exactly what an untrained policy sampling
 greedily looks like, and worth seeing once before blaming a trainer for it.
 
-    graphjin env serve --demo --suite eval/suite.yml --pool 4 --step
+    deeporg env serve --demo --suite eval/suite.yml --pool 4 --step
     python3 grpo_smoke.py --env http://127.0.0.1:8090 --slug count-accounts --group 4
 
 What it checks is that a full group comes back graded. A group with a missing

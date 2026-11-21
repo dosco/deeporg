@@ -9,7 +9,7 @@ USER_ROLE="${GRAPHJIN_SMOKE_USER_ROLE:-fab_planner}"
 SMOKE_USAGE_TEXT='PCB fab GraphJin smoke suite.
 
 Run after starting the demo server:
-  graphjin serve --demo --path examples/pcb-fab
+  deeporg serve --demo --path examples/pcb-fab
 
 Usage:
   examples/pcb-fab/scripts/smoke.sh [--url URL] [--agent|--no-agent|--agent-eval] [--missing-model-credentials]

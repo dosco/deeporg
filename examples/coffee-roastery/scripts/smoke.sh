@@ -8,7 +8,7 @@ SMOKE_JWT_SECRET="${SMOKE_JWT_SECRET:-coffee-roastery-demo-jwt-secret}"
 SMOKE_USAGE_TEXT='Coffee roastery GraphJin smoke suite.
 
 Run after starting the demo server:
-  graphjin serve --demo --path examples/coffee-roastery
+  deeporg serve --demo --path examples/coffee-roastery
 
 Usage:
   examples/coffee-roastery/scripts/smoke.sh [--url URL] [--agent|--no-agent|--agent-eval] [--missing-model-credentials] [--deep]

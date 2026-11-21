@@ -5,7 +5,7 @@
 # created through the same public control-plane contract. DeepORG's reactive
 # tasks use that contract too, rather than a private fixture.
 #
-# `graphjin serve --demo` registers these on a first run only. Delete
+# `deeporg serve --demo` registers these on a first run only. Delete
 # <path>/demo to start over, which also clears the standing watches.
 
 operator:

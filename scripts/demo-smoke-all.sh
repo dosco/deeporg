@@ -4,7 +4,7 @@
 # missing-model-credentials check: a rebooted saas-ops demo with an
 # intentionally empty server key must fail closed in MCP and REST.
 #
-# The "default" entry covers the bare `graphjin serve --demo` flow: a
+# The "default" entry covers the bare `deeporg serve --demo` flow: a
 # CGO_ENABLED=0 binary (like releases) run in an empty directory must
 # extract the built-in saas-ops demo to ./graphjin-demo, pass the
 # saas-ops smoke suite, and reuse the extracted state on a second boot.
@@ -310,7 +310,7 @@ run_demo() {
   fi
 }
 
-# run_default_demo smokes the bare `graphjin serve --demo` flow: build a
+# run_default_demo smokes the bare `deeporg serve --demo` flow: build a
 # CGO_ENABLED=0 binary (matching release builds), run it in an empty
 # directory with only the provider key in the environment, and expect the
 # built-in saas-ops demo extracted to ./graphjin-demo, the saas-ops

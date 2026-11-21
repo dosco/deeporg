@@ -6,7 +6,7 @@ comparison it cannot support: this suite flips roughly 24 of 113 tasks between
 two runs of the *same* binary, so a few points of movement is noise and reading
 it as progress is how a training run convinces itself it is working.
 
-    graphjin env serve --demo --suite eval/suite.yml \\
+    deeporg env serve --demo --suite eval/suite.yml \\
       --split eval/suite.split.json --side eval --pool 4 --listen 127.0.0.1:8091
     python3 measure.py --env http://127.0.0.1:8091 --repeats 3
 """

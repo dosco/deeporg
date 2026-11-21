@@ -8,7 +8,7 @@ SMOKE_JWT_SECRET="${SMOKE_JWT_SECRET:-saas-ops-demo-jwt-secret}"
 SMOKE_USAGE_TEXT='SaaS ops GraphJin smoke suite.
 
 Run after starting the demo server:
-  graphjin serve --demo --path examples/saas-ops
+  deeporg serve --demo --path examples/saas-ops
 
 Usage:
   examples/saas-ops/scripts/smoke.sh [--url URL] [--agent|--no-agent|--agent-eval] [--missing-model-credentials]
