@@ -1064,29 +1064,66 @@ func artifactStatus(status string) string {
 	return status
 }
 
+// bumpArtifactRevision moves a domain's revision on by one.
+//
+// Several replicas bump the same domain at the same moment, so the increment
+// is one statement that the database applies atomically. Direct SQL for the
+// same reason as claimTaskVerification: the internal GraphQL mutation API
+// cannot add to a column or report the affected-row count. Reading the
+// revision and writing it back let two replicas both insert a domain's first
+// row, and the second failed on the primary key; it also let a slow replica
+// write an older number over a newer one.
 func (s *graphjinService) bumpArtifactRevision(ctx context.Context, domain string) error {
 	if s == nil {
 		return nil
 	}
-	if _, _, _, ok := s.artifactDB(); !ok {
+	db, dbType, _, ok := s.artifactDB()
+	if !ok {
 		return nil
 	}
 	domain = strings.TrimSpace(domain)
 	if domain == "" {
 		domain = "artifacts"
 	}
-	now := time.Now().UTC().Format(time.RFC3339)
-	current, err := s.artifactRevision(ctx, domain)
-	if err != nil {
+	revisions := artifactTableName(dbType, s.conf.Core.EffectiveArtifactsConfig().Schema, "revisions")
+	domainCol := quoteStoreIdent(dbType, "domain")
+	revisionCol := quoteStoreIdent(dbType, "revision")
+	updatedAtCol := quoteStoreIdent(dbType, "updated_at")
+	now := time.Now().UTC()
+	var updatedAt any = now.Format(time.RFC3339)
+	if dbType == "postgres" || dbType == "" {
+		updatedAt = now
+	}
+	increment := func() (bool, error) {
+		res, err := s.internalStoreExec(ctx, db, dbType,
+			fmt.Sprintf("UPDATE %s SET %s = %s + 1, %s = %s WHERE %s = %s",
+				revisions, revisionCol, revisionCol,
+				updatedAtCol, taskVerifySQLPlaceholder(dbType, 1),
+				domainCol, taskVerifySQLPlaceholder(dbType, 2)),
+			updatedAt, domain)
+		if err != nil {
+			return false, err
+		}
+		affected, err := res.RowsAffected()
+		return affected > 0, err
+	}
+	if done, err := increment(); err != nil || done {
 		return err
 	}
-	input := map[string]any{"domain": domain, "revision": current + 1, "updated_at": now}
-	if current == 0 {
-		_, err = s.internalStoreMutationRows(ctx, "revisions", `insert: $input`, revisionStoreFields, map[string]any{"input": input})
-		return err
+	// The domain has no row yet. If another replica inserts it first, this
+	// insert fails on the primary key and the increment applies after all.
+	_, insertErr := s.internalStoreExec(ctx, db, dbType,
+		fmt.Sprintf("INSERT INTO %s (%s, %s, %s) VALUES (%s, 1, %s)",
+			revisions, domainCol, revisionCol, updatedAtCol,
+			taskVerifySQLPlaceholder(dbType, 1), taskVerifySQLPlaceholder(dbType, 2)),
+		domain, updatedAt)
+	if insertErr == nil {
+		return nil
 	}
-	_, err = s.internalStoreMutationRows(ctx, "revisions", `where: { domain: { eq: $domain } }, update: $input`, revisionStoreFields, map[string]any{"domain": domain, "input": map[string]any{"revision": current + 1, "updated_at": now}})
-	return err
+	if done, err := increment(); err == nil && done {
+		return nil
+	}
+	return insertErr
 }
 
 func identityVarString(ctx context.Context, name string) (string, bool) {

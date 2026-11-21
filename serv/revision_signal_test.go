@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -86,6 +87,39 @@ func TestRevisionSignalReadsPastGraphQLDefaultLimit(t *testing.T) {
 	if !strings.Contains(string(res.Data), `"domain":"watch_events"`) ||
 		!strings.Contains(string(res.Data), `"revision":1`) {
 		t.Fatalf("watch_events revision missing past default_limit: %s", res.Data)
+	}
+}
+
+// Replicas bump a domain at the same moment, including the first bump, when the
+// domain has no row yet. Every bump succeeds and every bump counts.
+func TestBumpArtifactRevisionIsAtomicAcrossReplicas(t *testing.T) {
+	_, replicas := newScheduleWatchReplicas(t, 2)
+	ctx := context.Background()
+	const perReplica = 4
+	for _, domain := range []string{"watch_events", "tasks", "notifications", "first_bump"} {
+		if base, err := replicas[0].artifactRevision(ctx, domain); err != nil || base != 0 {
+			t.Fatalf("%s revision before any bump = %d err=%v, want 0", domain, base, err)
+		}
+		var wg sync.WaitGroup
+		start := make(chan struct{})
+		for _, svc := range replicas {
+			for range perReplica {
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					<-start
+					if err := svc.bumpArtifactRevision(ctx, domain); err != nil {
+						t.Errorf("bump %s: %v", domain, err)
+					}
+				}()
+			}
+		}
+		close(start)
+		wg.Wait()
+		want := int64(len(replicas) * perReplica)
+		if got, err := replicas[0].artifactRevision(ctx, domain); err != nil || got != want {
+			t.Fatalf("%s revision = %d err=%v, want %d", domain, got, err, want)
+		}
 	}
 }
 

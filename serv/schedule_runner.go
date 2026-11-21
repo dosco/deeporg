@@ -300,6 +300,9 @@ func (s *graphjinService) sweepWatchSchedules(ctx context.Context, now time.Time
 // leaves the tick due with its event already written; the next sweep, on any
 // replica, finds the event and only moves the clock on. A tick is neither lost
 // nor doubled, and no step holds a lock or needs Redis.
+//
+// The returned bool reports whether this call wrote the tick's event, also
+// when a later step failed.
 func (s *graphjinService) fireWatchSchedule(
 	ctx context.Context,
 	row map[string]any,
@@ -328,42 +331,50 @@ func (s *graphjinService) fireWatchSchedule(
 	// shutdown from cutting the follow-up bookkeeping (enrichment, wake-ups)
 	// short once the event exists.
 	ctx = context.WithoutCancel(ctx)
+	next := sched.next(now)
 	var metricEvent map[string]any
-	var metricState *watchMetricState
+	var reading *watchMetricReading
 	if metric, metered := parseWatchMetricJSON(jsonMapString(row, "metric_json")); metered {
 		// A metric watch fires only when its number crosses. The event still
 		// goes in before the state and the clock move, so a replica that dies
 		// part-way re-reads the tick and the event id stops a second fire.
+		//
+		// The reading is stored by the statement that moves the clock, so one
+		// replica's reading is kept per tick. Stored on its own, ahead of the
+		// clock, it was visible to a replica that read the row in between
+		// with the tick still due, and that replica folded the same tick into
+		// the state a second time.
 		state, crossings, evalErr := s.evaluateWatchMetricTick(ownerCtx, row, def, metric, sched, now)
+		reading = &watchMetricReading{State: state, Err: evalErr}
 		if evalErr != nil || len(crossings) == 0 {
-			if err := s.saveWatchMetricState(ctx, def.ID, state, evalErr); err != nil {
-				return false, time.Time{}, err
-			}
-			next := sched.next(now)
-			if _, err := s.advanceWatchSchedule(ctx, def.ID, raw, due, next); err != nil {
+			if _, err := s.claimWatchScheduleTick(ctx, def.ID, raw, due, next, reading); err != nil {
 				return false, time.Time{}, err
 			}
 			return false, next, nil
 		}
 		metricEvent = watchMetricEventPayload(metric, state, crossings)
-		metricState = &state
 	}
 	inserted, err := s.insertWatchScheduleEvent(ctx, &def, proposal, sched, due, now, metricEvent)
 	if err != nil {
-		// Nothing has moved: the tick stays due and the next sweep retries it.
-		return false, time.Time{}, err
+		// The clock has not moved: the tick stays due and the next sweep
+		// retries it. inserted is true when the event went in and only its
+		// follow-up failed; the retry then finds the event and finishes.
+		return inserted, time.Time{}, err
 	}
-	if metricState != nil {
-		// Saved before the clock moves: a later tick must see this breach, or
-		// a value that stays over the threshold would fire again.
-		if err := s.saveWatchMetricState(ctx, def.ID, *metricState, nil); err != nil {
-			return inserted, time.Time{}, err
-		}
-	}
-	next := sched.next(now)
-	advanced, err := s.advanceWatchSchedule(ctx, def.ID, raw, due, next)
+	// For a metric watch the breach is stored as the clock moves: a later
+	// tick must see it, or a value that stays over the threshold would fire
+	// again.
+	advanced, err := s.claimWatchScheduleTick(ctx, def.ID, raw, due, next, reading)
 	if err != nil {
 		return inserted, time.Time{}, err
+	}
+	if inserted && !advanced && reading != nil {
+		// Another replica moved the clock first and stored its own reading,
+		// which need not show a breach when the number changed between the
+		// two reads. This replica reported the breach, so its reading stands.
+		if err := s.saveWatchMetricState(ctx, def.ID, reading.State, nil); err != nil {
+			return inserted, next, err
+		}
 	}
 	if !inserted && !advanced {
 		// Another replica recorded this tick and moved the clock.
@@ -395,6 +406,22 @@ func (s *graphjinService) fireWatchSchedule(
 // reports whether this call made the move; of several replicas advancing the
 // same tick, exactly one does.
 func (s *graphjinService) advanceWatchSchedule(ctx context.Context, id, raw string, prev, next time.Time) (bool, error) {
+	return s.claimWatchScheduleTick(ctx, id, raw, prev, next, nil)
+}
+
+// watchMetricReading is what one replica read for a metric watch's tick: the
+// state to store, and the query or path error when the read failed.
+type watchMetricReading struct {
+	State watchMetricState
+	Err   error
+}
+
+// claimWatchScheduleTick is advanceWatchSchedule that also stores a metric
+// watch's reading, in the same statement. The reading and the clock move
+// together or not at all, so the replica that claims a tick is the only one
+// whose reading is kept, and no replica can read the new state with the tick
+// still due.
+func (s *graphjinService) claimWatchScheduleTick(ctx context.Context, id, raw string, prev, next time.Time, reading *watchMetricReading) (bool, error) {
 	db, dbType, watches, _, ok := s.watchDB()
 	if !ok {
 		return false, nil
@@ -406,8 +433,27 @@ func (s *graphjinService) advanceWatchSchedule(ctx context.Context, id, raw stri
 	// re-checks the WHERE against the committed row, so a second writer
 	// matches nothing once the first has moved the clock.
 	nextFire := quoteStoreIdent(dbType, "next_fire_at")
-	args := []any{watchScheduleSQLTime(dbType, next), id}
-	match := nextFire + " IS NULL"
+	var args []any
+	bind := func(value any) string {
+		args = append(args, value)
+		return taskVerifySQLPlaceholder(dbType, len(args))
+	}
+	set := nextFire + " = " + bind(watchScheduleSQLTime(dbType, next))
+	if reading != nil {
+		lastError := ""
+		if reading.Err != nil {
+			lastError = "metric: " + reading.Err.Error()
+		}
+		now := time.Now().UTC()
+		var updatedAt any = now.Format(time.RFC3339Nano)
+		if dbType == "postgres" || dbType == "" {
+			updatedAt = now
+		}
+		set += ", " + quoteStoreIdent(dbType, "metric_state_json") + " = " + bind(mustMarshalString(reading.State))
+		set += ", " + quoteStoreIdent(dbType, "last_error") + " = " + bind(lastError)
+		set += ", " + quoteStoreIdent(dbType, "updated_at") + " = " + bind(updatedAt)
+	}
+	where := quoteStoreIdent(dbType, "id") + " = " + bind(id)
 	if !prev.IsZero() || raw != "" {
 		// Text dialects compare against the stored text exactly as read;
 		// Postgres compares instants.
@@ -415,15 +461,12 @@ func (s *graphjinService) advanceWatchSchedule(ctx context.Context, id, raw stri
 		if dbType == "postgres" || dbType == "" {
 			prevArg = prev.UTC()
 		}
-		args = append(args, prevArg)
-		match = nextFire + " = " + taskVerifySQLPlaceholder(dbType, 3)
+		where += " AND " + nextFire + " = " + bind(prevArg)
+	} else {
+		where += " AND " + nextFire + " IS NULL"
 	}
-	query := fmt.Sprintf("UPDATE %s SET %s = %s WHERE %s = %s AND %s",
-		watches,
-		nextFire, taskVerifySQLPlaceholder(dbType, 1),
-		quoteStoreIdent(dbType, "id"), taskVerifySQLPlaceholder(dbType, 2),
-		match)
-	res, err := db.ExecContext(ctx, query, args...)
+	query := fmt.Sprintf("UPDATE %s SET %s WHERE %s", watches, set, where)
+	res, err := s.internalStoreExec(ctx, db, dbType, query, args...)
 	if err != nil {
 		return false, err
 	}

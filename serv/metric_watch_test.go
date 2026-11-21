@@ -417,6 +417,93 @@ func TestMetricWatchRecoversFromCrashBeforeStateSave(t *testing.T) {
 	}
 }
 
+// staleMetricTick returns a metric watch with one tick due, and the row as a
+// replica read it before any replica handled that tick.
+func staleMetricTick(t *testing.T, db *sql.DB, svc *graphjinService, ctx context.Context, name string) (id string, stale map[string]any, due time.Time) {
+	t.Helper()
+	setOpenOrders(t, db, 1)
+	row, err := insertMetricWatch(t, svc, ctx, name, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	id = stringFromAny(row["id"])
+	due = time.Now().UTC().Truncate(5 * time.Minute)
+	setWatchNextFire(t, db, id, due)
+	stale, err = svc.internalWatchStoreRow(ctx, id)
+	if err != nil || stale == nil {
+		t.Fatalf("read watch %s: %v", id, err)
+	}
+	return id, stale, due
+}
+
+// One reading is kept per tick: a replica that read the watch before another
+// replica finished the tick must not store its own reading over it.
+func TestMetricWatchLateReplicaDoesNotOverwriteClaimedTick(t *testing.T) {
+	db, replicas := newScheduleWatchReplicas(t, 2)
+	first, late := replicas[0], replicas[1]
+	ctx := artifactUserCtx("user_1")
+	id, stale, due := staleMetricTick(t, db, late, ctx, "late_replica")
+	sched := mustWatchSchedule(t, "*/5 * * * *", "UTC")
+	now := due.Add(2 * time.Second)
+
+	setOpenOrders(t, db, 3)
+	if sweep, err := first.sweepWatchSchedules(ctx, now); err != nil || sweep.Fired != 1 {
+		t.Fatalf("first replica fired=%d err=%v", sweep.Fired, err)
+	}
+
+	// The number moves again before the late replica runs its query.
+	setOpenOrders(t, db, 0)
+	fired, _, err := late.fireWatchSchedule(ctx, stale, sched, stringMapValue(stale, "next_fire_at"), due, now)
+	if err != nil || fired {
+		t.Fatalf("late replica fired=%v err=%v", fired, err)
+	}
+	st := metricWatchState(t, late, ctx, id)
+	if st.LastValue != 3.0 || !st.Breached {
+		t.Fatalf("the claimed tick's reading was overwritten: %+v", st)
+	}
+	if len(st.History) != 2 {
+		t.Fatalf("history = %+v, want the probe plus one point for the tick", st.History)
+	}
+	if ids := watchEventIDs(t, db); len(ids) != 1 {
+		t.Fatalf("events = %v, want 1", ids)
+	}
+}
+
+// The replica that reports a breach keeps it on record even when another
+// replica, reading a moment earlier, moved the clock without seeing it.
+// Otherwise a value that stays over the threshold fires again on the next tick.
+func TestMetricWatchBreachStaysRecordedWhenAnotherReplicaClaimsTheTick(t *testing.T) {
+	db, replicas := newScheduleWatchReplicas(t, 2)
+	first, late := replicas[0], replicas[1]
+	ctx := artifactUserCtx("user_1")
+	id, stale, due := staleMetricTick(t, db, late, ctx, "late_breach")
+	sched := mustWatchSchedule(t, "*/5 * * * *", "UTC")
+	now := due.Add(2 * time.Second)
+
+	if sweep, err := first.sweepWatchSchedules(ctx, now); err != nil || sweep.Fired != 0 {
+		t.Fatalf("first replica fired=%d err=%v", sweep.Fired, err)
+	}
+
+	setOpenOrders(t, db, 3)
+	fired, _, err := late.fireWatchSchedule(ctx, stale, sched, stringMapValue(stale, "next_fire_at"), due, now)
+	if err != nil || !fired {
+		t.Fatalf("late replica fired=%v err=%v, want the crossing reported", fired, err)
+	}
+	st := metricWatchState(t, first, ctx, id)
+	if st.LastValue != 3.0 || !st.Breached {
+		t.Fatalf("the reported breach is not on record: %+v", st)
+	}
+	if len(st.History) != 2 {
+		t.Fatalf("history = %+v, want the probe plus one point for the tick", st.History)
+	}
+	if sweep, err := first.sweepWatchSchedules(ctx, due.Add(5*time.Minute+2*time.Second)); err != nil || sweep.Fired != 0 {
+		t.Fatalf("next tick fired=%d err=%v; the breach was already reported", sweep.Fired, err)
+	}
+	if ids := watchEventIDs(t, db); len(ids) != 1 {
+		t.Fatalf("events = %v, want 1", ids)
+	}
+}
+
 // A failing query records the error and keeps the schedule moving.
 func TestMetricWatchQueryErrorKeepsSchedule(t *testing.T) {
 	db, replicas := newScheduleWatchReplicas(t, 1)

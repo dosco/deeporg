@@ -2,6 +2,7 @@ package serv
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -271,6 +272,28 @@ func (s *graphjinService) internalStoreGraphQL(ctx context.Context, query string
 		}
 	}
 	return nil, fmt.Errorf("internal store SQLite retry exhausted")
+}
+
+// internalStoreExec runs one direct SQL statement against the control store
+// with the SQLite busy retry internalStoreGraphQL applies, so a statement that
+// needs direct SQL (an atomic increment, an affected-row count) is no more
+// likely to fail under write contention than the GraphQL write it replaces.
+// The statement must be safe to run again after a busy error, which every
+// single autocommit statement is: a busy statement wrote nothing.
+func (s *graphjinService) internalStoreExec(ctx context.Context, db *sql.DB, dbType, query string, args ...any) (sql.Result, error) {
+	attempts := 1
+	if dbType == "sqlite" {
+		attempts = internalStoreSQLiteBusyMaxAttempts
+	}
+	for attempt := 0; ; attempt++ {
+		res, err := db.ExecContext(ctx, query, args...)
+		if err == nil || !isInternalStoreSQLiteBusyError(err) || attempt == attempts-1 {
+			return res, err
+		}
+		if err := waitInternalStoreSQLiteRetry(ctx, internalStoreSQLiteBusyDelay(attempt)); err != nil {
+			return nil, err
+		}
+	}
 }
 
 func (s *graphjinService) internalStoreGraphQLOnce(ctx context.Context, query string, raw json.RawMessage) (map[string]json.RawMessage, error) {

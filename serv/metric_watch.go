@@ -618,6 +618,10 @@ func (s *graphjinService) evaluateWatchMetricTick(
 	return state, crossings, nil
 }
 
+// saveWatchMetricState stores a metric state whatever the schedule's clock
+// says. A tick's reading normally goes in with the clock, through
+// claimWatchScheduleTick; this is only for the replica that reported a breach
+// and then found the clock already moved.
 func (s *graphjinService) saveWatchMetricState(ctx context.Context, id string, state watchMetricState, evalErr error) error {
 	lastError := ""
 	if evalErr != nil {
