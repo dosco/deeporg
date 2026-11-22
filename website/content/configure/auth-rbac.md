@@ -8,7 +8,7 @@ weight: 30
 
 ## Auth providers
 
-GraphJin supports JWT/OIDC-style config, JWKS refresh, static public keys, and header authentication.
+DeepORG supports JWT/OIDC-style config, JWKS refresh, static public keys, and header authentication.
 
 ```yaml
 auth:
@@ -18,11 +18,11 @@ auth:
     audience: graphjin
 ```
 
-{{< svg "auth-modes" "GraphJin authentication and authorization modes" >}}
+{{< svg "auth-modes" "DeepORG authentication and authorization modes" >}}
 
 ## Identity mapping in source mode
 
-Source mode centralizes common identity claims and then generates the lower-level filters and presets GraphJin already enforces in the compiler:
+Source mode centralizes common identity claims and then generates the lower-level filters and presets DeepORG already enforces in the compiler:
 
 ```yaml
 identity:

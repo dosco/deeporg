@@ -48,7 +48,7 @@ The flagship agentic demo: a specialty coffee roasting business where agents wor
 deeporg serve --demo --path examples/coffee-roastery
 ```
 
-- **Sources:** `ops` (writable Postgres - customers, green lots, roast schedule, production orders, subscriptions, tickets), `roast_warehouse` (read-only BigQuery simulator - roast batches, sensor samples, cupping scores), `business_code` (TypeScript CodeSQL index), workflows, and the GraphJin control plane.
+- **Sources:** `ops` (writable Postgres - customers, green lots, roast schedule, production orders, subscriptions, tickets), `roast_warehouse` (read-only BigQuery simulator - roast batches, sensor samples, cupping scores), `business_code` (TypeScript CodeSQL index), workflows, and the DeepORG control plane.
 - **Shows off:** the widest agentic surface - durable verified tasks, durable watches, the owner-scoped managed artifact store, automatic server-first model routing with MCP client fallback, JWT identity in agentic mode, and CodeSQL over real business logic. Four workflows, including `daily_roast_plan` and `batch_quality_review`.
 
 **Ask it:**
@@ -129,7 +129,7 @@ More prompts: [corrugated-plant/PROMPTS.md](https://github.com/dosco/deeporg/blo
 
 ## PCB fab {#pcb-fab}
 
-A compact PCB design-and-fabrication stack that exercises every GraphJin source kind in one graph - the widest fan-out of any demo.
+A compact PCB design-and-fabrication stack that exercises every DeepORG source kind in one graph - the widest fan-out of any demo.
 
 ```bash
 deeporg serve --demo --path examples/pcb-fab
@@ -164,5 +164,5 @@ Every demo ships an end-to-end smoke suite: `scripts/smoke.sh` exercises data qu
 ## Keep going {#keep-going}
 
 - Hand the [built-in agent](/agentic/server-agent/) a goal and get a typed, evidence-backed answer.
-- Point GraphJin at [your own database](/start/quick-start/).
-- Read the [Agentic GraphJin deep dive](/story/agentic/).
+- Point DeepORG at [your own database](/start/quick-start/).
+- Read the [Agentic DeepORG deep dive](/story/agentic/).

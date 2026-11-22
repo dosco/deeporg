@@ -8,7 +8,7 @@ weight: 40
 
 ## Why saved queries matter
 
-In development, GraphJin can accept dynamic GraphQL. In production, the secure default is to execute reviewed saved operations. This keeps the runtime shape fixed while still letting clients pass variables.
+In development, DeepORG can accept dynamic GraphQL. In production, the secure default is to execute reviewed saved operations. This keeps the runtime shape fixed while still letting clients pass variables.
 
 ```graphql
 # queries/products.graphql
@@ -57,7 +57,7 @@ REST saved-query routes, MCP `execute_saved_query`, and MCP catalog discovery al
 | --- | --- |
 | Give the operation a clear name | Logs, cache keys, metrics, and client code become easier to inspect. |
 | Add `order_by` when order matters | Tests and pagination stay deterministic across dialects. |
-| Keep variables scalar or input values | GraphJin validates the query shape before runtime variable values arrive. |
+| Keep variables scalar or input values | DeepORG validates the query shape before runtime variable values arrive. |
 | Include cursors as returned values | Cursor strings are opaque and must be replayed unchanged. |
 
 ## Related controls

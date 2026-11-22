@@ -1,6 +1,6 @@
 ---
 title: "Test-Backed Examples"
-description: "A feature map tied to the Go examples and focused tests that exercise GraphJin behavior."
+description: "A feature map tied to the Go examples and focused tests that exercise DeepORG behavior."
 nav_group: "reference"
 doc_kind: "reference"
 weight: 50

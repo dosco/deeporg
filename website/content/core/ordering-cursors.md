@@ -105,7 +105,7 @@ On the next page, set `products_cursor` to the returned value. Cursors are opaqu
 | Use `after: $products_cursor` or `before: $products_cursor`. | Cursors must be variables, not string literals embedded in the query. |
 | Request `products_cursor` at the query root. | Cursor fields describe the page, not each row. |
 | Keep variable names cursor-shaped, such as `products_cursor` or `cursor`. | MCP cursor expansion only touches cursor variables. |
-| Treat returned values as opaque. | GraphJin uses encrypted cursor payloads and a dynamic security prefix. |
+| Treat returned values as opaque. | DeepORG uses encrypted cursor payloads and a dynamic security prefix. |
 | Do not hardcode `gj-` or `__gj-enc:`. | `gj-...:` is generated from the active security context, and `__gj-enc:` is an MCP cache transport detail. |
 
 {{< verified by="TestExpandCursorIDs_AlreadyEncrypted" file="serv/mcp_cursor_test.go" line="161" >}}

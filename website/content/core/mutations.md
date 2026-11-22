@@ -39,9 +39,9 @@ mutation {
 }
 ```
 
-If no row conflicts, GraphJin inserts and returns the new row. If `email` already exists, it returns that stored row unchanged. For example, an existing `full_name: "Stored Name"` remains `"Stored Name"`; GraphJin does not run an update, fire update triggers, or change `updated_at`. `onConflict: get` is accepted as the camel-case spelling.
+If no row conflicts, DeepORG inserts and returns the new row. If `email` already exists, it returns that stored row unchanged. For example, an existing `full_name: "Stored Name"` remains `"Stored Name"`; DeepORG does not run an update, fire update triggers, or change `updated_at`. `onConflict: get` is accepted as the camel-case spelling.
 
-GraphJin infers the conflict target from schema metadata after trusted insert presets are applied. The payload must supply exactly one complete candidate:
+DeepORG infers the conflict target from schema metadata after trusted insert presets are applied. The payload must supply exactly one complete candidate:
 
 - one unconditional single-column unique key, or
 - every column of the primary key, including a composite primary key.
@@ -50,7 +50,7 @@ Generated or defaulted key values are not candidates unless input or a preset su
 
 This policy applies only to a single, non-nested insert object. It is rejected for bulk lists, nested inserts, updates, upserts, and deletes. A conflict on a different constraint remains a database error. Omitting `on_conflict` keeps normal error-on-conflict behavior.
 
-The returned row is subject to the role's normal read filters and selected-column permissions. GraphJin does not reveal an existing conflicting row that the caller cannot read; an empty result caused by the role filter is reported as an authorization error. If a pre-19 PostgreSQL or SQLite fallback remains empty after its one complete-statement retry, GraphJin returns a stable retryable-concurrency error.
+The returned row is subject to the role's normal read filters and selected-column permissions. DeepORG does not reveal an existing conflicting row that the caller cannot read; an empty result caused by the role filter is reported as an authorization error. If a pre-19 PostgreSQL or SQLite fallback remains empty after its one complete-statement retry, DeepORG returns a stable retryable-concurrency error.
 
 Use `upsert` when conflict should update submitted fields. Use `on_conflict: get` when conflict must return the stored row without changing it.
 
@@ -58,7 +58,7 @@ Use `upsert` when conflict should update submitted fields. Use `on_conflict: get
 
 ## Bulk and nested inserts
 
-GraphJin can insert multiple rows and insert across related tables. PostgreSQL uses atomic CTE chains; other dialects use the dialect-appropriate mutation strategy.
+DeepORG can insert multiple rows and insert across related tables. PostgreSQL uses atomic CTE chains; other dialects use the dialect-appropriate mutation strategy.
 
 ```graphql
 mutation {
@@ -112,7 +112,7 @@ Mutation validation supports required fields, formats, min/max constraints, comp
 {{< verified by="Example_insertInlineWithValidation" file="tests/insert_test.go" line="105" >}}
 {{< verified by="Example_insertWithPresets" file="tests/insert_test.go" line="184" >}}
 
-Validation belongs in GraphJin config, not client code. Presets are useful for server-controlled fields such as `owner_id`, `created_at`, tenant IDs, or role-derived account IDs.
+Validation belongs in DeepORG config, not client code. Presets are useful for server-controlled fields such as `owner_id`, `created_at`, tenant IDs, or role-derived account IDs.
 
 ## Updates
 
@@ -144,7 +144,7 @@ mutation {
 { "data": [{ "id": 91, "name": "Desk" }, { "id": 92, "name": "Lamp" }] }
 ```
 
-GraphJin joins each row to the table row with the same primary key. Because the list scopes the update, the `where` clause is optional on PostgreSQL, MySQL, MariaDB, and SQLite. A `where` clause, when given, further limits which listed rows may change. Snowflake also matches rows by primary key but still requires a `where` clause.
+DeepORG joins each row to the table row with the same primary key. Because the list scopes the update, the `where` clause is optional on PostgreSQL, MySQL, MariaDB, and SQLite. A `where` clause, when given, further limits which listed rows may change. Snowflake also matches rows by primary key but still requires a `where` clause.
 
 Every row must include the full primary key and set the same fields as the first row. A row that leaves out a field, or adds one, is refused with an error that names the row and the field, and no row changes. To clear a column, set it to `null` explicitly. Rows whose key matches no table row are skipped. The response returns at most `default_limit` rows (20 unless configured), even when more rows were updated. A bulk update must use a variable, not an inline list, and cannot nest writes to related tables. Other databases, including SQL Server, Oracle, and MongoDB, reject list updates.
 

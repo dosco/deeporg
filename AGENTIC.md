@@ -1,14 +1,14 @@
-# Agentic GraphJin
+# Agentic DeepORG
 
-GraphJin gives AI agents one graph to work through: a single surface
+DeepORG gives AI agents one graph to work through: a single surface
 over live data, source code, security posture, workflows, config, and
 source-backed external systems. This document is the deep reference for that
-deployment. It is written for two audiences: operators putting GraphJin in
+deployment. It is written for two audiences: operators putting DeepORG in
 front of agents, and authors of the models and clients that talk to it. For
 the why, read [`VISION.md`](VISION.md) first — it is shorter and human-paced.
 
-Agentic GraphJin is not a resolver framework and not a pile of tool wrappers.
-It is GraphJin running in sources mode for company end users who work through
+Agentic DeepORG is not a resolver framework and not a pile of tool wrappers.
+It is DeepORG running in sources mode for company end users who work through
 agents.
 
 > The authoritative source for the operating-modes (`dev`/`prod`/`agentic`),
@@ -17,15 +17,15 @@ agents.
 
 ## Two Ways To Use It
 
-There are two ways to put an agent on GraphJin, and they share one foundation:
+There are two ways to put an agent on DeepORG, and they share one foundation:
 
 1. **Your agent drives the loop.** Claude, Codex, or any MCP client calls the
    discovery tools itself, call by call: search the catalog, inspect evidence,
    validate, then act. Described in
    [MCP Discovery And Usage](#mcp-discovery-and-usage).
-2. **GraphJin's built-in agent (the server-side agent) drives the loop for
+2. **DeepORG's built-in agent (the server-side agent) drives the loop for
    you.** One instruction goes to `POST /api/v1/agent` or the
-   `ask_graphjin_agent` MCP tool; GraphJin discovers, validates, executes, and
+   `ask_graphjin_agent` MCP tool; DeepORG discovers, validates, executes, and
    returns a typed, evidence-backed answer. Described next, in
    [Server-Side Agent](#server-side-agent).
 
@@ -97,7 +97,7 @@ over the cookie.
 - **Catalog-first** — the contract that discovery comes before action: search
   `gj_catalog`, inspect evidence, then act. Enforced by Go-side protocol
   guards, not by prompting.
-- **`gj_*` system roots** — GraphJin-owned queryable surfaces (`gj_catalog`,
+- **`gj_*` system roots** — DeepORG-owned queryable surfaces (`gj_catalog`,
   `gj_security`, `gj_code`, `gj_config`, and friends) served alongside your
   application data.
 - **RLM (reasoning-with-code)** — the built-in agent's loop style: the model
@@ -119,7 +119,7 @@ start with the user's instruction
   -> check gj_security and gj_runtime before risky actions
   -> join into application data, gj_code, workflows, or config
   -> validate or preview
-  -> act through GraphJin, within the caller's access
+  -> act through DeepORG, within the caller's access
   -> observe and refresh discovery
 ```
 
@@ -133,10 +133,10 @@ roots, capabilities, safety checks, and next actions.
 ## Server-Side Agent
 
 The loop above can be driven by an external model over MCP, one tool call at
-a time — see [MCP Discovery And Usage](#mcp-discovery-and-usage). GraphJin
+a time — see [MCP Discovery And Usage](#mcp-discovery-and-usage). DeepORG
 can also run that exact loop *server-side* and expose it as one
 tool, `ask_graphjin_agent`, and one endpoint, `POST /api/v1/agent`. The caller
-sends a single instruction; GraphJin discovers, validates, executes approved
+sends a single instruction; DeepORG discovers, validates, executes approved
 operations, and returns a typed, evidence-backed answer.
 
 `GET /api/v1/openapi.json` describes the agent endpoints that are switched on
@@ -148,7 +148,7 @@ checked-in file falls behind the types or rejects a value the server sends.
 
 | | External MCP loop | Server-side agent |
 | :--- | :--- | :--- |
-| Drives discovery | the caller's model, call by call | GraphJin, internally |
+| Drives discovery | the caller's model, call by call | DeepORG, internally |
 | Surface | many MCP tools | one tool / one endpoint |
 | Identity | caller | caller (the agent runs as the caller) |
 | Guardrails | client-side | Go protocol guards, server-side |
@@ -182,7 +182,7 @@ clients, REST and the production allow-list still use saved queries. The typed
 result is parsed from `key: value`
 output. There is no dependency on
 provider tool-calling, but Ax requests structured JSON for each typed stage.
-Which mechanism it uses is not GraphJin's decision: `agent.provider` names an Ax
+Which mechanism it uses is not DeepORG's decision: `agent.provider` names an Ax
 deployment profile, `agent.model` selects a model within it, and the profile's
 model rules declare which structured-output mechanisms that pairing supports.
 `agent.structured_output_mode: auto` (the default) takes that verified choice.
@@ -197,7 +197,7 @@ before transport when that provider/model pairing has not verified support.
 There are no per-request modes. A single operator kill-switch,
 `agent.read_only: true`, forces the agent read-only: mutations are rejected at
 execution — including saved mutations — regardless of the caller's role.
-GraphJin derives a capability profile from the caller and preloads every
+DeepORG derives a capability profile from the caller and preloads every
 permitted Ax skill. The fixed set is `data_discovery`, `data_aggregation`,
 `data_write`, `code_read`, `code_write`, `workflow_read`, `workflow_execute`,
 `workflow_write`, `watch_read`, `watch_write`, `task_read`, `task_write`,
@@ -257,7 +257,7 @@ should leave headroom for concurrent calls whose size is not known in advance.
 Semantic catalog embeddings remain controlled by `catalog_search.semantic`.
 
 Requests may carry a retained `task_id` for an explicitly created open
-`gj_task`. GraphJin prepends the owner-scoped declared goal and up to five recent
+`gj_task`. DeepORG prepends the owner-scoped declared goal and up to five recent
 trail entries to `history` for the lead to resolve, then appends one
 server-written `agent_run` entry. This provides cross-session warm-start and
 auditability without changing the guard contract: `task_id` is only
@@ -311,7 +311,7 @@ reads what is attached and looks up what is missing before the lead decides.
 Every stage of a lead turn is given the lead's instructions: the stages that
 write its code, which decide what a worker is asked and in what words, and the
 stage that writes the reply. Ax hands a signature's instructions to the reply
-stage alone, so GraphJin passes them to the code stages with the runtime's
+stage alone, so DeepORG passes them to the code stages with the runtime's
 usage instructions. A delegated result's `status` is one of `answered`,
 `needs_clarification`, `needs_approval`, `blocked` or `error`, and the code is
 told so.
@@ -394,7 +394,7 @@ A calling agent should treat this as protocol, not prose: execute the
 
 An answered reply carries `display`: one hint per result root of the query the
 answer rests on (on a lead reply, per delegated question, labeled with it).
-GraphJin builds it from the compiled query and the schema, never from the
+DeepORG builds it from the compiled query and the schema, never from the
 model's text, and the model never sees it:
 
 | Field | Meaning |
@@ -437,7 +437,7 @@ draft lead-corpus cases, ready for an oracle.
 
 With `agent.write_approval: required` (the default in agentic mode), the agent
 never changes application data or calls a write API itself. At the point a
-write would run, GraphJin dry-runs it inside a transaction it rolls back, stores
+write would run, DeepORG dry-runs it inside a transaction it rolls back, stores
 it as a pending approval, and the reply comes back `status: "needs_approval"`:
 
 | Field | Meaning |
@@ -449,7 +449,7 @@ it as a pending approval, and the reply comes back `status: "needs_approval"`:
 | `approval.preview` | What the dry run would change: `rows` and a `sample`. `available: false` with a `reason` for sources a dry run would really affect (APIs, NanoDB, warehouses, managed databases). |
 | `approval.expires_at` | After this the proposal can no longer run (`agent.write_approval_ttl`, default 24h). |
 
-The answer is GraphJin's own sentence, "This change needs your approval before
+The answer is DeepORG's own sentence, "This change needs your approval before
 it runs: …", so a model can never report a held write as done. The user decides
 outside any agent run:
 
@@ -508,10 +508,10 @@ A change the agent proposes can say what it should achieve, as `expect` on the
 mutation: a read query that measures the effect, a `path` to one number in its
 result, an `op` (`gte`, `lte`, `eq`, `increase`, `decrease`), a `value` and
 `within_hours` (up to 30 days). `increase` and `decrease` compare with the
-number before the change, which GraphJin measures when the change is proposed;
+number before the change, which DeepORG measures when the change is proposed;
 an expectation it cannot measure then is refused, since it could never be
 checked later. Once the change has run (approved, or allowed by an autonomy
-rule) and the window has passed, GraphJin measures again as the identity the
+rule) and the window has passed, DeepORG measures again as the identity the
 change ran as and records `hit` or `miss` on the approval
 (`gj_approval.outcome`). The owner is notified either way; a miss also starts a
 turn in the change's thread so the agent can find out why and propose a
@@ -529,19 +529,19 @@ With write approvals on, a routine runs with held writes only: it can propose a 
 owner exactly like a chat write, and it can schedule a check-back in its own
 thread with `follow_up` (not when it runs as the service identity). A routine
 proposes a change by stating it. Its code looks up what the prompt's decision
-depends on; GraphJin hands the reply stage the turn's own record (every answer
+depends on; DeepORG hands the reply stage the turn's own record (every answer
 the data agent gave, or that nothing was asked, the skills the turn loaded and
 the check-backs it scheduled) and nothing the code concluded from it; and the
 reply says whether the prompt calls for a change and what the change is, in
-plain words. GraphJin sends that to a data agent, which writes
+plain words. DeepORG sends that to a data agent, which writes
 the mutation and holds it. A change the reply states and the data agent does
 not hold is said so in the answer, with a `stated_change_not_held` notice. Apart from
-that check-back it can never write GraphJin's own roots
+that check-back it can never write DeepORG's own roots
 (watches, tasks, memories, config). Its answer becomes a notification and its
 watch event leaves the watch inbox. Without approvals a routine is read-only.
-GraphJin, not the model, states what an unattended run did to the data: its
+DeepORG, not the model, states what an unattended run did to the data: its
 answer leads with "No change was proposed." (or names the writes an autonomy
-rule ran), and a held write carries GraphJin's own sentence, so a model's
+rule ran), and a held write carries DeepORG's own sentence, so a model's
 "I proposed the change" never stands alone.
 Approvals record what proposed them: `origin` (`chat`, `routine`,
 `continuation`), `watch_id`, `event_id` and `profile`.
@@ -559,7 +559,7 @@ deciding it settles the notification), a routine's answer, a write an autonomy
 rule ran with `notify`, a run the server lost, a task check that passed or
 failed, a budget used up. People mark them seen (`update: { seen }`, `POST
 /api/v1/notifications/{id}/seen`, `POST /api/v1/notifications/seen`); only
-GraphJin creates them, and the agent cannot write them. `GET
+DeepORG creates them, and the agent cannot write them. `GET
 /api/v1/notifications/stream` sends `notification` and `count` events, woken by
 the store's revision signal and resumable with `Last-Event-ID`. The console's
 Inbox shows them live and lets a person decide a held change in place.
@@ -605,11 +605,11 @@ file's directory, and runtime key variables must end in `_API_KEY`. See
 [CONFIG.md](CONFIG.md#changing-the-key-or-provider-without-a-restart).
 
 The removed `agent.sampling` setting and its environment aliases are rejected
-with guidance to configure GraphJin-owned model credentials.
+with guidance to configure DeepORG-owned model credentials.
 
 ## Graph Surfaces And Boundaries
 
-In agentic mode, sources mode is assumed. GraphJin composes several kinds of
+In agentic mode, sources mode is assumed. DeepORG composes several kinds of
 truth into one GraphQL/MCP operating loop. The boundaries matter because they
 tell an agent where facts come from and where actions are allowed.
 
@@ -626,7 +626,7 @@ flowchart LR
     REPO["Code repos"]
   end
 
-  ENG["GraphJin engine<br/>GraphQL compiler · roles + RLS<br/>enforced on every request"]
+  ENG["DeepORG engine<br/>GraphQL compiler · roles + RLS<br/>enforced on every request"]
 
   subgraph ROOTS["Graph (definition root → action root)"]
     APP["Application roots<br/>business data — never copied"]
@@ -641,7 +641,7 @@ flowchart LR
     RUN["gj_runtime<br/>health · recent events"]
   end
 
-  subgraph CP["Control-plane store — GraphJin uses GraphJin"]
+  subgraph CP["Control-plane store — DeepORG uses DeepORG"]
     STORE[("Artifact store DB<br/>artifacts · tasks · entries · watches · events · revisions")]
     NANO["nanoDB projection<br/>bounded in-memory search index"]
   end
@@ -661,7 +661,7 @@ flowchart LR
   NANO -- "serves list/search reads —<br/>full content reads pass through to the store" --> ART
 ```
 
-One picture, three boundaries: source-owned business truth, the GraphJin-owned
+One picture, three boundaries: source-owned business truth, the DeepORG-owned
 `gj_*` system roots, and the caller-facing agent surfaces. Who reaches which
 root is decided by the access-mode matrix in [`SECURITY.md`](SECURITY.md) —
 that table is canonical for access; this diagram is canonical for architecture.
@@ -669,12 +669,12 @@ that table is canonical for access; this diagram is canonical for architecture.
 Application roots remain the source of business truth. A Postgres table, MongoDB
 collection, OpenAPI operation, remote API resolver, local filesystem table, S3
 bucket projection, or GCS object table is not copied into a fake agent store.
-GraphJin exposes it as a graph surface and keeps the operational boundary
+DeepORG exposes it as a graph surface and keeps the operational boundary
 visible.
 
 ### The nanoDB Projection
 
-GraphJin-owned system surfaces are compact and queryable. `gj_catalog`,
+DeepORG-owned system surfaces are compact and queryable. `gj_catalog`,
 `gj_artifacts`, `gj_security`, `gj_watch`, `gj_watch_event`, `gj_task`, `gj_task_entry`, `gj_workflow`,
 `gj_workflow_execution`, `gj_runtime`, and `gj_config` are served by nanoDB —
 an in-memory system database that gives these surfaces typed columns, indexes,
@@ -699,7 +699,7 @@ For store-backed rows (artifacts, tasks, task entries, watches, watch events) th
 - Refresh is revision-gated: a poller (`artifacts.poll_seconds`, default 15s)
   compares a revision counter and rebuilds the projection only when a write
   actually changed it — an idle system does no projection work. Mutations made
-  through GraphJin refresh it immediately.
+  through DeepORG refresh it immediately.
 - Every replica holds its own projection of all rows; owner scoping is applied
   per request at query time, which is what keeps one shared projection
   compatible with per-user privacy.
@@ -707,9 +707,9 @@ For store-backed rows (artifacts, tasks, task entries, watches, watch events) th
 ### The Internal Store Role
 
 Control-plane state (artifacts, tasks, task entries, watches, watch events, revisions) is persisted
-in a real SQL database, but GraphJin never talks to it with hand-written SQL:
-reads and writes run back through GraphJin's own query engine — "GraphJin uses
-GraphJin" — under the reserved `__graphjin_internal_store` role. That role
+in a real SQL database, but DeepORG never talks to it with hand-written SQL:
+reads and writes run back through DeepORG's own query engine — "DeepORG uses
+DeepORG" — under the reserved `__graphjin_internal_store` role. That role
 cannot be assumed by any request: it activates only through a non-forgeable
 in-process marker, and the role-resolution path rejects it everywhere else.
 The payoff is one code path across every database dialect, with the same
@@ -729,7 +729,7 @@ The public `gj_catalog` row set combines:
 
 - database/schema/table/column/function/index/relationship metadata
 - source and config facts, with sensitive values redacted
-- GraphJin language features, directives, operators, query patterns, mutation
+- DeepORG language features, directives, operators, query patterns, mutation
   patterns, and common mistakes
 - workflow metadata, variables, hashes, timestamps, and lifecycle facts
 - MCP and GraphQL capabilities, including input/output shape and safety notes
@@ -837,7 +837,7 @@ Core catalog kinds include:
 | `relationship` | Traversable edge between graph objects, including join evidence. |
 | `function` | Database function metadata when discovered. |
 | `workflow` | Reusable workflow metadata. Full source is read through `gj_workflow`, not inlined into catalog cards. |
-| `directive` | GraphJin directives such as `@object`, `@through`, `@running`, and `@rank`. |
+| `directive` | DeepORG directives such as `@object`, `@through`, `@running`, and `@rank`. |
 | `operator_set` | Filter, expression, comparison, JSON, array, spatial, and text operators. |
 | `query_pattern` | Query idioms such as grouped summaries, expression aggregates, pagination, and analytics rows. |
 | `mutation_pattern` | Mutation idioms such as insert, update, upsert, delete, nested writes, and CodeSQL edit flows. |
@@ -845,11 +845,11 @@ Core catalog kinds include:
 | `config` | Redacted configuration and policy shape. |
 | `entrypoint` | Curated starting point for broad or ambiguous tasks. |
 | `capability` | Runtime or MCP capability with safety and I/O shape. |
-| `system_capability` | GraphJin-owned behavior exposed as guidance, such as `gj_security.query`. |
+| `system_capability` | DeepORG-owned behavior exposed as guidance, such as `gj_security.query`. |
 
 ## MCP Discovery And Usage
 
-MCP is the model-facing control surface for an agentic GraphJin deployment. It
+MCP is the model-facing control surface for an agentic DeepORG deployment. It
 does not replace the graph. It teaches the model how to enter and use the graph
 efficiently.
 
@@ -869,7 +869,7 @@ The important split is:
 | Direct GraphQL | Composed queries over `gj_catalog`, application roots, `gj_security`, `gj_code`, workflows, and config. |
 | MCP bootstrap helpers | Teach a fresh model the catalog-first loop: `query_catalog`, `graphql_help`, `validate_where_clause`, and `execute_saved_query`. |
 | Catalog help rows | Durable replacement for old discovery tool descriptions: syntax, schema, relationships, workflows, config, security, code, fragments, saved queries, and errors. |
-| Control-plane GraphQL | Workflow/config/security/code actions through normal GraphJin roots when policy allows them. |
+| Control-plane GraphQL | Workflow/config/security/code actions through normal DeepORG roots when policy allows them. |
 
 Sources-mode MCP intentionally keeps the tool list small:
 
@@ -899,12 +899,12 @@ Models should treat MCP responses as guidance and the graph as evidence. A tool
 may recommend a next step, but the agent still grounds table names, column
 names, policy posture, workflow inputs, and code paths in GraphQL-visible rows.
 
-GraphJin can also run this whole loop for you — one instruction in, a typed,
+DeepORG can also run this whole loop for you — one instruction in, a typed,
 evidence-backed answer out. See [Server-Side Agent](#server-side-agent).
 
 ### Caller-Aware MCP Guidance
 
-GraphJin builds MCP servers from the current request or configured stdio
+DeepORG builds MCP servers from the current request or configured stdio
 identity. The model-visible MCP surface is therefore caller-aware: `tools/list`,
 `graphql_help`, and `query_catalog` reflect the caller's effective role, source
 mode status, visible tools, visible `gj_*` roots, blocked roots, catalog
@@ -1078,9 +1078,9 @@ query {
 }
 ```
 
-### Learn GraphJin Syntax In Context
+### Learn DeepORG Syntax In Context
 
-GraphJin GraphQL is its own DSL. Models should discover syntax from the same
+DeepORG GraphQL is its own DSL. Models should discover syntax from the same
 catalog they use for schema facts.
 
 ```graphql
@@ -1109,7 +1109,7 @@ query {
 
 ## `gj_security`: Policy Before Action
 
-`gj_security` is a read-only security report over GraphJin's effective posture.
+`gj_security` is a read-only security report over DeepORG's effective posture.
 Summary, policy, and finding rows all live under the same `gj_security` root.
 It is not the enforcement point and it is not mutated directly. It gives agents
 evidence before they request config, workflow, schema, filesystem, CodeSQL, or
@@ -1123,7 +1123,7 @@ other write-capable actions.
 | `policy` | One row per guarded capability/action. It compares the secure default for the active mode with the actual configured behavior. |
 | `finding` | A generated warning when current configuration weakens the secure default. |
 
-Effective policy means "what GraphJin will currently allow for this capability."
+Effective policy means "what DeepORG will currently allow for this capability."
 Each policy row includes:
 
 | Field | Meaning |
@@ -1136,10 +1136,10 @@ Each policy row includes:
 | `read_only` | True when the effective behavior is `read_only`. |
 | `override_key` | The config knob or permission that changed the behavior. |
 | `recommendation` | What a human or trusted agent should do if the posture is too open. |
-| `evidence_json` | The facts GraphJin used to produce the row. |
+| `evidence_json` | The facts DeepORG used to produce the row. |
 
 Findings are not a second API. They are `gj_security` rows where
-`kind: "finding"`. GraphJin creates them from policy rows that weaken the secure
+`kind: "finding"`. DeepORG creates them from policy rows that weaken the secure
 default, plus agentic-mode safety checks. Examples:
 
 - `mcp.allow_config_updates: true` can create a high finding because config
@@ -1166,7 +1166,7 @@ A high config-write finding can look like this:
 }
 ```
 
-GraphJin enforces through the actual guarded surfaces: production security,
+DeepORG enforces through the actual guarded surfaces: production security,
 allow-lists, source/table `read_only`, and MCP/config permissions. `gj_security`
 reports posture so the agent can plan safely; changing enforcement still happens
 through config, source permissions, workflow permissions, schema permissions, or
@@ -1475,7 +1475,7 @@ query {
 
 ### `gj_artifacts`: One Owner-Scoped Store
 
-Saved queries, fragments, workflows, and notes live in one GraphJin-managed SQL
+Saved queries, fragments, workflows, and notes live in one DeepORG-managed SQL
 store exposed through `gj_artifacts`. Two layers compose it:
 
 - **Config globals** (`artifacts.globals_path`, default `./config`): read-only
@@ -1552,7 +1552,7 @@ mutation {
 ```
 
 Caller notes use `gj_task_entry(insert: { task_id, body, detail_json })`.
-GraphJin writes `agent_run` entries for embedded-agent calls and
+DeepORG writes `agent_run` entries for embedded-agent calls and
 `watch_created` entries when a linked watch is created, and `verification`
 entries when a declared outcome check runs; origins, trace IDs,
 watch IDs, status, owner, and timestamps are server-managed. An open task can
@@ -1565,7 +1565,7 @@ Close a completed task with `status: "closed"` and an `outcome`. To require
 proof, add `verify_json` with an owner-resolvable `saved_query_name`, optional
 variables, an `expect` predicate (`empty`, `not_empty`, `count_le`, `count_ge`,
 `eq`, `neq`, `le`, or `ge`), and an optional one-shot `recheck` duration.
-GraphJin executes the saved query as the stored task owner; a pass closes the
+DeepORG executes the saved query as the stored task owner; a pass closes the
 task, while a failure leaves it open and adds a `task_verify_failed` notice.
 Delayed checks use `verifying` until the durable sweep records the result.
 Inline GraphQL and `condition_js` are not accepted. Reopening is allowed.
@@ -1618,7 +1618,7 @@ Durability semantics:
   ephemeral watches become `status: "expired"` and `enabled: false`; their
   events remain until retention cleanup.
 - **Evaluation is ready by default in parsed dev/agentic configs**:
-  `watches.runner` resolves to `"all"`, but GraphJin starts no application
+  `watches.runner` resolves to `"all"`, but DeepORG starts no application
   subscription until an enabled, active, approved watch exists. Set the runner
   to `"off"` to retain definitions without evaluating them. Production and
   direct Go configs retain the literal off default.
@@ -1651,7 +1651,7 @@ creates a standing pager.
 A row subscription cannot watch a number: aggregates and group-bys have no
 cursor, so `gj_watch` rejects them as subscriptions. To watch a count, sum or
 average, give the watch a `schedule`, a plain `query`, and a `metric`
-condition. GraphJin runs the query on every tick as the owner, the database
+condition. DeepORG runs the query on every tick as the owner, the database
 computes the aggregate, and the watch compares the number with its previous
 reading:
 
@@ -1711,7 +1711,7 @@ in an agent's chat, naming no thread, gets that agent filled in. If the agent is
 later deleted or unshared, routines fall back to the watch's own thread.
 
 A flow verdict of `digest` queues the member instead of waking immediately.
-`delivery_json.digest.window` controls when GraphJin drains same-watch noise
+`delivery_json.digest.window` controls when DeepORG drains same-watch noise
 into one unseen `data_json.kind: "digest"` event without another model call;
 the default is one hour when the block is absent.
 
@@ -1747,7 +1747,7 @@ opt-out, use the `recipe.config.enable_watches` config recipe.
 ## Config And Security Change Playbook
 
 Config changes are privileged actions. An agent must never invent a YAML shape
-from memory, paste secrets, or bypass GraphJin policy. It should discover the
+from memory, paste secrets, or bypass DeepORG policy. It should discover the
 local config surface, inspect policy, read redacted state, apply the smallest
 allowed update, and verify the new posture.
 
@@ -1930,7 +1930,7 @@ roles:
 ```
 
 Mutable user artifacts use `gj_artifacts`. In parsed `dev` and `agentic`
-configs, artifacts, tasks, and watches require no feature toggles: GraphJin uses its
+configs, artifacts, tasks, and watches require no feature toggles: DeepORG uses its
 private managed SQLite store and runs approved watches on the local replica.
 Only configure a source when the store must be shared across replicas:
 
@@ -2005,13 +2005,13 @@ Current behavior gives models enough to operate safely:
 - Current `gj_config.update` support is limited to implemented update fields
   such as `source_patches`, `sources`, `roles`, `relationships`, `databases`,
   `tables`, `blocklist`, `functions`, and `mcp`. Prefer `source_patches` for
-  source access and GraphJin root policy so the model patches one source by
+  source access and DeepORG root policy so the model patches one source by
   exact name while preserving unmentioned fields.
 
 The current hardening layer makes config changes explicit:
 
 - `config_recipe` catalog rows for add-role, identity claims, source access,
-  table classifications, GraphJin roots, artifacts, and legacy migration.
+  table classifications, DeepORG roots, artifacts, and legacy migration.
 - Recipe fields such as `intent_examples`, `preflight`, `apply`,
   `unsupported_apply`, `verify`, `stop_conditions`, and `forbidden_patterns`.
 - Machine-actionable errors with `next_action`, for example pointing
@@ -2022,19 +2022,19 @@ The current hardening layer makes config changes explicit:
 
 ## Sources In The Agentic Story
 
-Agentic GraphJin does not make agents switch mental models for each source.
+Agentic DeepORG does not make agents switch mental models for each source.
 Different systems keep their native ownership, but the agent reaches them
 through the same graph language.
 
 | Source type | Agent-facing behavior |
 | :--- | :--- |
-| SQL databases | GraphJin compiles GraphQL into dialect-specific SQL. Schema metadata feeds `gj_catalog`. |
-| MongoDB | GraphJin emits a JSON DSL that becomes aggregation pipelines. Collections participate as graph roots. |
+| SQL databases | DeepORG compiles GraphQL into dialect-specific SQL. Schema metadata feeds `gj_catalog`. |
+| MongoDB | DeepORG emits a JSON DSL that becomes aggregation pipelines. Collections participate as graph roots. |
 | OpenAPI sources | GET operations become table-like query surfaces. Explicitly enabled writes become single-root `call` mutations; caller-visible `api_operation` catalog rows include source, shape, risk, and effective policy. |
 | Remote API resolvers | Remote API calls attach to graph fields while preserving that the data comes from an external service. |
 | Filesystem/object sources | Local directories, S3, GCS, and similar backends expose key/size/content-type/etag/modified/url/data-shaped virtual tables. |
 | CodeSQL sources | Source trees become queryable code databases, projected to agents through `gj_code`. |
-| GraphJin system source | The control-plane graph exposes catalog, security, workflows, config, and compact system state. |
+| DeepORG system source | The control-plane graph exposes catalog, security, workflows, config, and compact system state. |
 
 This is why `gj_catalog` is the first stop. It tells the agent what kind of
 surface it is touching before the agent chooses a query, mutation, workflow, or
@@ -2043,7 +2043,7 @@ edit path.
 OpenAPI mutation discovery is caller-scoped. An operation is omitted when the
 source capability, source access mode, operation `allowed_roles`, source
 `read_only`, `mcp.allow_mutations`, or `agent.read_only` policy blocks that
-caller. Discovery is only a preflight: the GraphJin core repeats source and
+caller. Discovery is only a preflight: the DeepORG core repeats source and
 operation authorization at execution time, including for saved queries and
 workflows. The model supplies the declared `call` data; the server owns the
 HTTP method, destination, authentication, validation, limits, and no-retry
@@ -2052,7 +2052,7 @@ cannot replay the write or relocate it outside the configured base URL.
 
 ## Model-Facing Prompt Contract
 
-The prompt that teaches models to use GraphJin is not one giant static string.
+The prompt that teaches models to use DeepORG is not one giant static string.
 It is a layered contract:
 
 - MCP server instructions define the catalog-first operating loop and the
@@ -2088,7 +2088,7 @@ The stable model instructions are:
 7. Check `gj_security` before config, workflow, schema, filesystem, CodeSQL, or
    other write-capable actions.
 8. Check `gj_runtime` before config, workflow, or schema actions and after
-   GraphJin errors.
+   DeepORG errors.
 9. Validate filters with the validation surface when column types, operators, or
    real values matter.
 10. Prefer workflows for broad or repeatable data work after discovery.
@@ -2122,7 +2122,7 @@ intent
 
 ### Cold Start Example: "How Many Sales Did We Have Last Week?"
 
-Assume a model knows nothing about GraphJin except the sources-mode MCP tools
+Assume a model knows nothing about DeepORG except the sources-mode MCP tools
 in its prompt:
 
 ```text
@@ -2482,10 +2482,10 @@ gj_code(where: { kind: { eq: "db_reference" } }) { ... }
 ### Preserve Source Boundaries
 
 One graph does not mean one storage system. Databases, APIs, files, code, config,
-security posture, and workflows each keep their ownership model. GraphJin makes
+security posture, and workflows each keep their ownership model. DeepORG makes
 the boundaries visible and traversable.
 
-### Prefer GraphJin's Own Verbs
+### Prefer DeepORG's Own Verbs
 
 Use saved queries, workflows, guarded config mutations, validation tools, query
 repair, CodeSQL previews, and security checks. The point is not to make agents
@@ -2530,7 +2530,7 @@ evidence, safety metadata, and the bootstrap prompt.
 
 ## What Success Looks Like
 
-An agent using GraphJin should be able to answer these questions through one
+An agent using DeepORG should be able to answer these questions through one
 composable surface:
 
 - What data, APIs, files, code, workflows, config, and capabilities exist?
@@ -2540,9 +2540,9 @@ composable surface:
 - Which security findings or policy rows matter before action?
 - Which code paths touch this table or column?
 - Which workflow already does this?
-- What GraphJin syntax should I use here?
+- What DeepORG syntax should I use here?
 - What is the smallest safe action I can take next?
 
-That is the point of Agentic GraphJin: the model does not merely receive a
+That is the point of Agentic DeepORG: the model does not merely receive a
 prompt. It enters a graph of what it may see, discovers evidence, acts through explicit
 boundaries, and keeps humans and agents on the same map.

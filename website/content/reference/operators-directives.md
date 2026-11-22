@@ -1,6 +1,6 @@
 ---
 title: "Operators And Directives"
-description: "Quick reference for GraphJin filter operators, directives, JSON operators, and expression surfaces."
+description: "Quick reference for DeepORG filter operators, directives, JSON operators, and expression surfaces."
 nav_group: "reference"
 doc_kind: "reference"
 weight: 30
@@ -58,7 +58,7 @@ query($label: String) {
 | Custom list | `order_by: { id: [$ids, "asc"] }` |
 | Null placement | `order_by: { price: { dir: desc, nulls: last } }` |
 
-Cursor values are opaque and must come from GraphJin. Do not hardcode cursor prefixes.
+Cursor values are opaque and must come from DeepORG. Do not hardcode cursor prefixes.
 
 ## Aggregates and expressions
 
@@ -100,7 +100,7 @@ query {
 
 ## Analytics directives and GraphQL directives
 
-GraphJin supports GraphQL conditional directives plus GraphJin-specific directives.
+DeepORG supports GraphQL conditional directives plus DeepORG-specific directives.
 
 | Directive | Use |
 | --- | --- |

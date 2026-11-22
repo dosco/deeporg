@@ -71,9 +71,9 @@ Duplicate root keys across database results fail instead of silently overwriting
 
 ## Nested database joins
 
-GraphJin can reason about tables from multiple configured databases and keep query/cache identity scoped by database.
+DeepORG can reason about tables from multiple configured databases and keep query/cache identity scoped by database.
 
-When a nested relationship crosses a database boundary, GraphJin does not attempt to emit one impossible SQL statement. It:
+When a nested relationship crosses a database boundary, DeepORG does not attempt to emit one impossible SQL statement. It:
 
 1. fetches the parent rows,
 2. extracts the parent join key from the JSON result,

@@ -1,16 +1,16 @@
 ---
 title: "Server-Side Agent"
-description: "Let GraphJin run the catalog-first discovery loop for you and return a typed answer through one MCP tool and one REST endpoint."
+description: "Let DeepORG run the catalog-first discovery loop for you and return a typed answer through one MCP tool and one REST endpoint."
 nav_group: "agentic"
 doc_kind: "guide"
 weight: 5
 ---
 
-GraphJin's built-in agent - the server-side agent - runs the catalog-first discovery loop **inside GraphJin** and exposes it as a single MCP tool, `ask_graphjin_agent`, and a single REST endpoint, `POST /api/v1/agent`. Instead of your client chaining `query_catalog` → `query_catalog(id)` → `validate_where_clause` → `execute_saved_query` itself, you send one instruction and GraphJin discovers, validates, executes, and returns a typed, evidence-backed answer.
+DeepORG's built-in agent - the server-side agent - runs the catalog-first discovery loop **inside DeepORG** and exposes it as a single MCP tool, `ask_graphjin_agent`, and a single REST endpoint, `POST /api/v1/agent`. Instead of your client chaining `query_catalog` → `query_catalog(id)` → `validate_where_clause` → `execute_saved_query` itself, you send one instruction and DeepORG discovers, validates, executes, and returns a typed, evidence-backed answer.
 
 With `agent.lead.enabled` on (the default in `dev` and `agentic` modes), every call runs the [lead agent](/agentic/lead-agent/), which holds the conversation, your skills, and your memories, and sends this loop self-contained questions. This page describes the data worker behind it.
 
-It is enabled by default in `dev` and `agentic` modes. Use it when you want GraphJin to orchestrate discovery in one caller-scoped, auditable call; use the [MCP tools](/agentic/mcp/) directly when you want to drive the loop step by step yourself. Production mode keeps its existing opt-in behavior.
+It is enabled by default in `dev` and `agentic` modes. Use it when you want DeepORG to orchestrate discovery in one caller-scoped, auditable call; use the [MCP tools](/agentic/mcp/) directly when you want to drive the loop step by step yourself. Production mode keeps its existing opt-in behavior.
 
 ## Try it in five minutes
 
@@ -39,7 +39,7 @@ verification, and annotation-draft notices link directly into
 
 More verticals - a zero-Docker SaaS ops demo, a corrugated-box plant with JWT roles, a PCB fab spanning eight sources - are on the [demos page](/start/demos/).
 
-Once the agent answers a useful question, use [GraphJin Eval](/agentic/evaluation/)
+Once the agent answers a useful question, use [DeepORG Eval](/agentic/evaluation/)
 to turn that confidence into a repeatable release check. It verifies the answer,
 the database-side method, the required behavior, and safety across repeated runs.
 The same contract is published across vendors in [DeepORG](/benchmarks/deeporg/).
@@ -64,16 +64,16 @@ See the [Config Reference](/reference/config-reference/) for all options.
 
 ## How it works
 
-The agent is an RLM (reasoning-with-code) loop, not a tool-calling loop. The model **writes JavaScript** that calls the discovery and execution tools as runtime globals inside a sandbox — `query_catalog({...})`, `graphql_help({...})`, `validate_where_clause({...})`, `execute_graphql({...})`, and `final({...})`. Saved queries appear in the catalog as approved definitions: the agent reads one and runs its GraphQL, or its own adaptation, through `execute_graphql`. GraphJin runs that code, feeds results back, and the typed result is parsed from the model's `key: value` output. The sandbox is goja, a JavaScript interpreter embedded in the GraphJin process - no external runtime is involved.
+The agent is an RLM (reasoning-with-code) loop, not a tool-calling loop. The model **writes JavaScript** that calls the discovery and execution tools as runtime globals inside a sandbox — `query_catalog({...})`, `graphql_help({...})`, `validate_where_clause({...})`, `execute_graphql({...})`, and `final({...})`. Saved queries appear in the catalog as approved definitions: the agent reads one and runs its GraphQL, or its own adaptation, through `execute_graphql`. DeepORG runs that code, feeds results back, and the typed result is parsed from the model's `key: value` output. The sandbox is goja, a JavaScript interpreter embedded in the DeepORG process - no external runtime is involved.
 
-This means the model must be **good at code generation** and follow the typed output contract. It does not need provider function-calling. Ax requests structured JSON for each typed stage; GraphJin uses strict `json_schema` by default and offers a `json_object` compatibility mode for OpenAI-compatible endpoints whose strict decoder is unreliable (see [OpenAI-compatible endpoints](#openai-compatible-endpoints)).
+This means the model must be **good at code generation** and follow the typed output contract. It does not need provider function-calling. Ax requests structured JSON for each typed stage; DeepORG uses strict `json_schema` by default and offers a `json_object` compatibility mode for OpenAI-compatible endpoints whose strict decoder is unreliable (see [OpenAI-compatible endpoints](#openai-compatible-endpoints)).
 
 Every answer is grounded in observed evidence. Go-side protocol guards enforce the catalog-first contract — for example a write may only run after the target table's detail has been inspected — and downgrade an `answered` result to `blocked` (with evidence) when a required step was skipped. Models cannot talk their way past the guards; only real tool results count.
 
 ### Semantic-aware catalog exploration
 
 When [semantic catalog search](/configure/discovery-semantic-search/) initializes
-successfully, GraphJin adds private search guidance to the RLM prompt. The
+successfully, DeepORG adds private search guidance to the RLM prompt. The
 automatic first step stays exactly the same: the full user instruction is sent
 to `query_catalog` with explanations before the model runs. The added guidance
 tells the agent to formulate short business-intent phrases, treat similarity
@@ -82,7 +82,7 @@ relationship paths as join evidence.
 
 If that seed is missing an endpoint, verified path, or required column detail,
 or is empty or materially ambiguous, the agent may use one private coverage
-batch containing two or three diversified phrases. GraphJin embeds all cache
+batch containing two or three diversified phrases. DeepORG embeds all cache
 misses in one Ax request and ranks the phrases independently; it does not gain
 breadth from concurrent tool calls. Exact identifiers stay pinned, one result
 per phrase is reserved for coverage, and real caller-visible relationship paths
@@ -111,7 +111,7 @@ The agent is caller-aware. From the request's identity it derives a capability p
 
 There is no lexical router, embedding search, skill catalog, search callback, or skill-discovery turn. Global read-only posture removes every write guide. Workflow, watch, and admin guides are included only when their roots are visible; admin guides also require the admin role. Multi-domain requests can use more than one preloaded guide.
 
-Skills only shape the guidance the model sees. **They never grant access.** GraphJin core roles and row-level security remain authoritative, and protocol preflight enforces mutation shape, security/runtime evidence, and workflow detail before execution. Ax's `used(...)` primitive supplies self-reported usage telemetry; it cannot change authorization.
+Skills only shape the guidance the model sees. **They never grant access.** DeepORG core roles and row-level security remain authoritative, and protocol preflight enforces mutation shape, security/runtime evidence, and workflow detail before execution. Ax's `used(...)` primitive supplies self-reported usage telemetry; it cannot change authorization.
 
 For standing requests, the watch skills apply the two-axis decision in [Choosing Watches, Flows, and Workflows](/agentic/watch-automation/): deterministic versus semantic/noisy, and notification versus an explicitly requested action. The agent may propose an action watch, but a protocol guard prevents it from creating/changing and approving that autonomous action in the same run.
 
@@ -122,7 +122,7 @@ For standing requests, the watch skills apply the two-axis decision in [Choosing
 
 Request fields: `instruction` (required), and optional `context`, `namespace`, `task_id`, `max_steps`, `return_trace`. A retained open or verifying [declared task](/agentic/tasks/) warm-starts the request and journals its result; it never grants access or satisfies evidence guards.
 
-Response fields: `status` (`answered` | `needs_clarification` | `blocked` | `error`), `answer`, and optional `skills`, `skill`, `data`, `evidence`, `actions`, `next`, `refusal`, `notices`, `errors`, `usage`, `trace`, `trace_id`. `skills` contains the guides Ax reported through `used(...)`; deprecated `skill` is the first used ID through v3. `usage` is derived from Ax `GetUsage()` plus its merged stage chat logs and includes provider-neutral prompt, completion, total-token, and model-call counts when the provider reports them. GraphJin also writes those aggregate counts to the structured `GraphJin agent usage` log and agent trace attributes; prompts and answers are never added to that usage log.
+Response fields: `status` (`answered` | `needs_clarification` | `blocked` | `error`), `answer`, and optional `skills`, `skill`, `data`, `evidence`, `actions`, `next`, `refusal`, `notices`, `errors`, `usage`, `trace`, `trace_id`. `skills` contains the guides Ax reported through `used(...)`; deprecated `skill` is the first used ID through v3. `usage` is derived from Ax `GetUsage()` plus its merged stage chat logs and includes provider-neutral prompt, completion, total-token, and model-call counts when the provider reports them. DeepORG also writes those aggregate counts to the structured `GraphJin agent usage` log and agent trace attributes; prompts and answers are never added to that usage log.
 
 ### REST
 
@@ -159,7 +159,7 @@ A `blocked` response is machine-actionable, not prose. It carries a `refusal` ob
 
 {{< verified by="TestAutonomyRunsAllowedWritesAndRecordsThem" file="serv/approvals_test.go" >}}
 
-A proposed change can carry `expect`: a read query, the number to read from it, and what that number should do within a window. GraphJin measures it before the change, checks it again once the change has run and the window has passed, records `hit` or `miss`, notifies the owner, and on a miss starts a turn so the agent can look into it. `GET /api/v1/agent/reliability` tallies how the caller's changes turned out, per routine, saved agent and kind of change.
+A proposed change can carry `expect`: a read query, the number to read from it, and what that number should do within a window. DeepORG measures it before the change, checks it again once the change has run and the window has passed, records `hit` or `miss`, notifies the owner, and on a miss starts a turn so the agent can look into it. `GET /api/v1/agent/reliability` tallies how the caller's changes turned out, per routine, saved agent and kind of change.
 
 {{< verified by="TestApprovedChangeIsCheckedAgainstItsExpectation" file="serv/outcomes_test.go" >}}
 
@@ -185,7 +185,7 @@ An answered reply carries `display`, built from the compiled query and the schem
 
 ## Write approvals
 
-With `agent.write_approval: required`, the default in agentic mode, the agent never changes application data or calls a write API on its own. GraphJin dry-runs the write in a transaction it rolls back, stores it as a pending approval, and replies `status: "needs_approval"` with an `approval` object: `id`, `hash`, a one-line `summary`, the exact `query` and `variables`, a `preview` of the rows it would change, and `expires_at`. The answer is GraphJin's own sentence saying nothing has changed yet. The user then approves or rejects it with `gj_approval(where: { id: { eq: "..." } }, update: { decision: "approve", expected_hash: "..." })` or `POST /api/v1/agent/approvals/{id}`, and only that exact query runs, once, as the person who asked. The agent itself can never write `gj_approval`. Sources a dry run would really affect, such as APIs, NanoDB and warehouses, are held without a preview.
+With `agent.write_approval: required`, the default in agentic mode, the agent never changes application data or calls a write API on its own. DeepORG dry-runs the write in a transaction it rolls back, stores it as a pending approval, and replies `status: "needs_approval"` with an `approval` object: `id`, `hash`, a one-line `summary`, the exact `query` and `variables`, a `preview` of the rows it would change, and `expires_at`. The answer is DeepORG's own sentence saying nothing has changed yet. The user then approves or rejects it with `gj_approval(where: { id: { eq: "..." } }, update: { decision: "approve", expected_hash: "..." })` or `POST /api/v1/agent/approvals/{id}`, and only that exact query runs, once, as the person who asked. The agent itself can never write `gj_approval`. Sources a dry run would really affect, such as APIs, NanoDB and warehouses, are held without a preview.
 
 {{< verified by="TestDecideApprovalRunsTheExactWriteOnce" file="serv/approvals_test.go" >}}
 {{< verified by="TestApprovalHoldsTheWriteAndTheEngineWritesTheAnswer" file="agent/approval_test.go" >}}
@@ -208,7 +208,7 @@ When the caller has unreviewed [watch events](/agentic/watches/), agent response
 
 ## Server-owned model selection
 
-GraphJin always uses the provider, model, and credential environment variable
+DeepORG always uses the provider, model, and credential environment variable
 configured under `agent`. If the configured credential is missing,
 `ask_graphjin_agent` fails closed with `model_credentials_required`; REST
 reports the same missing-credentials state, and a watch flow delivers its raw
@@ -234,7 +234,7 @@ agent:
 
 Because the loop is driven by generated code rather than provider tool-calling, the practical requirement is a model that codegens well — not one with native function-calling support.
 
-`agent.provider` names an Ax **deployment profile**, and `agent.model` selects a model within it. The profile owns the endpoint, authentication, capabilities, and per-model rules, so pointing GraphJin at a different deployment is a configuration change rather than a code change:
+`agent.provider` names an Ax **deployment profile**, and `agent.model` selects a model within it. The profile owns the endpoint, authentication, capabilities, and per-model rules, so pointing DeepORG at a different deployment is a configuration change rather than a code change:
 
 ```yaml
 agent:
@@ -370,19 +370,19 @@ remain compatibility aliases. The requested tier is included in agent status
 and evaluation provenance; `auto` continues to delegate the applied tier to the
 provider.
 
-**Migration note.** Ax 24 separates the official `openai` profile from the conservative `openai-compatible` one. If you point GraphJin at a third-party OpenAI-compatible endpoint, use `provider: openai-compatible` so it inherits that deployment's capabilities rather than OpenAI's. The deprecated `agent.response_format` still works: `json_schema` maps to `native`, `json_object` to `json_object`.
+**Migration note.** Ax 24 separates the official `openai` profile from the conservative `openai-compatible` one. If you point DeepORG at a third-party OpenAI-compatible endpoint, use `provider: openai-compatible` so it inherits that deployment's capabilities rather than OpenAI's. The deprecated `agent.response_format` still works: `json_schema` maps to `native`, `json_object` to `json_object`.
 
 ## Provider rate limits
 
 `agent.rate_limit` limits outbound Ax model calls and is separate from the
-top-level `rate_limiter` that protects inbound GraphJin HTTP traffic. Both
+top-level `rate_limiter` that protects inbound DeepORG HTTP traffic. Both
 `requests_per_minute` and `tokens_per_minute` are optional; zero or omission
 disables that dimension. The rolling-minute allowance is shared by the REST and
-MCP agent and watch flows inside one GraphJin process.
+MCP agent and watch flows inside one DeepORG process.
 Use `GJ_AGENT_RATE_LIMIT_REQUESTS_PER_MINUTE` and
 `GJ_AGENT_RATE_LIMIT_TOKENS_PER_MINUTE` for environment-only deployments (`SG_`
 and `SJ_` remain compatibility aliases).
-Divide the provider allowance across GraphJin replicas when scaling
+Divide the provider allowance across DeepORG replicas when scaling
 horizontally.
 
 Calls wait for capacity while honoring `agent.timeout_seconds` and request
@@ -395,7 +395,7 @@ Semantic catalog embeddings remain controlled by their separate
 
 ## When to use it
 
-- **Use the server-side agent** to hand GraphJin a goal and get a typed answer in one call, with discovery, validation, and guardrails handled server-side and scoped to the caller.
+- **Use the server-side agent** to hand DeepORG a goal and get a typed answer in one call, with discovery, validation, and guardrails handled server-side and scoped to the caller.
 - **Use [MCP tools](/agentic/mcp/) directly** when your own agent should own the loop and make each discovery/execution decision itself.
 
 The agent can also manage configuration: it discovers config recipes and applies changes through the same preview → apply machinery as the engine settings. See [How Configuration Works](/configure/how-it-works/) for the full picture, including which server settings apply live versus needing a restart.

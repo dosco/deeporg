@@ -1,6 +1,6 @@
 ---
 title: "Troubleshooting"
-description: "Common GraphJin debugging paths for ordering, auth, production mode, MCP, OpenAPI, and dialect support."
+description: "Common DeepORG debugging paths for ordering, auth, production mode, MCP, OpenAPI, and dialect support."
 nav_group: "reference"
 doc_kind: "reference"
 weight: 40
@@ -42,13 +42,13 @@ query {
 
 ## OpenAPI operation is missing
 
-Check boot logs. GraphJin skips unsupported operation shapes such as mutating verbs, binary responses, unsupported auth, and ambiguous path parameters unless explicitly configured.
+Check boot logs. DeepORG skips unsupported operation shapes such as mutating verbs, binary responses, unsupported auth, and ambiguous path parameters unless explicitly configured.
 
 Confirm the operation has an `operationId`, a JSON success response, supported auth, and a classifiable path or explicit operation override.
 
 ## Cursor pagination hangs or repeats rows
 
-Treat cursors as opaque. Use the returned cursor string or the MCP cursor ID. Do not hardcode `gj-`, `__gj-enc:`, or any cursor prefix; GraphJin uses a dynamic security prefix and encrypted cursor recognition depends on it.
+Treat cursors as opaque. Use the returned cursor string or the MCP cursor ID. Do not hardcode `gj-`, `__gj-enc:`, or any cursor prefix; DeepORG uses a dynamic security prefix and encrypted cursor recognition depends on it.
 
 Also verify that the cursor field is requested at the same root level as the list:
 

@@ -1,9 +1,9 @@
-# GraphJin Security
+# DeepORG Security
 
-This document describes GraphJin's security model for operators and teams
-running GraphJin in multi-user, account-scoped, or agentic environments.
+This document describes DeepORG's security model for operators and teams
+running DeepORG in multi-user, account-scoped, or agentic environments.
 
-GraphJin is a compiler: it turns GraphQL into database queries. It is not a
+DeepORG is a compiler: it turns GraphQL into database queries. It is not a
 resolver framework where every field is guarded by custom application code.
 For SQL databases, authorization must therefore be resolved before and during
 query compilation, then enforced by the generated qcode/SQL path.
@@ -28,7 +28,7 @@ start the investigation.
 
 ## Security Model Overview
 
-Source mode is GraphJin's secure multi-user configuration model. Source mode is
+Source mode is DeepORG's secure multi-user configuration model. Source mode is
 enabled when `sources:` is present in configuration.
 
 In source mode:
@@ -37,7 +37,7 @@ In source mode:
   context, usually JWT claims plus optional identity enrichment.
 - Source access is declared once at the source level, with small table/root
   classifications for exceptions.
-- GraphJin generates internal role table rules from source access. Users should
+- DeepORG generates internal role table rules from source access. Users should
   not hand-write low-level `roles[].tables` filters and presets in source mode.
 - The existing qcode/SQL compiler remains the enforcement path.
 - Client variables are not trusted for identity fields such as `$account_id` or
@@ -56,7 +56,7 @@ query_catalog(search: "<user instruction>")
 ```
 
 The best result should usually be a `config_recipe` row for roles, identity,
-source access, table classifications, artifacts, GraphJin system roots, or
+source access, table classifications, artifacts, DeepORG system roots, or
 legacy `roles[].tables` migration. Inspect it with `query_catalog(id: "...")`
 before reading `gj_config` or attempting a `gj_config(id: "current", update: ...)`
 mutation. Use `graphql_help(for: "discovery")` only when the user intent is
@@ -71,7 +71,7 @@ authenticated/admin access instead of guessing schema or policy.
 
 ## Operating Modes
 
-GraphJin runs in one of three operating modes. The mode sets safe defaults and
+DeepORG runs in one of three operating modes. The mode sets safe defaults and
 decides whether the agentic surface exists at all. The agentic surface is the
 catalog, artifacts persistence, workflows, code source, the
 `gj_config`/`gj_security`/`gj_runtime` control-plane roots, the MCP server, and
@@ -94,7 +94,7 @@ off and never mounts — the catalog, artifacts persistence, workflows, code
 source, the `gj_config`/`gj_security`/`gj_runtime` roots, the MCP server, and
 the agent are all disabled even if they are explicitly enabled in
 configuration. When a prod config explicitly enables one of these subsystems,
-GraphJin logs a startup warning rather than silently honoring it. Artifacts
+DeepORG logs a startup warning rather than silently honoring it. Artifacts
 persistence is force-disabled in prod: no saved queries, fragments, or
 workflows are written to a database.
 
@@ -125,7 +125,7 @@ Mode selection and safe defaults:
 
 ## Source Mode And Legacy Mode
 
-`sources:` changes GraphJin into source mode. In that mode, old top-level
+`sources:` changes DeepORG into source mode. In that mode, old top-level
 database, filesystem, OpenAPI, metadata, catalog, and table-access sections are
 treated as legacy configuration and should be moved under `sources`.
 
@@ -290,7 +290,7 @@ Admin roles bypass generated row filters by default, but not explicitly blocked
 tables or roots.
 
 If `missing_namespace_column: allow` is set, an account-mode table without the
-namespace column cannot be safely account-filtered. GraphJin treats that table
+namespace column cannot be safely account-filtered. DeepORG treats that table
 as authenticated but unscoped and reports the posture through `gj_security`.
 Prefer the default `block` behavior.
 
@@ -337,12 +337,12 @@ The generated mutation presets overwrite client-supplied namespace values with
 trusted identity context. A caller cannot write another account's
 `account_id` by passing it as a GraphQL variable or input field.
 
-For `delete: account`, GraphJin generates a delete filter. It does not generate
+For `delete: account`, DeepORG generates a delete filter. It does not generate
 a delete preset because deletes do not create or rewrite row values.
 
-## GraphJin System Roots
+## DeepORG System Roots
 
-GraphJin system roots are built-in features. They exist only when
+DeepORG system roots are built-in features. They exist only when
 the agentic surface is on — that is, in `dev` and `agentic` mode. In `prod` the
 entire set is gated off and none of these roots mount, regardless of
 configuration (see [Operating Modes](#operating-modes)).
@@ -392,7 +392,7 @@ filters, using the same filter/preset machinery as database tables. Previously,
 per-row scoping.
 
 The state behind these roots (artifacts, tasks, task entries, watches, watch events, revisions) is
-itself read and written through GraphJin's own engine under the reserved
+itself read and written through DeepORG's own engine under the reserved
 `__graphjin_internal_store` role. That role is not assumable by callers: it
 activates only via a non-forgeable in-process marker, and role resolution
 rejects it from requests, JWTs, and headers.
@@ -442,7 +442,7 @@ Logical artifact tables are:
 - `_graphjin.task_entries`
 
 SQL dialects without schemas may use equivalent prefixed physical table names,
-but operators should treat them as GraphJin-managed tables under the configured
+but operators should treat them as DeepORG-managed tables under the configured
 artifact schema.
 
 Artifact behavior:
@@ -473,7 +473,7 @@ Artifact behavior:
 
 ## Visibility And Discovery
 
-GraphJin may discover blocked or admin-only tables internally so it can produce
+DeepORG may discover blocked or admin-only tables internally so it can produce
 security evidence and detect broken posture. Unauthorized callers should not see
 those resources in normal discovery.
 
@@ -581,7 +581,7 @@ This example starts with account-scoped reads, blocks writes/deletes by default,
 keeps reference tables public, hides internal tables, keeps the
 `gj_config`/`gj_security`/`gj_runtime` control-plane roots admin-only, scopes
 `gj_artifacts`, `gj_task`, and `gj_workflow` per-owner, gates `gj_code` write to admin by
-default, and stores mutable artifacts in GraphJin-managed SQL tables. Because it
+default, and stores mutable artifacts in DeepORG-managed SQL tables. Because it
 runs in `agentic` mode, verified JWT auth is required — `auth.development: true`
 would be refused at startup.
 
@@ -606,7 +606,7 @@ two-step: first run `mode: "preview"` with `expected_catalog_revision`, then
 resend the exact same payload with `mode: "apply"` and the returned
 `preview_id`. Preview IDs are bounded in memory, expire after 10 minutes, and
 store only a patch hash, base catalog revision, expiry, and redacted summaries.
-Source access and GraphJin root policy changes should use `source_patches` by
+Source access and DeepORG root policy changes should use `source_patches` by
 exact source name so unmentioned source fields are preserved automatically.
 Top-level `identity` and `artifacts` changes still require direct config-file
 edits or future mutation support.
@@ -660,5 +660,5 @@ GOCACHE=/tmp/go-build go test ./auth ./core ./serv
 
 Some local sandboxes do not allow `httptest` loopback listeners. If a full Go
 test run fails only with `listen tcp6 [::1]:0: bind: operation not permitted`,
-rerun in an environment with local networking before treating it as a GraphJin
+rerun in an environment with local networking before treating it as a DeepORG
 regression.

@@ -8,7 +8,7 @@ weight: 80
 
 ## Transport
 
-GraphJin supports subscription clients over WebSocket and SSE. The subscription query still goes through authentication, role matching, query compilation, saved-query policy, and cursor handling.
+DeepORG supports subscription clients over WebSocket and SSE. The subscription query still goes through authentication, role matching, query compilation, saved-query policy, and cursor handling.
 
 {{< svg "subscriptions-transport" "Subscription transports" >}}
 
@@ -27,7 +27,7 @@ subscription {
 
 ## Cursor resume
 
-Subscriptions use the same cursor machinery as queries. The client requests a cursor field, stores the cursor GraphJin returns, and sends it back as a variable on reconnect or the next poll.
+Subscriptions use the same cursor machinery as queries. The client requests a cursor field, stores the cursor DeepORG returns, and sends it back as a variable on reconnect or the next poll.
 
 ```graphql
 subscription LiveChats($chats_cursor: Cursor) {
@@ -49,9 +49,9 @@ Cursor fields are root-level fields such as `chats_cursor`; they are not nested 
 
 ## Dynamic security prefix
 
-Subscription cursors must use GraphJin's dynamic security prefix. Hardcoding cursor prefixes can make clients hang because encrypted cursor recognition fails.
+Subscription cursors must use DeepORG's dynamic security prefix. Hardcoding cursor prefixes can make clients hang because encrypted cursor recognition fails.
 
-The prefix is generated from the active GraphJin security context, for example a timestamp-based `gj-...:` value. Clients must treat the whole cursor as opaque. Do not build a cursor string yourself, do not strip or hardcode `gj-`, and do not assume MCP's LLM-friendly `__gj-enc:` cache representation is the underlying GraphQL cursor.
+The prefix is generated from the active DeepORG security context, for example a timestamp-based `gj-...:` value. Clients must treat the whole cursor as opaque. Do not build a cursor string yourself, do not strip or hardcode `gj-`, and do not assume MCP's LLM-friendly `__gj-enc:` cache representation is the underlying GraphQL cursor.
 
 Do not hardcode any cursor prefix in a client or subscription resume implementation.
 
@@ -60,7 +60,7 @@ Do not hardcode any cursor prefix in a client or subscription resume implementat
 
 ## MCP cursor IDs
 
-MCP can replace long encrypted cursors in tool output with short numeric IDs backed by an in-memory or Redis cursor cache. The next MCP request can pass that numeric ID in a cursor variable, and GraphJin expands it back to the original encrypted cursor before execution.
+MCP can replace long encrypted cursors in tool output with short numeric IDs backed by an in-memory or Redis cursor cache. The next MCP request can pass that numeric ID in a cursor variable, and DeepORG expands it back to the original encrypted cursor before execution.
 
 ```json
 {

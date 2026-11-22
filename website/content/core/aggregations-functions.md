@@ -8,7 +8,7 @@ weight: 60
 
 ## Aggregate fields
 
-GraphJin exposes aggregate fields by prefixing a column with the aggregate name.
+DeepORG exposes aggregate fields by prefixing a column with the aggregate name.
 
 | Field shape | Meaning |
 | --- | --- |
@@ -30,7 +30,7 @@ query {
 
 {{< verified by="Example_queryWithAggregation" file="tests/query_test.go" line="769" >}}
 
-If a select contains only aggregates and no `distinct`, GraphJin returns a single global aggregate row instead of a page of per-row aggregate values.
+If a select contains only aggregates and no `distinct`, DeepORG returns a single global aggregate row instead of a page of per-row aggregate values.
 
 {{< verified by="Example_queryWithGlobalAggBrokenMdFix" file="tests/query_test.go" line="2508" >}}
 
@@ -52,7 +52,7 @@ query {
 }
 ```
 
-Grouped queries still follow SQL grouping rules. If a nested join would require a non-grouped foreign key, GraphJin should reject the ambiguous shape instead of emitting broken SQL; root the query at the dimension table when you need a nested object per group.
+Grouped queries still follow SQL grouping rules. If a nested join would require a non-grouped foreign key, DeepORG should reject the ambiguous shape instead of emitting broken SQL; root the query at the dimension table when you need a nested object per group.
 
 {{< verified by="TestStage3_DistinctAggregateNestedJoinThroughNonDistinctColumn" file="tests/query_test.go" line="2548" >}}
 

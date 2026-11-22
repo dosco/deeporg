@@ -59,7 +59,7 @@ sources:
 ```
 
 The trusted host resolves the signed-in user's access token and sends it in
-`X-Google-Workspace-Token` on each GraphQL or HTTP MCP request. GraphJin's own
+`X-Google-Workspace-Token` on each GraphQL or HTTP MCP request. DeepORG's own
 `Authorization` header continues to authenticate the caller independently.
 Only credential headers explicitly named by configuration are made available to
 OpenAPI authentication. Do not expose account selection or tokens as GraphQL
@@ -75,7 +75,7 @@ user can never fall back to a deployment account. API-key auth also supports
 Personal API fragments are not cached or refreshed in the background. HTTP
 responses on deployments with request-token sources use `private, no-store`.
 Subscriptions to these sources are rejected: scheduled jobs must issue a new
-query with freshly resolved credentials. GraphJin does not persist or refresh
+query with freshly resolved credentials. DeepORG does not persist or refresh
 these tokens; OAuth consent, ownership checks, and refresh remain host duties.
 Go embedders can use `openapi.WithRequestHeaders(ctx, headers)`; the headers are
 copied and remain usable only while the original context is active.
@@ -133,7 +133,7 @@ query ($id: ID!) {
 Top-level operations appear as virtual root fields when classified or explicitly exposed. Unsupported operations are skipped with boot-time diagnostics instead of half-registering a broken field.
 
 OpenAPI list roots and row-join objects accept the common `where`, `order_by`,
-`limit`, and `offset` arguments. GraphJin applies these to the returned JSON,
+`limit`, and `offset` arguments. DeepORG applies these to the returned JSON,
 while operation-specific path and query parameters are sent to the upstream:
 
 ```graphql

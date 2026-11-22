@@ -8,7 +8,7 @@ weight: 45
 
 ## Globals and user artifacts
 
-GraphJin has one resolution model for saved queries, fragments, and workflows:
+DeepORG has one resolution model for saved queries, fragments, and workflows:
 
 1. Look for a user artifact in `gj_artifacts` by `(kind, name)` for the request `user_id`.
 2. Fall back to the global config file under the configured config path.
@@ -37,14 +37,14 @@ config/
     nightly-report.js
 ```
 
-In `dev` and `agentic` modes, GraphJin configures a private managed artifact store automatically. When the request has `user_id`, GraphJin stores user-owned edits in `gj_artifacts` with `visibility = "user"`, `owner_id = <user_id>`, optional `account_id`, `source = "database"`, and `read_only = false`. Config files appear as `visibility = "global"`, `source = "config"`, and `read_only = true`.
+In `dev` and `agentic` modes, DeepORG configures a private managed artifact store automatically. When the request has `user_id`, DeepORG stores user-owned edits in `gj_artifacts` with `visibility = "user"`, `owner_id = <user_id>`, optional `account_id`, `source = "database"`, and `read_only = false`. Config files appear as `visibility = "global"`, `source = "config"`, and `read_only = true`.
 
 {{< verified by="TestUserArtifactSavedQueryOverridesGlobalOnlyForOwner" file="serv/artifact_overlay_test.go" line="94" >}}
 {{< verified by="TestCatalogSnapshotMergesCallerScopedArtifacts" file="serv/artifact_overlay_test.go" line="173" >}}
 
 ## Configure the store
 
-No artifact configuration is required in `dev` or `agentic` mode. GraphJin creates `.graphjin/artifacts.sqlite3` with private permissions, WAL journaling, a busy timeout, and a single-process connection pool. This internal database is intentionally absent from public sources, catalog metadata, application database selection, and security reports.
+No artifact configuration is required in `dev` or `agentic` mode. DeepORG creates `.graphjin/artifacts.sqlite3` with private permissions, WAL journaling, a busy timeout, and a single-process connection pool. This internal database is intentionally absent from public sources, catalog metadata, application database selection, and security reports.
 
 Configure an explicit SQL source for a shared or clustered deployment:
 
@@ -63,15 +63,15 @@ artifacts:
   max_per_owner: 200
 ```
 
-With `auto_init: true`, GraphJin creates `_graphjin.artifacts` when the service starts. Current updates increment the live artifact row's `revision` value in place; GraphJin does not create or expose artifact history rows.
+With `auto_init: true`, DeepORG creates `_graphjin.artifacts` when the service starts. Current updates increment the live artifact row's `revision` value in place; DeepORG does not create or expose artifact history rows.
 
 For compatibility, an explicit legacy `artifacts.enabled: true` without `source` continues to select the first writable SQL source. Set `artifacts.enabled: false` to opt out. A managed-store open or initialization failure is fatal rather than silently falling back to nondurable storage.
 
 ## One store, one bounded projection
 
-`gj_artifacts` is backed by a real SQL table, but GraphJin never hand-writes SQL against it: control-plane reads and writes run back through GraphJin's own engine under the reserved, non-forgeable `__graphjin_internal_store` role — the same compiled, validated query machinery that serves your app, across every supported database. [Catalog annotations](/agentic/annotations/), [declared tasks](/agentic/tasks/), and [watches](/agentic/watches/) persist through the same store.
+`gj_artifacts` is backed by a real SQL table, but DeepORG never hand-writes SQL against it: control-plane reads and writes run back through DeepORG's own engine under the reserved, non-forgeable `__graphjin_internal_store` role — the same compiled, validated query machinery that serves your app, across every supported database. [Catalog annotations](/agentic/annotations/), [declared tasks](/agentic/tasks/), and [watches](/agentic/watches/) persist through the same store.
 
-List and search reads are served from an in-memory nanoDB projection, so discovery costs no database round-trips. The projection is a **bounded search index**, not a copy of the store: per artifact, `content` is capped (default 32KB, tunable via `artifacts.projection_content_max_bytes`) and marked with `content_truncated: true`; oversized `content_json`/`metadata_json` are dropped from the projection rather than truncated into invalid JSON. The shared owner budget for catalog-visible saved queries, fragments, and workflows defaults to 200 and is tunable via `artifacts.max_per_owner`; existing rows remain updatable at the cap. Execution reads — running a saved query, loading a workflow — always read through to the store, so nothing functional is ever truncated. The projection refreshes immediately on GraphJin-made mutations and through a private revision subscription for external writes. `artifacts.poll_seconds` controls reconnect and fallback checks when that subscription is unavailable; an idle system does no projection work.
+List and search reads are served from an in-memory nanoDB projection, so discovery costs no database round-trips. The projection is a **bounded search index**, not a copy of the store: per artifact, `content` is capped (default 32KB, tunable via `artifacts.projection_content_max_bytes`) and marked with `content_truncated: true`; oversized `content_json`/`metadata_json` are dropped from the projection rather than truncated into invalid JSON. The shared owner budget for catalog-visible saved queries, fragments, and workflows defaults to 200 and is tunable via `artifacts.max_per_owner`; existing rows remain updatable at the cap. Execution reads — running a saved query, loading a workflow — always read through to the store, so nothing functional is ever truncated. The projection refreshes immediately on DeepORG-made mutations and through a private revision subscription for external writes. `artifacts.poll_seconds` controls reconnect and fallback checks when that subscription is unavailable; an idle system does no projection work.
 
 {{< verified by="TestArtifactProjectionCapsJSONFieldsButStoreKeepsFull" file="serv/artifact_overlay_test.go" line="345" >}}
 {{< verified by="TestArtifactProjectionHonorsConfiguredCap" file="serv/artifact_overlay_test.go" line="395" >}}

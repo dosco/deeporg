@@ -34,7 +34,7 @@ redis:
   url: ${REDIS_URL}
 ```
 
-Redis is useful when multiple GraphJin instances need shared cache state.
+Redis is useful when multiple DeepORG instances need shared cache state.
 
 `redis.url` has two distinct jobs when the related features are enabled:
 
@@ -44,7 +44,7 @@ Redis is useful when multiple GraphJin instances need shared cache state.
 
 Discovery snapshots and semantic vectors are never stored in Redis. They stay
 under `discovery_cache.path`. A horizontally scaled deployment therefore needs
-both Redis and a shared read-after-write filesystem. A single GraphJin process
+both Redis and a shared read-after-write filesystem. A single DeepORG process
 does not need Redis for discovery or semantic search; it uses in-process
 coordination.
 

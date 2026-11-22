@@ -9,7 +9,7 @@ weight: 70
 
 ## Config selection
 
-GraphJin uses environment-specific files:
+DeepORG uses environment-specific files:
 
 | Environment | File |
 | --- | --- |

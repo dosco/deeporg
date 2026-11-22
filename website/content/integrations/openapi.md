@@ -47,7 +47,7 @@ query ($id: ID!) {
 
 ## Classification
 
-GraphJin classifies supported GET operations as row joins, top-level single-record fields, or top-level list fields. Mutating verbs, binary responses, async responses, and unsupported auth are skipped with boot-time diagnostics.
+DeepORG classifies supported GET operations as row joins, top-level single-record fields, or top-level list fields. Mutating verbs, binary responses, async responses, and unsupported auth are skipped with boot-time diagnostics.
 
 Top-level operations can sit beside database roots in one query:
 

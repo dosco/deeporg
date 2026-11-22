@@ -13,7 +13,7 @@
   <rect class="diag-node" x="74" y="216" width="160" height="60" rx="10"/><text class="diag-text" x="154" y="251" text-anchor="middle">Files</text>
   <rect class="diag-node" x="666" y="216" width="160" height="60" rx="10"/><text class="diag-text" x="746" y="251" text-anchor="middle">Source code</text>
   <rect class="diag-node-accent" x="360" y="146" width="180" height="84" rx="14"/>
-  <text class="diag-text" x="450" y="182" text-anchor="middle">GraphJin</text>
+  <text class="diag-text" x="450" y="182" text-anchor="middle">DeepORG</text>
   <text class="diag-sub" x="450" y="206" text-anchor="middle">one graph · GraphQL · MCP</text>
   <text class="diag-sub" x="450" y="312" text-anchor="middle">data · files · APIs · code — and the relationships across them</text>
 </svg>

@@ -70,7 +70,7 @@ this customization belongs here rather than in the base image.
 
 ### The one trap
 
-Everything in a GraphJin config resolves against the **config directory** —
+Everything in a DeepORG config resolves against the **config directory** —
 `root:` on a file source, `specs_dir:` on an API source, `path:` on a code
 source. There is one exception: a SQLite `path:` is handed to the driver exactly
 as written, and so stays relative to the **working directory**.
@@ -84,7 +84,7 @@ database:
   path: /world/demo/app.sqlite3
 ```
 
-This catches everyone once. It is the only path in a GraphJin config that
+This catches everyone once. It is the only path in a DeepORG config that
 behaves this way.
 
 ### Pin the day

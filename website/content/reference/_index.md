@@ -5,7 +5,7 @@ nav_group: "reference"
 weight: 6
 ---
 
-Reference pages collect the durable details engineers need while implementing and operating GraphJin.
+Reference pages collect the durable details engineers need while implementing and operating DeepORG.
 
 | Page | Reference material |
 | --- | --- |

@@ -14,32 +14,32 @@ Imagine asking for total monthly recurring revenue. The agent fetches the first
 number because the demo account is small. The answer looks perfect. In
 production, the same method silently ignores page 2.
 
-A normal answer check sees the right number and passes it. GraphJin Eval checks
+A normal answer check sees the right number and passes it. DeepORG Eval checks
 both the answer **and how the agent obtained it**, so this run fails until the
 database performs the complete aggregation.
 
-That is the purpose of GraphJin Eval: prove that a model, prompt, skill, or
-GraphJin change still produces correct answers, within your access rules, on **your catalog and
+That is the purpose of DeepORG Eval: prove that a model, prompt, skill, or
+DeepORG change still produces correct answers, within your access rules, on **your catalog and
 your data**.
 
 For the cross-vendor public benchmark and exact per-run reports, see the [DeepORG benchmark](/benchmarks/deeporg/).
 
 {{< callout type="note" title="Eval is a release check, not a model leaderboard." >}}
-Start with the questions your users actually ask. GraphJin builds executable
+Start with the questions your users actually ask. DeepORG builds executable
 checks from the catalog, runs the agent repeatedly, and compares the result with
 a trusted baseline. The frontier benchmark is [DeepORG](/benchmarks/deeporg/),
 and the resettable training environment is
 [here](/environment/overview/) — both shipped; this page is neither.
 {{< /callout >}}
 
-## What GraphJin checks
+## What DeepORG checks
 
 Every task can check five different parts of an agent run:
 
 | Check | Plain-language question | Example failure |
 | --- | --- | --- |
 | **Ground truth** | Was the answer correct? | The agent reports $8,200 when the live aggregate is $8,650. |
-| **Method** | Did GraphJin or the database compute it correctly? | The number is right, but the agent summed one limited page of rows. |
+| **Method** | Did DeepORG or the database compute it correctly? | The number is right, but the agent summed one limited page of rows. |
 | **Safety** | Did the agent avoid forbidden actions? | A read-only evaluation attempts a mutation. |
 | **Behavior** | Did it take the required path? | It answers without inspecting the relevant catalog detail. |
 | **Efficiency** | Did it avoid excessive turns, tokens, and latency? | It repeats discovery until it exceeds the task budget. |
@@ -50,7 +50,7 @@ turning a slow but correct answer into a false regression.
 
 ## The evaluation loop
 
-You do not write expected answers by hand. GraphJin samples the caller-visible
+You do not write expected answers by hand. DeepORG samples the caller-visible
 catalog, creates tasks, and verifies each hidden GraphQL **oracle** before the
 agent receives any prompt. An oracle is simply a trusted read query plus the
 rule for extracting its expected value.
@@ -69,7 +69,7 @@ flowchart LR
   E -->|Confirmed regression| G["Block and investigate"]
 ```
 
-Before spending model tokens, GraphJin runs every oracle. If one no longer
+Before spending model tokens, DeepORG runs every oracle. If one no longer
 compiles, executes, or extracts a value, the suite stops with exit code `2` and
 sends **no evaluated-agent traffic**. A broken check is not reported as a model
 regression.
@@ -77,7 +77,7 @@ regression.
 ## Your first evaluation in ten minutes
 
 The built-in SaaS Ops demo uses SQLite in-process. It needs no Docker, database
-setup, or running GraphJin server.
+setup, or running DeepORG server.
 
 ### 1. Configure a model
 
@@ -91,7 +91,7 @@ OPENAI_API_KEY=...
 ```
 
 Creating and verifying the suite does not ask the model to answer its tasks.
-Running or extending the suite does. GraphJin prints the maximum expected call
+Running or extending the suite does. DeepORG prints the maximum expected call
 count before provider-backed traffic begins and asks for confirmation in an
 interactive terminal.
 
@@ -101,7 +101,7 @@ interactive terminal.
 deeporg eval create --demo
 ```
 
-GraphJin extracts or reuses the bundled SaaS Ops demo, starts an embedded
+DeepORG extracts or reuses the bundled SaaS Ops demo, starts an embedded
 loopback instance, inspects its public catalog, and writes `eval/suite.yml`
 under the selected demo project. Local and demo evaluation instances force the
 agent read-only and disable background watch work.
@@ -137,7 +137,7 @@ including one transient retry per pending slot.
 ```
 
 Approve the prompt only when you are comfortable with that provider traffic.
-In a non-interactive shell, GraphJin refuses to continue unless you explicitly
+In a non-interactive shell, DeepORG refuses to continue unless you explicitly
 pass `--yes`.
 
 The concise result has two lines:
@@ -153,7 +153,7 @@ reference for later changes. This lets a real team start measuring from where
 its agent is today instead of requiring a stochastic suite to reach 100% first.
 Recall below `0.90` produces a prominent quality warning, not a failed command.
 
-GraphJin writes a private run manifest before the first provider request and
+DeepORG writes a private run manifest before the first provider request and
 checkpoints it after every attempt and finalized slot. If the terminal or
 process stops, rerunning the identical command automatically resumes the newest
 strictly compatible incomplete run. Completed model failures count as finished
@@ -202,7 +202,7 @@ contain the task prompts, model answers, database rows, executed queries,
 headers, token contents, or secrets. It does include aggregate token-usage
 counts so you can compare cost and efficiency.
 
-The suite generator version is part of the scoring contract. GraphJin refuses
+The suite generator version is part of the scoring contract. DeepORG refuses
 to run a suite generated by a different version of the binary and tells you to
 regenerate it. Maintainers must bump `eval.GeneratorVersion` whenever generated
 task semantics change, including accepted database-query dialects in method
@@ -213,7 +213,7 @@ percentage points, the report is marked `scoring_suspect`. Publishing stops
 until that scorer/runtime mismatch is investigated; the explicit
 `--allow-suspect-scoring` override is reserved for an audited exception.
 
-GraphJin reads usage from Ax after every agent run. The CLI and report show two
+DeepORG reads usage from Ax after every agent run. The CLI and report show two
 views: **finalized usage** covers the episodes used for quality metrics, while
 **actual provider usage** also includes failed attempts and retries so the cost
 number stays honest. Usage from successful model calls is preserved even when
@@ -222,7 +222,7 @@ the agent later ends with an error, including an actor-step exhaustion.
 The report says **provider usage accounting is complete** when every provider
 attempt returned usage. A timeout or transport failure may return no usage; in
 that case `provider_usage.complete` is false, `unknown_attempts` says how many
-attempts are missing, and the recorded token total is a lower bound. GraphJin
+attempts are missing, and the recorded token total is a lower bound. DeepORG
 does not silently treat those unknown attempts as zero.
 
 Against a compatible baseline, Eval shows whether total tokens and tokens per episode went up or down, with both the absolute and percentage change. Reports
@@ -259,7 +259,7 @@ the questions that would hurt if the agent answered them incorrectly.
 deeporg eval add "Which customers are at churn risk?" --demo
 ```
 
-GraphJin asks the configured model to interpret the question using the public
+DeepORG asks the configured model to interpret the question using the public
 catalog. It then shows you:
 
 1. the plain-language interpretation;
@@ -289,7 +289,7 @@ instead of hand-editing the suite:
 deeporg eval rm <task-id> --demo
 ```
 
-GraphJin shows the task and asks for confirmation. Non-interactive use requires
+DeepORG shows the task and asks for confirmation. Non-interactive use requires
 `--yes`. The normalized suite is saved and validated again; the last remaining
 task cannot be removed because a valid suite must contain at least one task.
 
@@ -316,7 +316,7 @@ The normal lifecycle is:
 ```mermaid
 flowchart LR
   A["Create and verify suite"] --> B["Establish passing baseline"]
-  B --> C["Change model, prompt,<br/>skills, or GraphJin"]
+  B --> C["Change model, prompt,<br/>skills, or DeepORG"]
   C --> D["Run the same task IDs"]
   D -->|Accepted| E["Ship or continue testing"]
   D -->|Regression| F["Inspect failure and episodes"]
@@ -329,7 +329,7 @@ An ordinary run compares only task IDs present in both reports. This prevents a
 newly added task from masquerading as a regression before you deliberately make
 it part of the contract.
 
-When an initial three-run result would regress, GraphJin performs one fresh
+When an initial three-run result would regress, DeepORG performs one fresh
 three-run confirmation. Exit code `1` is returned only when the hard failure is
 confirmed (or safety fails). This absorbs one flaky sample without hiding a
 repeatable problem.
@@ -389,8 +389,8 @@ Interrupted and environment-failed provider calls are written separately under
 only status, progress, provenance, usage, and a safe environment code—never
 partial recall, task verdicts, or a baseline comparison.
 
-GraphJin keeps the global agent limit at eight actor steps. If a model repeats
-an identical successful query, GraphJin does not hit the database again: it
+DeepORG keeps the global agent limit at eight actor steps. If a model repeats
+an identical successful query, DeepORG does not hit the database again: it
 returns the cached result with a completion instruction and gives the
 model one grace turn to answer. A second repeated call can be completed from
 that evidence. If the limit is otherwise exhausted, the episode records
@@ -404,21 +404,21 @@ trace shows distinct productive progress on every turn.
 | --- | --- | --- | --- |
 | Local project | `deeporg eval ...` | Testing the config and schema in the current project. | Starts an embedded loopback service, forces the agent read-only, and disables background workers. |
 | Bundled or selected demo | `deeporg eval ... --demo` | Learning the workflow with realistic data and no Docker. | Uses the built-in SaaS Ops demo unless `--path` selects another demo. |
-| Remote server | `deeporg eval ... --remote` | Testing the deployed GraphJin behavior visible to a configured identity. | Uses the server set up by `deeporg cli setup`; CI may override its token with `GRAPHJIN_EVAL_TOKEN`. |
+| Remote server | `deeporg eval ... --remote` | Testing the deployed DeepORG behavior visible to a configured identity. | Uses the server set up by `deeporg cli setup`; CI may override its token with `GRAPHJIN_EVAL_TOKEN`. |
 
-GraphJin records a dataset fingerprint with each run. A catalog hash proves the
+DeepORG records a dataset fingerprint with each run. A catalog hash proves the
 visible schema shape, but it cannot prove that live row values stayed unchanged.
 Demo datasets can prove equality with the same catalog hash, data anchor, and
 deterministic seed manifest.
 
 Local and remote projects get a second proof automatically. After oracle
-preflight, GraphJin computes one aggregate `oracle_value_hash` from the suite
+preflight, DeepORG computes one aggregate `oracle_value_hash` from the suite
 fingerprint and every resolved value and dimension in task-ID order. Matching
 digests mean the effective expected results for that exact suite are unchanged,
 so ground-truth regressions stay enabled without placing individual oracle
 values in the shareable report.
 
-When both the dataset fingerprint and aggregate oracle hash differ, GraphJin
+When both the dataset fingerprint and aggregate oracle hash differ, DeepORG
 says so and compares the intersecting tasks by **method correctness** instead.
 It still gates safety and behavior. This avoids reporting ordinary business-data
 movement as a model regression without pretending the old expected value is
@@ -452,7 +452,7 @@ Local state has owner-only permissions:
 The baseline and reports use the sanitized report schema and are suitable for
 controlled sharing. Episodes and attempts are private trajectories. Private
 files may contain prompts, answers, rows, and queries, but even private files
-never contain credentials: GraphJin recursively redacts provider URL keys,
+never contain credentials: DeepORG recursively redacts provider URL keys,
 authorization values, the configured provider secret, and recognizable key
 patterns before writing. Never upload the `episodes/` or `attempts/` directory
 as a routine CI artifact.
@@ -486,7 +486,7 @@ CI uses `--restart` because each candidate gate is intentionally fresh; local
 interactive work normally benefits from automatic resumption.
 
 Configure the provider key as a CI secret. For a remote target, also configure
-the GraphJin CLI identity or set `GRAPHJIN_EVAL_TOKEN`, then add `--remote`.
+the DeepORG CLI identity or set `GRAPHJIN_EVAL_TOKEN`, then add `--remote`.
 
 Upload only `graphjin-eval-report.json` or `.graphjin-evals/reports/`. Keep
 `.graphjin-evals/episodes/` and `.graphjin-evals/attempts/` private. Exit `1`

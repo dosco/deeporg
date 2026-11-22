@@ -1,7 +1,7 @@
 ---
 title: "Three Ways To Drive An Episode"
 nav_title: "Drive Modes"
-description: "GraphJin calls your endpoint, you supply each completion, or you bring the whole agent. Same world, same grading."
+description: "DeepORG calls your endpoint, you supply each completion, or you bring the whole agent. Same world, same grading."
 nav_group: "environment"
 doc_kind: "guide"
 weight: 30
@@ -11,9 +11,9 @@ All three prepare the world identically and grade through the same contract, so
 a reward from one is a reward from any — with one documented exception, at the
 bottom of this page.
 
-## GraphJin calls your endpoint
+## DeepORG calls your endpoint
 
-The default. Your policy sits behind an OpenAI-compatible endpoint and GraphJin
+The default. Your policy sits behind an OpenAI-compatible endpoint and DeepORG
 runs the whole episode: discovery, the agent loop, the answer, the grading.
 
 ```bash

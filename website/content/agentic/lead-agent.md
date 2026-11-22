@@ -6,7 +6,7 @@ doc_kind: "guide"
 weight: 6
 ---
 
-GraphJin's [server-side agent](/agentic/server-agent/) is two agents. The
+DeepORG's [server-side agent](/agentic/server-agent/) is two agents. The
 **worker** answers one self-contained data question: it discovers the catalog,
 runs a query, and returns a database-computed, grounded answer. It
 uses fixed built-in skills, keeps no state, and is meant to run on a small, fast
@@ -42,7 +42,7 @@ In `dev` and `agentic` modes the default follows `agent.enabled`, so the lead is
 on whenever the agent is. Production defaults it to `false`. Use the
 `GJ_AGENT_LEAD_ENABLED` environment variable for environment-only deployments.
 
-With the lead off, GraphJin refuses any request that carries a conversation. A
+With the lead off, DeepORG refuses any request that carries a conversation. A
 REST request with `history` or a `thread_id` returns `400` with the error
 `conversations (thread_id, history) require agent.lead.enabled`, and the MCP
 tool returns the same message as a tool error. Writing a skill fails with
@@ -308,7 +308,7 @@ curl -sS http://localhost:8080/api/v1/agent \
 A run's id is on `gj_thread.active_run_id` while it runs, and on each message's
 `run_id`. A run keeps going if the client disconnects, so a GUI can reattach
 through the events endpoint. If the replica running it stops, a lease sweep on
-any replica marks the run `failed`; GraphJin never re-executes it, because it
+any replica marks the run `failed`; DeepORG never re-executes it, because it
 may already have written data.
 
 Run events carry `delegate` (the question's 1-based index) on every worker step
@@ -346,7 +346,7 @@ by stating it. Its code looks up what the prompt's decision depends on. The
 reply stage is then given the turn's own record: every answer the data agent
 returned, the skills the turn loaded and the check-backs it scheduled, and
 nothing the code concluded from them. It says whether the prompt calls for a
-change and what the change is, in plain words. GraphJin sends that
+change and what the change is, in plain words. DeepORG sends that
 to a data agent, which writes the mutation and holds it for approval. A stated
 change the data agent does not hold is reported as such in the answer.
 
@@ -354,13 +354,13 @@ change the data agent does not hold is reported as such in the answer.
 {{< verified by="TestUnattendedReplyWhoseStatedChangeIsNotHeldSaysSo" file="agent/lead_test.go" >}}
 
 The lead is told which kinds of change the caller may ask for (application
-data, watches, tasks, workflows, code, and GraphJin configuration), computed
+data, watches, tasks, workflows, code, and DeepORG configuration), computed
 from the same access check that gates the worker. It refuses a change the
 caller may not make without asking for its details. A blocked reply always
 carries a refusal: a delegated question's own refusal when one was refused,
 or `agent_blocked` otherwise. A delegated question that failed instead makes
 the reply an error. When a delegated write is held for approval, the lead's
-reply is `needs_approval` and carries that approval, with GraphJin's own
+reply is `needs_approval` and carries that approval, with DeepORG's own
 sentence that nothing has changed yet.
 
 {{< verified by="TestLeadGroundsItsAnswerInWorkerResults" file="agent/lead_test.go" >}}

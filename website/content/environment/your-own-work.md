@@ -28,7 +28,7 @@ That query becomes the test's **answer key**. It is not a stored number: the
 test re-runs it every time it runs, so the expected answer is always the one
 the data has that day.
 
-The engine decides this, not a model. The query is parsed by GraphJin's own
+The engine decides this, not a model. The query is parsed by DeepORG's own
 parser, re-run against the database, and the answer is read from the result it
 returned.
 
@@ -140,7 +140,7 @@ response lists each one under `drops` with the detail:
 | `write` | The question changed data |
 | `query_failed`, `empty_result` | The answer key no longer runs, or returns nothing |
 | `answer_mismatch` | The answer given does not pass the key |
-| `prose` | The question names GraphJin's own mechanism instead of a need |
+| `prose` | The question names DeepORG's own mechanism instead of a need |
 | `duplicate` | The same question was already kept |
 | `asker_unknown` | A routine ran as the service identity, which has since been changed, so the rows it saw cannot be rebuilt |
 

@@ -8,7 +8,7 @@ weight: 50
 
 ## What CodeSQL exposes
 
-CodeSQL is a managed `kind: code` source. GraphJin indexes the source tree into a read-only SQLite runtime database and exposes the public projection as `gj_code`.
+CodeSQL is a managed `kind: code` source. DeepORG indexes the source tree into a read-only SQLite runtime database and exposes the public projection as `gj_code`.
 
 ```yaml
 sources:

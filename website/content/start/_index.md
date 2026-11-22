@@ -1,6 +1,6 @@
 ---
 title: "Start"
-description: "Install GraphJin, run the first query, and understand the production saved-query model."
+description: "Install DeepORG, run the first query, and understand the production saved-query model."
 nav_group: "start"
 weight: 1
 ---

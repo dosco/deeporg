@@ -1,8 +1,8 @@
 ---
 title: "An open engine underneath"
-headline: "Underneath is GraphJin, and it is still open source."
-description: "DeepORG is built on GraphJin, the Apache 2.0 engine that compiles each query into a single database query. It is also a GraphQL API server and a Go library in its own right."
-lede: "DeepORG is built on GraphJin, the engine that compiles each query into a single database query. It is also a GraphQL API server and a Go library in its own right, under Apache 2.0."
+headline: "Underneath is DeepORG, and it is still open source."
+description: "DeepORG is built on DeepORG, the Apache 2.0 engine that compiles each query into a single database query. It is also a GraphQL API server and a Go library in its own right."
+lede: "DeepORG is built on DeepORG, the engine that compiles each query into a single database query. It is also a GraphQL API server and a Go library in its own right, under Apache 2.0."
 scene: "engine"
 scene_label: "Animated diagram: a nested GraphQL query on the left is compiled into one SQL statement on the right."
 scene_caption: "graphql in / one statement out"
@@ -17,15 +17,15 @@ toc: false
 
 {{< band id="how" label="How it works" title="One compiler. Any system. Any client." >}}
 
-Point DeepORG at databases, object storage, source trees, and remote APIs. Underneath is GraphJin, a compiler, not a resolver framework: it learns the live shape, plans the work, and emits one optimized database operation. Then it enforces access rules and serves AI assistants, REST clients, and federated routers from the same engine. No N+1, no resolver code, test-backed against real compiler paths.
+Point DeepORG at databases, object storage, source trees, and remote APIs. Underneath is DeepORG, a compiler, not a resolver framework: it learns the live shape, plans the work, and emits one optimized database operation. Then it enforces access rules and serves AI assistants, REST clients, and federated routers from the same engine. No N+1, no resolver code, test-backed against real compiler paths.
 
-{{< svg "compiler-flow" "GraphJin compiler flow" >}}
+{{< svg "compiler-flow" "DeepORG compiler flow" >}}
 
 {{< endband >}}
 
 {{< band label="The compiler" title="A nested question becomes one statement." >}}
 
-Ask for customers, their purchases, and each product's price. A resolver framework runs a query for the customers, then one for each customer's purchases, then one for each product. GraphJin parses the request, resolves it against the schema it discovered, and emits one statement:
+Ask for customers, their purchases, and each product's price. A resolver framework runs a query for the customers, then one for each customer's purchases, then one for each product. DeepORG parses the request, resolves it against the schema it discovered, and emits one statement:
 
 {{< hl sql >}}SELECT json_agg(__sj.json) AS customers
 FROM customers AS c

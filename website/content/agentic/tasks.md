@@ -6,13 +6,13 @@ doc_kind: "guide"
 weight: 46
 ---
 
-A GraphJin task is explicit durable intent: one owner-scoped `gj_task` goal
+A DeepORG task is explicit durable intent: one owner-scoped `gj_task` goal
 plus immutable `gj_task_entry` trail rows. It is not inferred memory, a hidden
 session, or an authorization token. Use it when work should survive the
 conversation that declared it—especially when a linked [watch](/agentic/watches/)
 may fire later with no conversation history available.
 
-A task can also carry a declared verification. On close, GraphJin runs a saved
+A task can also carry a declared verification. On close, DeepORG runs a saved
 query as the task owner and records what the data actually said. This separates
 an unverified claim (`status: "closed"`, empty `verify_status`) from a proved
 outcome (`status: "closed"`, `verify_status: "verified"`).
@@ -50,7 +50,7 @@ mutation {
 }
 ```
 
-Callers can set only `task_id`, `body`, and `detail_json` on an entry. GraphJin
+Callers can set only `task_id`, `body`, and `detail_json` on an entry. DeepORG
 sets its ID, `origin`, status, trace/watch IDs, identity, and timestamps.
 Missing, closed, and foreign tasks share `task_not_found_or_closed`, so the API
 does not disclose whether another owner has a matching ID.
@@ -60,7 +60,7 @@ does not disclose whether another owner has a matching ID.
 
 ## Keep the task visible
 
-GraphJin reinforces declared intent without guessing it. Agent responses use
+DeepORG reinforces declared intent without guessing it. Agent responses use
 three bounded, owner-scoped notices:
 
 - `task_open_unlinked` lists open or verifying tasks when the current run has no
@@ -79,7 +79,7 @@ saved-query verification. IDs and notices are correlation aids, never grants.
 
 ## Warm-start the built-in agent
 
-Pass `task_id` to `ask_graphjin_agent` or `POST /api/v1/agent`. GraphJin prepends
+Pass `task_id` to `ask_graphjin_agent` or `POST /api/v1/agent`. DeepORG prepends
 the declared goal and up to five recent trail entries to the request's
 untrusted history, then writes one `agent_run` entry with the answer, used
 skills, action summary, catalog detail IDs, refusal code, usage, duration, and
@@ -96,7 +96,7 @@ a protocol guard.
 ## Link a watch
 
 Set `task_id` when creating `gj_watch` to preserve why the standing question
-exists. GraphJin verifies the same-owner task is open or verifying and appends one
+exists. DeepORG verifies the same-owner task is open or verifying and appends one
 idempotent `watch_created` trail entry. Task deletion clears the link without
 deleting the watch. Watches over `gj_task` or `gj_task_entry` are rejected in
 v1 to prevent feedback loops.
@@ -132,7 +132,7 @@ mutation {
 }
 ```
 
-Without `recheck`, GraphJin runs the check inside the close request. A pass
+Without `recheck`, DeepORG runs the check inside the close request. A pass
 closes the task with `verify_status: "verified"`. A failed condition, query
 error, or invalid result leaves the task open with `verify_status: "failed"`,
 clears the claimed outcome and `closed_at`, writes a `verification` trail entry,
@@ -160,7 +160,7 @@ be an array. Numeric ordering is typed rather than string-based.
 
 Verification accepts saved queries only—never inline GraphQL or
 `condition_js`. The query must resolve for the owner and must be a read query.
-GraphJin executes it with the stored owner identity and hardened role, so a
+DeepORG executes it with the stored owner identity and hardened role, so a
 background check cannot gain more access than the person who declared the task.
 The normalized spec is hashed into a deterministic trail entry with the
 expectation, bounded observed value, attempt, and duration. Retries converge on

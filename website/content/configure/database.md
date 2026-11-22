@@ -23,7 +23,7 @@ sources:
 
 ## Supported database types
 
-GraphJin has configuration examples for PostgreSQL, MySQL/MariaDB, SQLite, Oracle, SQL Server, MongoDB, Snowflake, BigQuery, ClickHouse, and CodeSQL sources.
+DeepORG has configuration examples for PostgreSQL, MySQL/MariaDB, SQLite, Oracle, SQL Server, MongoDB, Snowflake, BigQuery, ClickHouse, and CodeSQL sources.
 
 CodeSQL is not a `kind: database` source. Declare source-code indexes with `kind: code` so source capabilities, read-only behavior, and managed SQLite setup are applied correctly.
 

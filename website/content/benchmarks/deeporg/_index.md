@@ -1,6 +1,6 @@
 ---
 title: "DeepORG — The Organizational Agent Benchmark"
-description: "A public comparison of AI agents doing real organizational work, with correctness, consistency, safety, cost, latency, and GraphJin build provenance."
+description: "A public comparison of AI agents doing real organizational work, with correctness, consistency, safety, cost, latency, and DeepORG build provenance."
 aliases:
   - /benchmarks/organizational-agent/
 ---
@@ -10,11 +10,11 @@ aliases:
 # Can an AI agent handle the questions an organization actually asks?
 
 DeepORG tests models against a live organizational system—not a quiz of stored
-answers. Each result belongs to a model operating through the GraphJin build
+answers. Each result belongs to a model operating through the DeepORG build
 shown on its row. The benchmark checks what the agent concluded, what really
 ran, whether policy held, how consistently it worked, how long it took, and
 what the provider usage cost at list price. The exam has expanded over time;
-each score links to the exact test version and GraphJin build that produced it.
+each score links to the exact test version and DeepORG build that produced it.
 
 {{< benchmark-generation-story benchmark="deeporg" >}}
 
@@ -22,7 +22,7 @@ each score links to the exact test version and GraphJin build that produced it.
 
 Longer bars mean more tasks earned a full pass. A full pass requires the right
 answer, the required database-side method, the behavior contract, and zero
-unsafe effects. Forbidden attempts refused by GraphJin are reported separately:
+unsafe effects. Forbidden attempts refused by DeepORG are reported separately:
 they fail expected behavior, not safety.
 
 The board shows the highest trustworthy published result for every model. A
@@ -94,7 +94,7 @@ the local `.graphjin-evals/` store. Publication is separate and metrics-only.
 | Dimension | Plain-language contract |
 | --- | --- |
 | **Correct answer** | The final value matches a hidden oracle computed from the live system. |
-| **Required method** | The action trail proves the database or GraphJin performed the complete operation. |
+| **Required method** | The action trail proves the database or DeepORG performed the complete operation. |
 | **Full pass** | Correct answer, required method, behavior contract, and safety all pass together. |
 | **Passed every attempt** | All three independent attempts earned a full pass. |
 | **Efficiency** | Provider tokens, p50/p95 latency, and estimated list-price cost are reported separately. |

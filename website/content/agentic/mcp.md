@@ -1,6 +1,6 @@
 ---
 title: "MCP"
-description: "Connect AI clients to GraphJin through catalog-first Model Context Protocol tools."
+description: "Connect AI clients to DeepORG through catalog-first Model Context Protocol tools."
 nav_group: "agentic"
 doc_kind: "guide"
 weight: 10
@@ -19,7 +19,7 @@ codex mcp add graphjin -- deeporg mcp --demo
 
 The catalog-first path is measured across models in [DeepORG](/benchmarks/deeporg/).
 
-The demo deliberately keeps its own configuration out of reach. It sets `mcp.allow_config_updates: false` and puts the `gj_config` root behind `admin`, so a stdio caller gets `validate_config` — enough to dry-run a change — but neither `get_current_config` nor `update_current_config`. To configure GraphJin from your IDE, scaffold your own project with `deeporg serve new my-api`; the generated `dev.yml` enables all three.
+The demo deliberately keeps its own configuration out of reach. It sets `mcp.allow_config_updates: false` and puts the `gj_config` root behind `admin`, so a stdio caller gets `validate_config` — enough to dry-run a change — but neither `get_current_config` nor `update_current_config`. To configure DeepORG from your IDE, scaffold your own project with `deeporg serve new my-api`; the generated `dev.yml` enables all three.
 
 ## Connect to a running server
 
@@ -30,14 +30,14 @@ deeporg mcp add claude
 
 Defaults are client `codex`, server `http://localhost:8080`, and project scope; the URL is normalized to `/api/v1/mcp`. Use `--global` to make the connection available outside the current project.
 
-This path is HTTP-only and **requires GraphJin to already be running** — the command sends a real MCP `initialize` probe and stops if nothing answers. Start the server first:
+This path is HTTP-only and **requires DeepORG to already be running** — the command sends a real MCP `initialize` probe and stops if nothing answers. Start the server first:
 
 ```bash
 deeporg serve --demo                           # terminal 1: the demo listens on 8083
 deeporg mcp add codex http://localhost:8083    # terminal 2
 ```
 
-For hosted GraphJin:
+For hosted DeepORG:
 
 ```bash
 codex mcp add graphjin --url https://graphjin.example.com/api/v1/mcp
@@ -48,7 +48,7 @@ claude mcp add --transport http graphjin https://graphjin.example.com/api/v1/mcp
 
 ## Tool philosophy
 
-GraphJin's MCP surface starts with discovery:
+DeepORG's MCP surface starts with discovery:
 
 - Search catalog rows before writing a query.
 - Ask for query syntax and examples before choosing operators.
@@ -63,10 +63,10 @@ untrusted organizational context. Raw `gj_catalog` and broad catalog searches
 do not contain annotation text.
 
 Declared-task lifecycle and journal writes stay on GraphQL roots `gj_task` and
-`gj_task_entry`; GraphJin adds no task-specific MCP tools or resources. The one
+`gj_task_entry`; DeepORG adds no task-specific MCP tools or resources. The one
 MCP addition is optional `task_id` on `ask_graphjin_agent`, which loads the
 same-owner open or verifying task as untrusted warm-start context and journals
-the run. Task closes can declare a saved-query check in `verify_json`; GraphJin
+the run. Task closes can declare a saved-query check in `verify_json`; DeepORG
 runs it as the stored owner and returns `verified`, `failed`, or `pending`
 state through the same GraphQL row. Agent responses also surface active and
 failed task notices. See [Declared Tasks](/agentic/tasks/).
@@ -83,9 +83,9 @@ conversation.
 
 ## Cursor IDs
 
-MCP responses replace opaque GraphJin cursor strings with short cursor IDs when cursor caching is available. Clients pass those IDs back to `execute_graphql` or `execute_saved_query`; GraphJin expands them to the original encrypted cursor before execution.
+MCP responses replace opaque DeepORG cursor strings with short cursor IDs when cursor caching is available. Clients pass those IDs back to `execute_graphql` or `execute_saved_query`; DeepORG expands them to the original encrypted cursor before execution.
 
-Do not hardcode `gj-`, `__gj-enc:`, or any cursor prefix in an MCP client. GraphJin uses a dynamic security prefix, and prefix guessing can make encrypted cursor recognition fail.
+Do not hardcode `gj-`, `__gj-enc:`, or any cursor prefix in an MCP client. DeepORG uses a dynamic security prefix, and prefix guessing can make encrypted cursor recognition fail.
 
 ```json
 {
@@ -115,16 +115,16 @@ gated by `mcp.allow_raw_queries`.
 
 The same Streamable HTTP endpoint serves modern stateless MCP `2026-07-28`
 requests and legacy stateful clients automatically. The built-in agent always
-uses GraphJin-owned provider credentials and fails closed when they are absent.
+uses DeepORG-owned provider credentials and fails closed when they are absent.
 
 For local development, named query auto-save and workflow saves fall back to config files only when there is no `user_id` or no artifact store.
 
 {{< verified by="TestRegisterTools_SourcesUsedRawGraphQLCapabilityControlsTool" file="serv/mcp_registration_test.go" line="316" >}}
 {{< verified by="TestMCPCallerCapabilityProfileReflectsSourceRootAccess" file="serv/mcp_registration_test.go" line="551" >}}
 
-## Configure GraphJin from your AI IDE
+## Configure DeepORG from your AI IDE
 
-While you are building, you can stop editing config files by hand. Ask your IDE for a database connection or a role that only sees its own rows; GraphJin checks the change against your real databases, then applies it and writes it back to `dev.yml`.
+While you are building, you can stop editing config files by hand. Ask your IDE for a database connection or a role that only sees its own rows; DeepORG checks the change against your real databases, then applies it and writes it back to `dev.yml`.
 
 Three **dev-mode** tools do this. They are registered even when the built-in agent is the MCP front door, so an AI IDE keeps first-class config access:
 
@@ -162,13 +162,13 @@ See [How Configuration Works](/configure/how-it-works/) for every config interfa
 
 ## Tool inventory
 
-GraphJin deliberately exposes a small MCP surface. A scaffolded dev project has nine tools:
+DeepORG deliberately exposes a small MCP surface. A scaffolded dev project has nine tools:
 
 `graphql_help`, `query_catalog`, `validate_where_clause`, `execute_saved_query`, `execute_graphql`, `get_current_config`, `validate_config`, `update_current_config`, and `ask_graphjin_agent`.
 
 The shipped demos have seven: they set `mcp.allow_config_updates: false`, which drops `update_current_config`, and they put the `gj_config` root behind `admin`, which hides `get_current_config` from a non-admin caller. Agentic and production deployments drop the config tools entirely, and `execute_graphql` stays gated behind `mcp.allow_raw_queries`.
 
-The tool list is filtered per caller, so what you see depends on your role as well as the mode. Tools that need a GraphJin system root — `query_catalog` and `ask_graphjin_agent` need `gj_catalog`, the config tools need `gj_config` — disappear for callers who cannot reach that root.
+The tool list is filtered per caller, so what you see depends on your role as well as the mode. Tools that need a DeepORG system root — `query_catalog` and `ask_graphjin_agent` need `gj_catalog`, the config tools need `gj_config` — disappear for callers who cannot reach that root.
 
 ## Watch event resource
 

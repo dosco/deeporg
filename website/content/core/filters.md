@@ -8,7 +8,7 @@ weight: 30
 
 ## Filter shape
 
-GraphJin filters live inside an inline `where` object. Keep the object shape in the query and use variables as leaf values:
+DeepORG filters live inside an inline `where` object. Keep the object shape in the query and use variables as leaf values:
 
 ```graphql
 query Products($min: Float!, $max: Float!, $ids: [Int!]) {

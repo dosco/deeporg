@@ -1,12 +1,12 @@
 ---
 title: "How Configuration Works"
-description: "The mental model behind GraphJin config — one file, two halves, layered overrides — and every way to change it: editor, CLI, the agent, MCP, and GraphQL."
+description: "The mental model behind DeepORG config — one file, two halves, layered overrides — and every way to change it: editor, CLI, the agent, MCP, and GraphQL."
 nav_group: "configure"
 doc_kind: "concept"
 weight: 10
 ---
 
-GraphJin is configured by a single YAML (or JSON) file. It has grown large because
+DeepORG is configured by a single YAML (or JSON) file. It has grown large because
 it configures two things at once — the query **engine** and the **server** around
 it — so this page is the map: what the file is, how values are resolved, and every
 interface you can use to change it without memorizing the field list.
@@ -35,7 +35,7 @@ itself inherit.
 
 The config file is a single flat namespace, but the keys belong to two worlds:
 
-- **Engine (core)** — how GraphJin compiles and secures GraphQL: `sources`,
+- **Engine (core)** — how DeepORG compiles and secures GraphQL: `sources`,
   `tables`, `roles`, `relationships`, `resolvers`, `blocklist`.
 - **Server (serv)** — the service around the engine: `host_port`, `auth`,
   `rate_limiter`, `caching`, `redis`, `uploads`, CORS, logging, `web_ui`, and the
@@ -134,7 +134,7 @@ instead of guessing. See [Server-Side Agent](/agentic/server-agent/).
 
 ### Config tools from an AI IDE (dev, over MCP)
 
-In **dev mode**, GraphJin exposes config tools over [MCP](/agentic/mcp/) — even
+In **dev mode**, DeepORG exposes config tools over [MCP](/agentic/mcp/) — even
 when the agent is the front door — so a connected AI IDE keeps first-class access:
 
 - `get_current_config` — read the running config (redacted).
@@ -188,7 +188,7 @@ They sit near the top of the precedence ladder and are ideal for secrets:
 
 ## The safety model
 
-GraphJin's `mode` decides how open the surface is:
+DeepORG's `mode` decides how open the surface is:
 
 | Mode | Config writes | Agentic surface (MCP, agent, `gj_*`) |
 | --- | --- | --- |

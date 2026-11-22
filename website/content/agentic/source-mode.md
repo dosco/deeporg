@@ -8,7 +8,7 @@ weight: 40
 
 ## Sources as the unit of ownership
 
-Source mode replaces one monolithic database assumption with named external sources. A source can represent a database, filesystem, code index, or OpenAPI surface. GraphJin system roots and workflows are built-in features configured through the optional top-level `system:` and `workflows:` sections, not sources.
+Source mode replaces one monolithic database assumption with named external sources. A source can represent a database, filesystem, code index, or OpenAPI surface. DeepORG system roots and workflows are built-in features configured through the optional top-level `system:` and `workflows:` sections, not sources.
 
 ```yaml
 sources:
@@ -60,7 +60,7 @@ approval publishes it to the trusted `account_id`. With no account identity,
 approved annotation visibility degrades to deployment-wide. Exact catalog
 detail applies that scope at query time.
 
-When the artifact store is present and the request has `user_id`, writes go to `gj_artifacts`. Without `user_id`, GraphJin keeps the development fallback behavior and writes global config files only in dev mode.
+When the artifact store is present and the request has `user_id`, writes go to `gj_artifacts`. Without `user_id`, DeepORG keeps the development fallback behavior and writes global config files only in dev mode.
 
 {{< verified by="TestSavedQueryAutoSaveUsesUserArtifactWhenConfigured" file="serv/artifact_overlay_test.go" line="71" >}}
 
@@ -77,7 +77,7 @@ mode: agentic
 
 ## Source-scoped reloads
 
-Config updates that touch only one source can use a source-scoped reload path. GraphJin stages the config, validates the runtime, swaps the changed source, and preserves unrelated sources when the transaction succeeds.
+Config updates that touch only one source can use a source-scoped reload path. DeepORG stages the config, validates the runtime, swaps the changed source, and preserves unrelated sources when the transaction succeeds.
 
 {{< verified by="TestHandleUpdateCurrentConfig_SourcePatchUsesSourceScopedReload" file="serv/mcp_config_transaction_test.go" line="598" >}}
 {{< verified by="TestGraphQLConfigUpdateSourcesPatchPreservesSourcesAndRecordsCatalogEvent" file="serv/control_plane_graphql_test.go" line="1827" >}}

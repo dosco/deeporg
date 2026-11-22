@@ -1,6 +1,6 @@
 ---
 title: "Workflows"
-description: "Run named, policy-controlled workflow steps that can call GraphJin tools and GraphQL."
+description: "Run named, policy-controlled workflow steps that can call DeepORG tools and GraphQL."
 nav_group: "agentic"
 doc_kind: "guide"
 weight: 50
@@ -8,7 +8,7 @@ weight: 50
 
 ## Named workflows
 
-Workflows let GraphJin expose reviewed operational procedures instead of letting agents improvise multi-step actions.
+Workflows let DeepORG expose reviewed operational procedures instead of letting agents improvise multi-step actions.
 
 When a workflow is attached to a standing watch, it becomes an autonomous action and requires a separate hash-pinned review through `gj_watch`. See [Choosing Watches, Flows, and Workflows](/agentic/watch-automation/) for the notification-versus-action decision and approval lifecycle.
 
@@ -27,7 +27,7 @@ Run a workflow by name on a running server:
 deeporg cli workflow run nightly-report --vars-file report-vars.json
 ```
 
-Workflows can call GraphJin tools and GraphQL when allowed by configuration. They respect declared variables, timeouts, context cancellation, and workflow execution policy.
+Workflows can call DeepORG tools and GraphQL when allowed by configuration. They respect declared variables, timeouts, context cancellation, and workflow execution policy.
 
 Files under `workflows/` are global workflow definitions. When artifacts are enabled (the `dev`/`agentic` default) and a request has `user_id`, `gj_artifacts` provides a caller-scoped workflow overlay. Execution resolves a user workflow artifact first, then falls back to the global file.
 

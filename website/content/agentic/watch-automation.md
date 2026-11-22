@@ -7,17 +7,17 @@ doc_kind: "guide"
 weight: 48
 ---
 
-A watch answers **when should GraphJin pay attention?** A flow answers **what does this event mean?** A workflow answers **what should GraphJin do about it?**
+A watch answers **when should DeepORG pay attention?** A flow answers **what does this event mean?** A workflow answers **what should DeepORG do about it?**
 
 Those are separate jobs:
 
 - A **watch** keeps a cursor-backed query running and records matching changes.
 - A **flow** is a small, tool-free AI filter. It can summarize, score, or suppress noise, but it cannot query more data or change anything.
-- A **workflow** is an action with hands. It can call approved GraphJin tools and GraphQL, so GraphJin never infers permission to attach one from phrases such as "tell me" or "let me know."
+- A **workflow** is an action with hands. It can call approved DeepORG tools and GraphQL, so DeepORG never infers permission to attach one from phrases such as "tell me" or "let me know."
 
-## What makes GraphJin highly reactive
+## What makes DeepORG highly reactive
 
-GraphJin does not wait for the next prompt. It keeps your questions running, carries their state across reconnects, and treats both activity and silence as evidence.
+DeepORG does not wait for the next prompt. It keeps your questions running, carries their state across reconnects, and treats both activity and silence as evidence.
 
 | Reactive primitive | What it adds |
 | --- | --- |
@@ -32,13 +32,13 @@ GraphJin does not wait for the next prompt. It keeps your questions running, car
 
 ## The 60-second story
 
-One conversation asks, "Watch the roast telemetry and tell me if something looks wrong." GraphJin creates a cursor-backed roast watch with a tool-free flow. The watch is stored but paused while the flow is previewed against representative readings. The preview shows which samples would be discarded, added to a digest, or sent as notifications.
+One conversation asks, "Watch the roast telemetry and tell me if something looks wrong." DeepORG creates a cursor-backed roast watch with a tool-free flow. The watch is stored but paused while the flow is previewed against representative readings. The preview shows which samples would be discarded, added to a digest, or sent as notifications.
 
-After the user approves that exact `flow_hash`, the watch runs continuously. Routine phase changes collect into a digest. When Batch 7 begins drifting after first crack, the flow produces one compact warning and GraphJin wakes only the roasting conversation subscribed to that watch.
+After the user approves that exact `flow_hash`, the watch runs continuously. Routine phase changes collect into a digest. When Batch 7 begins drifting after first crack, the flow produces one compact warning and DeepORG wakes only the roasting conversation subscribed to that watch.
 
-A second watch asks for an event when no inbound shipment scan arrives for four hours. GraphJin treats that silence as an `absence` event. An operations rollup watches the exact shipment and inventory watch IDs; when shipment silence coincides with inventory below its buffer, its flow creates one correlated warning for the operations conversation. An operator can snooze that warning without marking it seen.
+A second watch asks for an event when no inbound shipment scan arrives for four hours. DeepORG treats that silence as an `absence` event. An operations rollup watches the exact shipment and inventory watch IDs; when shipment silence coincides with inventory below its buffer, its flow creates one correlated warning for the operations conversation. An operator can snooze that warning without marking it seen.
 
-If the user then asks GraphJin to draft a supplier escalation, GraphJin proposes a workflow action and pauses again. The workflow can run only after the user separately confirms the exact `action_hash`. If the subscription drops meanwhile, GraphJin resumes from its stored cursor and retries transient failures with bounded exponential backoff.
+If the user then asks DeepORG to draft a supplier escalation, DeepORG proposes a workflow action and pauses again. The workflow can run only after the user separately confirms the exact `action_hash`. If the subscription drops meanwhile, DeepORG resumes from its stored cursor and retries transient failures with bounded exponential backoff.
 
 {{< callout type="note" title="Approval is per exact version, not per event." >}}
 Once the current flow or action hash is approved, the watch keeps running without asking again for every event. Changing the query, variables, flow, delivery configuration, or resolved workflow source creates a new version and requires the affected approval again.
@@ -46,7 +46,7 @@ Once the current flow or action hash is approved, the watch keeps running withou
 
 ```mermaid
 flowchart LR
-  A["Create or change a flow or action"] --> B["GraphJin returns the current hash<br/>watch paused"]
+  A["Create or change a flow or action"] --> B["DeepORG returns the current hash<br/>watch paused"]
   B --> C{"What needs review?"}
   C -->|Flow| D["Preview the current flow hash"]
   C -->|Action| E["Explain the exact action<br/>wait for confirmation"]
@@ -220,7 +220,7 @@ For MCP, retain each conversation's watch IDs and subscribe to each concrete res
 graphjin://watch-events/unseen/{watch_id}
 ```
 
-GraphJin routes a modern event only to the matching per-watch subscription. The notification URI identifies which watch changed; read the resource or query `gj_watch_event` for the event data.
+DeepORG routes a modern event only to the matching per-watch subscription. The notification URI identifies which watch changed; read the resource or query `gj_watch_event` for the event data.
 
 | Conversation | Retained watch | Subscription | What wakes it |
 | --- | --- | --- | --- |

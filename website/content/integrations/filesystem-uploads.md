@@ -64,7 +64,7 @@ When `uploads.storage` names a filesystem table, the upload handler streams the 
 
 Filesystems participate in source capabilities and read-only policy. Use read-only defaults for discovery surfaces and enable writes deliberately.
 
-Read-only filesystems block managed writes and watchers. S3/GCS presigned URLs are cache-bounded so GraphJin does not serve stale URLs past their TTL.
+Read-only filesystems block managed writes and watchers. S3/GCS presigned URLs are cache-bounded so DeepORG does not serve stale URLs past their TTL.
 
 {{< verified by="TestBridge_ReadOnlyFilesystemBlocksManagedWrites" file="core/fstable_bridge_test.go" line="522" >}}
 {{< verified by="TestFilesystemFragmentCacheOptions" file="core/cache_response_test.go" line="141" >}}

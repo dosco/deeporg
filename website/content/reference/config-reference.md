@@ -1,6 +1,6 @@
 ---
 title: "Config Reference"
-description: "Map the major GraphJin configuration areas to focused guides and canonical source docs."
+description: "Map the major DeepORG configuration areas to focused guides and canonical source docs."
 nav_group: "reference"
 doc_kind: "reference"
 weight: 20
@@ -8,7 +8,7 @@ weight: 20
 
 ## Start here
 
-New to GraphJin configuration? [How Configuration Works](/configure/how-it-works/)
+New to DeepORG configuration? [How Configuration Works](/configure/how-it-works/)
 explains the mental model (one file, engine vs server settings, layered overrides)
 and every interface for changing config — editor autocomplete, the `deeporg config`
 CLI, the agent, MCP tools, and the `gj_config` control plane.

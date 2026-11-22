@@ -8,7 +8,7 @@ weight: 30
 
 ## Shape the response
 
-GraphJin treats the database schema as the source of truth. A table becomes a root field, columns become fields, and foreign-key relationships become nested selections.
+DeepORG treats the database schema as the source of truth. A table becomes a root field, columns become fields, and foreign-key relationships become nested selections.
 
 ```graphql
 query {
@@ -26,11 +26,11 @@ query {
 { "id": 2 }
 ```
 
-When you query by primary key, GraphJin returns a single object. When you query a collection, it returns a list.
+When you query by primary key, DeepORG returns a single object. When you query a collection, it returns a list.
 
 {{< verified by="Example_queryByID" file="tests/query_test.go" line="558" >}}
 
-Primary-key lookup works because GraphJin has discovered the table primary key from the database schema. For composite keys or manually mapped tables, keep table metadata explicit in config so the compiler can still distinguish single-row lookup from collection lookup.
+Primary-key lookup works because DeepORG has discovered the table primary key from the database schema. For composite keys or manually mapped tables, keep table metadata explicit in config so the compiler can still distinguish single-row lookup from collection lookup.
 
 ## Use aliases
 

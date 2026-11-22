@@ -1,6 +1,6 @@
 <svg viewBox="0 0 900 360" role="img" aria-label="MCP loop from discovery to a checked action" xmlns="http://www.w3.org/2000/svg">
   <rect class="diag-bg" x="0" y="0" width="900" height="360" rx="16"/>
-  <text class="diag-text" x="450" y="58" text-anchor="middle">GraphJin MCP</text>
+  <text class="diag-text" x="450" y="58" text-anchor="middle">DeepORG MCP</text>
   <text class="diag-sub" x="450" y="80" text-anchor="middle">discovery to checked action</text>
   <rect class="diag-node-accent" x="64" y="132" width="176" height="92" rx="12"/>
   <text class="diag-text" x="152" y="174" text-anchor="middle">Discover</text>

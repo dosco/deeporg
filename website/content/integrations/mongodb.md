@@ -1,6 +1,6 @@
 ---
 title: "MongoDB"
-description: "GraphJin generates JSON DSL that the MongoDB driver translates into aggregation pipelines."
+description: "DeepORG generates JSON DSL that the MongoDB driver translates into aggregation pipelines."
 nav_group: "integrations"
 doc_kind: "guide"
 weight: 20
@@ -8,7 +8,7 @@ weight: 20
 
 ## Different backend, same GraphQL shape
 
-MongoDB does not receive SQL. GraphJin emits a JSON DSL that the custom `mongodriver` translates into aggregation pipelines and mutation operations.
+MongoDB does not receive SQL. DeepORG emits a JSON DSL that the custom `mongodriver` translates into aggregation pipelines and mutation operations.
 
 ```json
 {
@@ -30,7 +30,7 @@ MongoDB support covers basic queries, filtering, ordering, limits, relationships
 
 ## Relationships become `$lookup`
 
-GraphJin keeps the GraphQL shape the same and changes the backend plan. A nested relationship compiles into `$lookup` with a pipeline, then projects the requested fields back into the GraphQL response shape.
+DeepORG keeps the GraphQL shape the same and changes the backend plan. A nested relationship compiles into `$lookup` with a pipeline, then projects the requested fields back into the GraphQL response shape.
 
 ```json
 {
@@ -46,7 +46,7 @@ GraphJin keeps the GraphQL shape the same and changes the backend plan. A nested
 }
 ```
 
-Array-column joins use `$in` instead of `$eq`, and embedded JSON virtual tables use `$unwind` plus `$group` when GraphJin has to preserve the parent document shape.
+Array-column joins use `$in` instead of `$eq`, and embedded JSON virtual tables use `$unwind` plus `$group` when DeepORG has to preserve the parent document shape.
 
 ## Cursors and IDs
 

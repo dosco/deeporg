@@ -127,7 +127,7 @@ returned with the score rather than left in documentation.
 
 ## POST /api/v1/eval/score
 
-On an ordinary GraphJin server, not the environment. For a loop that runs its
+On an ordinary DeepORG server, not the environment. For a loop that runs its
 own rollouts and wants only the grading.
 
 ## Python client
@@ -140,6 +140,6 @@ for task in env.tasks():
     print(task.slug, env.run(task).reward)
 ```
 
-`pip install -e training` from a GraphJin checkout. It has no dependencies
+`pip install -e training` from a DeepORG checkout. It has no dependencies
 beyond the standard library, so it drops into a training image without
 negotiating versions with anything already there.

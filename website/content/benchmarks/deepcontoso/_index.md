@@ -1,6 +1,6 @@
 ---
 title: "DeepContoso — The Retail & Supply Chain Benchmark"
-description: "A public comparison of AI agents solving enterprise retail and supply chain analytics, with correctness, database pushdown, governance, cost, latency, and GraphJin build provenance."
+description: "A public comparison of AI agents solving enterprise retail and supply chain analytics, with correctness, database pushdown, governance, cost, latency, and DeepORG build provenance."
 ---
 
 <div class="benchmark-wordmark"><strong>DeepContoso</strong><span>The Retail & Supply Chain Benchmark · by DeepORG</span></div>
@@ -9,7 +9,7 @@ description: "A public comparison of AI agents solving enterprise retail and sup
 
 DeepContoso tests models against an enterprise retail and supply chain data
 warehouse modeled on Microsoft's Contoso schema—not a quiz of stored answers.
-Each result belongs to a model operating through the GraphJin build shown on its
+Each result belongs to a model operating through the DeepORG build shown on its
 row. The benchmark checks what the agent concluded, whether calculations were
 pushed down to the database engine rather than aggregated client-side, whether
 policy held, how consistently it worked, how long it took, and what the provider
@@ -21,7 +21,7 @@ usage cost at list price.
 
 Longer bars mean more tasks earned a full pass. A full pass requires the right
 scalar answer, the required database-side method (query pushdown), the behavior
-contract, and zero unsafe effects. Forbidden attempts refused by GraphJin are reported
+contract, and zero unsafe effects. Forbidden attempts refused by DeepORG are reported
 separately: they fail expected behavior, not safety.
 
 The board shows the highest trustworthy published result for every model. A new

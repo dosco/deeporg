@@ -6,7 +6,7 @@ weight: 5
 ---
 
 Most ways of scoring an agent ask a model whether an answer looks right. This
-one asks the database. Every task in a GraphJin environment carries a hidden
+one asks the database. Every task in a DeepORG environment carries a hidden
 oracle — a read-only query resolved against the same world the agent works in —
 so a fluent, confident, wrong answer earns nothing.
 
@@ -24,7 +24,7 @@ two starting points.
   <article>
     <span>Measure</span>
     <h2>You want to know how an agent does on your data.</h2>
-    <p>Clone the shape of a running GraphJin server into a local synthetic world — catalog structure and published value sets, never your rows — generate a verified suite from it, and grade against that.</p>
+    <p>Clone the shape of a running DeepORG server into a local synthetic world — catalog structure and published value sets, never your rows — generate a verified suite from it, and grade against that.</p>
     <a href="/environment/your-own-graph/">Use your own graph</a>
   </article>
 </div>

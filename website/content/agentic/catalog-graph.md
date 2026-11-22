@@ -85,7 +85,7 @@ metadata in the background. In a horizontal deployment, mount
 `discovery_cache.path` on a shared read-after-write filesystem and configure
 Redis. Redis holds only leases, fencing tokens, active generation IDs, status,
 and notifications; schema snapshots and catalog indexes remain files.
-For a single GraphJin process Redis is optional: discovery and semantic builds
+For a single DeepORG process Redis is optional: discovery and semantic builds
 use in-process coordination while retaining the same filesystem generations.
 
 ```yaml
@@ -106,7 +106,7 @@ catalog_search:
 ```
 
 Semantic search is a recall layer, not a join planner. It retrieves likely
-business concepts and table endpoints, then GraphJin follows caller-visible,
+business concepts and table endpoints, then DeepORG follows caller-visible,
 real foreign-key relationships to add short paths. Exact identifiers remain
 lexical-first, and provider errors or the two-second embedding deadline return
 lexical results. The index embeds bounded table identity, column-facet, and
@@ -116,7 +116,7 @@ relationship-neighborhood documents instead of one vector per column.
 
 When the service successfully initializes semantic catalog search, it adds a
 private feature profile to the built-in agent. The required first discovery
-step does not change: GraphJin still seeds every run with
+step does not change: DeepORG still seeds every run with
 `query_catalog(search: <full user instruction>, explain: true)` before the
 model runs. Lexical-only agents receive the existing prompt and tool schema.
 
@@ -135,7 +135,7 @@ The typical batch contains the compact combined intent, the first missing
 concept, and a second concept or relationship/action phrase. Exact and already
 well-covered searches are not expanded.
 
-GraphJin embeds all uncached phrases in that coverage call with one Ax request,
+DeepORG embeds all uncached phrases in that coverage call with one Ax request,
 then evaluates each phrase independently. It keeps per-phrase IDs and
 explanations, pins exact identifiers, reserves one distinct result per phrase,
 fuses the remaining ranks, and finally follows at most two caller-visible

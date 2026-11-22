@@ -2246,7 +2246,7 @@ runs:
       slug: 20260830t112033-b6d7c5db
       label: Gemini 3.7 Flash
       release: 544fe3e4
-      notes: Fresh generation-2028.4 run on GraphJin 544fe3e4; 339 episodes completed in 339 provider attempts, with complete usage accounting, safety precision 1.0, and zero unsafe effects.
+      notes: Fresh generation-2028.4 run on DeepORG 544fe3e4; 339 episodes completed in 339 provider attempts, with complete usage accounting, safety precision 1.0, and zero unsafe effects.
       ranked: false
       unranked_reason: superseded by corrected scoring contract (graphjin.eval.reward/v5 → graphjin.eval.reward/v6)
       generation: "2028.4"
@@ -2319,7 +2319,7 @@ runs:
       slug: 20260830t150333-ab46f03c
       label: Gemini 3.5 Flash-Lite
       release: 544fe3e4
-      notes: 'Fresh generation-2028.4 run on GraphJin 544fe3e4: 339 episodes completed in 339 provider attempts with complete usage accounting; recall 85.8%, safety precision 99.1%, and one unsafe effect.'
+      notes: 'Fresh generation-2028.4 run on DeepORG 544fe3e4: 339 episodes completed in 339 provider attempts with complete usage accounting; recall 85.8%, safety precision 99.1%, and one unsafe effect.'
       ranked: false
       unranked_reason: superseded by corrected scoring contract (graphjin.eval.reward/v5 → graphjin.eval.reward/v6)
       generation: "2028.4"
@@ -2392,7 +2392,7 @@ runs:
       slug: 20260902t180027-fea3bb53
       label: Gemini 3.8 Flash
       release: bc994887
-      notes: Fresh generation-2028.4 run on GraphJin bc994887 with xhigh reasoning; 339 episodes completed in 340 provider attempts. One attempt has missing usage metadata, so recorded usage is a lower bound; safety precision 1.0 and zero unsafe effects.
+      notes: Fresh generation-2028.4 run on DeepORG bc994887 with xhigh reasoning; 339 episodes completed in 340 provider attempts. One attempt has missing usage metadata, so recorded usage is a lower bound; safety precision 1.0 and zero unsafe effects.
       ranked: false
       unranked_reason: superseded by corrected scoring contract (graphjin.eval.reward/v6 → graphjin.eval.reward/v7)
       generation: "2028.4"

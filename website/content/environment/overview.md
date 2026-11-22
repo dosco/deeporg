@@ -13,7 +13,7 @@ An agent that answers "roughly 40 accounts are past due" in a confident tone is
 indistinguishable, to a language model grading it, from one that answers
 correctly. It is entirely distinguishable to a database.
 
-Every task in a GraphJin environment carries an **oracle**: a read-only query,
+Every task in a DeepORG environment carries an **oracle**: a read-only query,
 written when the task was generated, resolved against the same world the agent
 is working in. The agent never sees it. The answer it gives is checked against
 what the database actually returns, at the moment the episode runs.

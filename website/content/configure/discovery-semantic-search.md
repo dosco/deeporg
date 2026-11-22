@@ -6,17 +6,17 @@ doc_kind: "reference"
 weight: 45
 ---
 
-GraphJin Service can persist database discovery as immutable filesystem
+DeepORG Service can persist database discovery as immutable filesystem
 generations and use an optional Ax embedding index to improve catalog recall.
 The two features are related but independent:
 
 - The discovery cache is enabled by default and shortens warm startup.
 - Semantic search is opt-in and augments the existing lexical catalog search.
-- Embeddings suggest relevant concepts and table endpoints. GraphJin's real
+- Embeddings suggest relevant concepts and table endpoints. DeepORG's real
   metadata graph remains the authority for relationships and join paths.
 
 Direct users of the `core` Go package keep its existing live-first behavior.
-These settings belong to GraphJin Service.
+These settings belong to DeepORG Service.
 
 ## Configuration
 
@@ -63,7 +63,7 @@ discovery cache, semantic index, manifest, or Redis.
 | `dimensions` | `tiny` | `tiny` = 128, `small` = 256, `medium` = 512, or `default` = provider-native. |
 
 Named dimensions are strict. If the provider returns a different vector size,
-GraphJin rejects that response and continues with lexical search instead of
+DeepORG rejects that response and continues with lexical search instead of
 silently storing larger vectors.
 
 ## Startup and refresh behavior
@@ -71,7 +71,7 @@ silently storing larger vectors.
 | Situation | Behavior |
 | --- | --- |
 | Single process, no cache | The process discovers the live databases, validates the result, activates the first filesystem generation, and starts. Redis is not required. |
-| Single process, warm cache | GraphJin loads the filesystem generation immediately and refreshes it in the background using in-process coordination. |
+| Single process, warm cache | DeepORG loads the filesystem generation immediately and refreshes it in the background using in-process coordination. |
 | Multiple replicas, no cache | Redis grants one fenced discovery lease. Followers subscribe and poll until that builder activates the shared-filesystem generation or `startup_wait` expires. |
 | Multiple replicas, warm cache | Every replica starts from the shared filesystem immediately. One lease holder checks for changes in the background. |
 | Explicit schema reload | The reload uses the same coordinated generation path and waits for activation. |
@@ -79,7 +79,7 @@ silently storing larger vectors.
 
 A generation contains a full-fidelity schema snapshot per database source,
 including the discovered metadata needed to reconstruct the catalog. DDL is
-also kept when available for diagnostics and legacy fallback. GraphJin writes
+also kept when available for diagnostics and legacy fallback. DeepORG writes
 data first and the manifest last, validates file sizes and SHA-256 checksums,
 then verifies that a cache-loaded temporary engine has the same catalog
 revision as live discovery. Partial, corrupt, or incompatible generations are
@@ -90,7 +90,7 @@ but redacts credentials and raw connection secrets.
 
 ## Single process versus horizontal deployment
 
-Redis is optional for one GraphJin process. Discovery and semantic builders use
+Redis is optional for one DeepORG process. Discovery and semantic builders use
 process-local locks, while all durable data still goes to
 `discovery_cache.path`.
 
@@ -107,16 +107,16 @@ shared file.
 
 ### Redis outage behavior
 
-- With a valid filesystem generation, GraphJin starts from it in degraded mode
+- With a valid filesystem generation, DeepORG starts from it in degraded mode
   and suspends coordinated rebuilding until Redis is available again.
 - Without a valid generation, startup fails after `startup_wait`. This prevents
   every replica from independently discovering the same large database.
-- If Redis is not configured at all, GraphJin treats the deployment as
+- If Redis is not configured at all, DeepORG treats the deployment as
   single-process and uses local coordination normally; that is not an outage.
 
 ## What the semantic index stores
 
-GraphJin does not create one vector per column. It builds bounded, canonical
+DeepORG does not create one vector per column. It builds bounded, canonical
 documents from the shared catalog:
 
 - One identity document per table.
@@ -143,7 +143,7 @@ Warm startup makes no document-embedding calls.
 ## Incremental indexing and model changes
 
 Each canonical document has a content hash. When the catalog changes under the
-same embedding space, GraphJin reuses vectors for unchanged hashes, embeds only
+same embedding space, DeepORG reuses vectors for unchanged hashes, embeds only
 added or changed documents, and removes stale documents from the next
 generation.
 
@@ -158,9 +158,9 @@ being indexed. An index from another embedding fingerprint is never used.
 
 ## How hybrid catalog search works
 
-1. GraphJin generates lexical candidates from token and trigram postings.
+1. DeepORG generates lexical candidates from token and trigram postings.
 2. An exact identifier result remains first and avoids a query embedding call.
-3. Otherwise, GraphJin embeds the search text with a two-second deadline and
+3. Otherwise, DeepORG embeds the search text with a two-second deadline and
    exact-scans the compact semantic index using cosine similarity.
 4. Weak hits are removed using the query's background score distribution. The
    top eight scores are excluded from background p99; a hit must score at least
@@ -168,7 +168,7 @@ being indexed. An index from another embedding fingerprint is never used.
    64 semantic documents continue.
 5. Table and facet hits map back to catalog cards. Explicit column searches can
    map a facet to its member columns.
-6. GraphJin takes up to four table endpoints and runs deterministic breadth-
+6. DeepORG takes up to four table endpoints and runs deterministic breadth-
    first search over caller-visible foreign-key relationships. It returns at
    most two shortest paths of three edges or fewer.
 7. Lexical, semantic, and real relationship-path ranks are fused with RRF
@@ -184,7 +184,7 @@ endpoint tables, but only actual catalog relationships can add a path such as
 `customers -> orders -> order_items -> products`.
 
 `search_rank` is the fused relevance rank. If the caller supplies an explicit
-non-relevance `order_by`, GraphJin sorts the hybrid candidate union by those
+non-relevance `order_by`, DeepORG sorts the hybrid candidate union by those
 requested fields instead.
 
 Query embeddings are not persisted. Each replica keeps a 1,024-entry,
@@ -194,7 +194,7 @@ dimension mismatches return lexical results rather than failing
 
 ## Built-in agent search language and adaptive coverage
 
-Semantic search also changes how the service-owned GraphJin agent explores the
+Semantic search also changes how the service-owned DeepORG agent explores the
 catalog, but only when the semantic subsystem was constructed successfully.
 It does not change public MCP, service configuration, direct-core behavior, or
 the mandatory catalog seed. Every run still begins with the full user
@@ -219,7 +219,7 @@ and cannot be combined with `search`, `id`, `ids`, or `order_by`. Filters and
 the result limit still apply, and explanations are automatic.
 
 All uncached phrase vectors are produced by one Ax embedding request under the
-same two-second deadline. Cache hits are omitted from that request. GraphJin
+same two-second deadline. Cache hits are omitted from that request. DeepORG
 then scans and ranks each phrase sequentially, preserving per-phrase card IDs
 and provenance rather than comparing cosine scores between phrases. Exact
 identifiers are pinned, one distinct anchor is reserved per phrase, and the
@@ -271,7 +271,7 @@ phrases such as `clients`, `purchases`, and `raw coffee inventory` against the
 demo's physical names such as `customers`, `production_orders`, and
 `green_lots`.
 
-The deterministic run validates GraphJin's behavior, not the semantic quality
+The deterministic run validates DeepORG's behavior, not the semantic quality
 of a production model. Repeat the same acceptance cases against a real model
 before enabling it in production:
 

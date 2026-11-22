@@ -1,17 +1,17 @@
 ---
 title: "Mission Control"
-description: "Review declared task trails, unseen watch events, and annotation drafts from the same map used by GraphJin agents."
+description: "Review declared task trails, unseen watch events, and annotation drafts from the same map used by DeepORG agents."
 nav_group: "agentic"
 doc_kind: "guide"
 weight: 48
 ---
 
-Mission Control is the human window over GraphJin's durable agentic state. Open
+Mission Control is the human window over DeepORG's durable agentic state. Open
 `/mission` in the built-in console to see the work that otherwise lives behind
 the `gj_task`, `gj_watch_event`, and `gj_artifacts` GraphQL roots.
 
 It is available with the console in development and agentic modes. The page
-polls GraphJin rather than introducing a second state store or privileged API:
+polls DeepORG rather than introducing a second state store or privileged API:
 people and agents read the same rows under the same caller identity and role.
 
 ## Set the development identity
@@ -58,7 +58,7 @@ chat and GraphQL for v1.
 
 The Annotations view is the review queue for owner-only `observed` notes. Before
 approval, Mission Control quotes the complete note and explains that publishing
-makes it visible to agents in the account. GraphJin stamps the real approving
+makes it visible to agents in the account. DeepORG stamps the real approving
 caller and approval time server-side.
 
 Approved notes stay visible with their author, approver, target address, and

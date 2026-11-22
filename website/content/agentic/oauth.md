@@ -8,13 +8,13 @@ weight: 60
 
 ## Hosted MCP identity
 
-GraphJin serves MCP at:
+DeepORG serves MCP at:
 
 ```text
 /api/v1/mcp
 ```
 
-When OAuth is enabled, GraphJin can advertise protected-resource metadata and authorization-server metadata for clients that understand the MCP OAuth flow.
+When OAuth is enabled, DeepORG can advertise protected-resource metadata and authorization-server metadata for clients that understand the MCP OAuth flow.
 
 ```yaml
 mcp:

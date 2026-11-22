@@ -6,7 +6,7 @@ doc_kind: "reference"
 weight: 50
 ---
 
-GraphJin relationship traversal comes from schema metadata. Foreign keys, configured relationships, embedded JSON virtual tables, remote API joins, and database-join edges all become nested GraphQL selections, but they are not all executed the same way.
+DeepORG relationship traversal comes from schema metadata. Foreign keys, configured relationships, embedded JSON virtual tables, remote API joins, and database-join edges all become nested GraphQL selections, but they are not all executed the same way.
 
 | Relationship kind | Execution model |
 | --- | --- |
@@ -96,7 +96,7 @@ query {
 
 ## Polymorphic relationships
 
-Union-style selections let GraphJin expose polymorphic subjects.
+Union-style selections let DeepORG expose polymorphic subjects.
 
 ```graphql
 query {
@@ -120,7 +120,7 @@ query {
 
 ## MongoDB relationships
 
-MongoDB relationships are not SQL joins. GraphJin emits JSON DSL and the MongoDB driver translates related selections to aggregation pipeline `$lookup` stages.
+MongoDB relationships are not SQL joins. DeepORG emits JSON DSL and the MongoDB driver translates related selections to aggregation pipeline `$lookup` stages.
 
 ```json
 {

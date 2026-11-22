@@ -5,7 +5,7 @@ nav_group: "core"
 weight: 2
 ---
 
-Core pages explain the GraphJin query model from first query to production-grade operations.
+Core pages explain the DeepORG query model from first query to production-grade operations.
 
 | Page | What it covers |
 | --- | --- |

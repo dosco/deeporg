@@ -94,7 +94,7 @@ query {
 
 ## Directives
 
-GraphJin supports GraphQL-style conditional fields plus GraphJin-specific add/remove directives for dynamic response shaping.
+DeepORG supports GraphQL-style conditional fields plus DeepORG-specific add/remove directives for dynamic response shaping.
 
 ```graphql
 query ($showProducts: Boolean!) {
@@ -109,7 +109,7 @@ query ($showProducts: Boolean!) {
 
 {{< verified by="Example_queryWithSkipAndIncludeDirective1" file="tests/query_test.go" line="1192" >}}
 
-GraphJin also supports role and variable variants such as `@include(ifRole:)`, `@skip(ifRole:)`, `@include(ifVar:)`, and `@skip(ifVar:)`, plus relationship directives such as `@through(table:)` and `@through(column:)`.
+DeepORG also supports role and variable variants such as `@include(ifRole:)`, `@skip(ifRole:)`, `@include(ifVar:)`, and `@skip(ifVar:)`, plus relationship directives such as `@through(table:)` and `@through(column:)`.
 
 ## Expressions
 

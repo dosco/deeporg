@@ -1,6 +1,6 @@
 ---
 title: "Install"
-description: "Install the GraphJin CLI and scaffold a local project."
+description: "Install the DeepORG CLI and scaffold a local project."
 nav_group: "start"
 doc_kind: "guide"
 weight: 10
@@ -47,7 +47,7 @@ directories, and source-mode templates.
 
 The scaffold includes environment-specific config files. Use `dev.yml` for local work, `prod.yml` for locked-down deployments, and `agentic.yml` when MCP/catalog/security surfaces are the main interface.
 
-The generated `dev.yml` sets `mcp.allow_config_updates: true`, so a scaffolded project is configurable from your AI IDE on day one — ask for a database connection or a new role and GraphJin writes it back to `dev.yml`. See [Configure GraphJin from your AI IDE](/agentic/mcp/#configure-graphjin-from-your-ai-ide).
+The generated `dev.yml` sets `mcp.allow_config_updates: true`, so a scaffolded project is configurable from your AI IDE on day one — ask for a database connection or a new role and DeepORG writes it back to `dev.yml`. See [Configure DeepORG from your AI IDE](/agentic/mcp/#configure-deeporg-from-your-ai-ide).
 
 ## Connect an AI client
 
@@ -60,7 +60,7 @@ codex mcp add graphjin -- deeporg mcp --demo
 
 `deeporg mcp --demo` extracts the built-in SaaS ops demo to `./graphjin-demo` and serves MCP over stdio. Your IDE's own model does the reasoning.
 
-To connect to a GraphJin you are already running:
+To connect to a DeepORG you are already running:
 
 ```bash
 deeporg mcp add codex
@@ -69,7 +69,7 @@ deeporg mcp add claude
 
 Start the server first — this path is HTTP-only and sends a real MCP `initialize` probe, so it stops if nothing answers. Defaults are client `codex`, server `http://localhost:8080`, and project scope.
 
-For hosted GraphJin, point the MCP client at the HTTP endpoint:
+For hosted DeepORG, point the MCP client at the HTTP endpoint:
 
 ```bash
 codex mcp add graphjin --url https://graphjin.example.com/api/v1/mcp

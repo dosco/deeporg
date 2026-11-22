@@ -1,13 +1,13 @@
 ---
 title: "Measure Your Agent On Your Own Graph"
 nav_title: "Your Own Graph"
-description: "Clone the shape of a running GraphJin server into a local synthetic world, generate a verified suite, and grade against that."
+description: "Clone the shape of a running DeepORG server into a local synthetic world, generate a verified suite, and grade against that."
 nav_group: "environment"
 doc_kind: "guide"
 weight: 40
 ---
 
-For anyone who already runs GraphJin and wants to know how an agent performs on
+For anyone who already runs DeepORG and wants to know how an agent performs on
 their data — not on a demo. If you want a ready environment to train against,
 start at the [quickstart](/environment/quickstart/) instead.
 
@@ -97,10 +97,10 @@ side stop being comparable.
 ## Gating a release rather than training
 
 If your goal is to know that an agent still works after a model, prompt or
-GraphJin upgrade — rather than to train one — that is a different workflow with
+DeepORG upgrade — rather than to train one — that is a different workflow with
 its own baseline and exit codes:
 
-[Evaluate the GraphJin agent](/agentic/evaluation/)
+[Evaluate the DeepORG agent](/agentic/evaluation/)
 
 ## Bake it into an image
 

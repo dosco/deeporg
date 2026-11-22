@@ -6,7 +6,7 @@ doc_kind: "guide"
 weight: 47
 ---
 
-A watch is a standing question: "tell me when a roast batch fails QC twice in a week." GraphJin stores the definition under `gj_watch`, evaluates it as a cursor-backed subscription **with the owner's stored identity and role**, and writes fired events to the owner's `gj_watch_event` inbox. Optional delivery fans out to webhooks or workflows. An inline, tool-free AxFlow can triage an event before anything wakes.
+A watch is a standing question: "tell me when a roast batch fails QC twice in a week." DeepORG stores the definition under `gj_watch`, evaluates it as a cursor-backed subscription **with the owner's stored identity and role**, and writes fired events to the owner's `gj_watch_event` inbox. Optional delivery fans out to webhooks or workflows. An inline, tool-free AxFlow can triage an event before anything wakes.
 
 Watches never elevate access: a watch can only ever see what its owner could already query, and both roots are owner-scoped — callers see only their own watches and events.
 
@@ -67,7 +67,7 @@ mutation {
 }
 ```
 
-The window is normalized between one minute and 30 days. When it elapses, GraphJin creates a synthetic event with `data_json.kind: "absence"` and the silence anchor, detection time, and fire count. A fresh process anchors the window at runtime startup, so restart or failover does not mass-fire overdue watches. Real source data re-arms a non-repeating episode. Use `repeat: true` carefully: it intentionally produces another event every window while silence continues.
+The window is normalized between one minute and 30 days. When it elapses, DeepORG creates a synthetic event with `data_json.kind: "absence"` and the silence anchor, detection time, and fire count. A fresh process anchors the window at runtime startup, so restart or failover does not mass-fire overdue watches. Real source data re-arms a non-repeating episode. Use `repeat: true` carefully: it intentionally produces another event every window while silence continues.
 
 ## Inline AxFlow triage
 
@@ -85,7 +85,7 @@ mutation {
 }
 ```
 
-Inline Mermaid must compile through AxFlow and return exactly `verdict` (`notify`, `digest`, or `discard`), `severity` (`info`, `warn`, or `critical`), and `summary` (at most 280 characters). Flows use GraphJin's server-side `agent` provider/model/credential settings; they run without tools, GraphJin bindings, or workflow callables. A new or changed flow is stored paused with approval pending. Preview it against explicit samples or retained events, then optionally approve and resume in the same mutation:
+Inline Mermaid must compile through AxFlow and return exactly `verdict` (`notify`, `digest`, or `discard`), `severity` (`info`, `warn`, or `critical`), and `summary` (at most 280 characters). Flows use DeepORG's server-side `agent` provider/model/credential settings; they run without tools, DeepORG bindings, or workflow callables. A new or changed flow is stored paused with approval pending. Preview it against explicit samples or retained events, then optionally approve and resume in the same mutation:
 
 ```graphql
 mutation {
@@ -109,7 +109,7 @@ mutation {
 }
 ```
 
-Use `decision: "preview"` to store evidence without approving, `approve` only after inspecting a successful preview for the current hash, and `reject` to keep the watch paused. `notify` leaves the event pending and unseen, so its per-watch MCP resource wakes. `digest` records `digest_queued` without waking immediately; after `delivery_json.digest.window`, GraphJin drains the queued members into one unseen `data_json.kind: "digest"` event without another model call. The default window is one hour when no digest block is present. `discard` records `suppressed` and marks the event processed without waking. Invalid output, timeout, missing server credentials, the daily enrichment cap, or any model error sends the raw pending notification but never executes a workflow or webhook. Omitting a flow makes no model call. The event's `enrichment_json` and compact MCP entry include the triage verdict, severity, and summary.
+Use `decision: "preview"` to store evidence without approving, `approve` only after inspecting a successful preview for the current hash, and `reject` to keep the watch paused. `notify` leaves the event pending and unseen, so its per-watch MCP resource wakes. `digest` records `digest_queued` without waking immediately; after `delivery_json.digest.window`, DeepORG drains the queued members into one unseen `data_json.kind: "digest"` event without another model call. The default window is one hour when no digest block is present. `discard` records `suppressed` and marks the event processed without waking. Invalid output, timeout, missing server credentials, the daily enrichment cap, or any model error sends the raw pending notification but never executes a workflow or webhook. Omitting a flow makes no model call. The event's `enrichment_json` and compact MCP entry include the triage verdict, severity, and summary.
 
 Configure a digest window while retaining inbox delivery:
 
@@ -183,7 +183,7 @@ Use `snoozed_until: null` to clear the snooze. A snooze-only update does not cha
 
 In a multi-conversation MCP client, give each watch a unique name, retain the returned watch ID, filter this query to that ID, and never acknowledge another conversation's event. [Server-side agent](/agentic/server-agent/) responses carry a `watch_events_unseen` notice with the relevant `watch_ids`. At runtime, `query_catalog(id: "help:watches")` returns the full contract.
 
-MCP clients can RFC 6570-expand `graphjin://watch-events/unseen/{watch_id}` for each retained watch, percent-encoding reserved characters in the ID, and subscribe to that concrete resource. GraphJin then sends `notifications/resources/updated` only to sessions subscribed to that watch; the notification URI identifies the watch, while a resource read returns its compact event metadata. The aggregate `graphjin://watch-events/unseen` resource remains available for clients without per-URI subscription support, but those clients must filter entries to their conversation's retained watch IDs before reading or acknowledging events. Full event payloads still come from `gj_watch_event`.
+MCP clients can RFC 6570-expand `graphjin://watch-events/unseen/{watch_id}` for each retained watch, percent-encoding reserved characters in the ID, and subscribe to that concrete resource. DeepORG then sends `notifications/resources/updated` only to sessions subscribed to that watch; the notification URI identifies the watch, while a resource read returns its compact event metadata. The aggregate `graphjin://watch-events/unseen` resource remains available for clients without per-URI subscription support, but those clients must filter entries to their conversation's retained watch IDs before reading or acknowledging events. Full event payloads still come from `gj_watch_event`.
 
 {{< verified by="TestMCPAxExactWatchSubscriptionAndRecovery" file="serv/mcp_protocol_test.go" line="388" >}}
 
@@ -276,7 +276,7 @@ An agent must stop for confirmation after proposing the action; it cannot create
 
 ## Routines that act
 
-A watch whose delivery is an agent turn (`delivery_json: { kind: "agent", prompt: "..." }`) is a routine: when it fires, the [lead](/agentic/lead-agent/) investigates the event in a thread nobody is watching. It runs like a chat turn, so the owner's skills, memories and saved agent apply. The data agents it asks start with the catalog detail of the tables the watch reads and the rows it fired on. With write approvals on, a routine may propose the data change its prompt calls for, and may schedule a check-back in its own thread with `follow_up`. The lead looks up what the prompt's decision depends on, states the change in its reply, and GraphJin sends it to a data agent. The change is dry-run and held for the watch's owner like any agent write, and apart from that check-back the routine can never write GraphJin's own roots. The owner sees an "action needed" notification, approves or rejects it, and the decision starts a follow-up turn in the routine's thread that checks the effect. Its answer arrives as a notification, and its watch event leaves the watch inbox.
+A watch whose delivery is an agent turn (`delivery_json: { kind: "agent", prompt: "..." }`) is a routine: when it fires, the [lead](/agentic/lead-agent/) investigates the event in a thread nobody is watching. It runs like a chat turn, so the owner's skills, memories and saved agent apply. The data agents it asks start with the catalog detail of the tables the watch reads and the rows it fired on. With write approvals on, a routine may propose the data change its prompt calls for, and may schedule a check-back in its own thread with `follow_up`. The lead looks up what the prompt's decision depends on, states the change in its reply, and DeepORG sends it to a data agent. The change is dry-run and held for the watch's owner like any agent write, and apart from that check-back the routine can never write DeepORG's own roots. The owner sees an "action needed" notification, approves or rejects it, and the decision starts a follow-up turn in the routine's thread that checks the effect. Its answer arrives as a notification, and its watch event leaves the watch inbox.
 
 {{< verified by="TestWatchRoutineMayProposeWritesForApproval" file="serv/watch_routine_test.go" >}}
 {{< verified by="TestApprovedRoutineWriteContinuesWithTheModel" file="serv/approvals_test.go" >}}

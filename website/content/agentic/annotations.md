@@ -123,7 +123,7 @@ If the addressed card was dropped, an exact detail lookup returns a
 That is historical context only; it does not recreate mutation evidence.
 
 When semantic catalog search is enabled, each approved annotation is embedded
-as a separate account-filtered document that lifts its target card. GraphJin
+as a separate account-filtered document that lifts its target card. DeepORG
 does not alter the catalog entity document itself. Demotion or deletion changes
 the artifact revision, so the note is absent from the next semantic generation.
 With semantic search disabled, exact detail merge and lexical artifact search

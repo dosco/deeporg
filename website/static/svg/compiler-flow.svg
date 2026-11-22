@@ -6,7 +6,7 @@
   <rect class="diag-ring" x="320" y="104" width="268" height="156" rx="20"/>
   <text class="diag-sub" x="454" y="92" text-anchor="middle">one config · RBAC · allow-lists</text>
   <rect class="diag-node-accent" x="352" y="140" width="204" height="84" rx="14"/>
-  <text class="diag-text" x="454" y="176" text-anchor="middle">GraphJin compiler</text>
+  <text class="diag-text" x="454" y="176" text-anchor="middle">DeepORG compiler</text>
   <text class="diag-sub" x="454" y="200" text-anchor="middle">GraphQL -> one query</text>
   <rect class="diag-node" x="700" y="58" width="168" height="66" rx="10"/><text class="diag-text" x="784" y="96" text-anchor="middle">Databases</text>
   <rect class="diag-node" x="700" y="147" width="168" height="66" rx="10"/><text class="diag-text" x="784" y="185" text-anchor="middle">Remote APIs</text>

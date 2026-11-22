@@ -1,6 +1,6 @@
 ---
 title: "Compiler Model"
-description: "GraphJin compiles GraphQL into database and source operations instead of resolving fields one by one."
+description: "DeepORG compiles GraphQL into database and source operations instead of resolving fields one by one."
 nav_group: "core"
 doc_kind: "concept"
 weight: 10
@@ -8,15 +8,15 @@ weight: 10
 
 ## The short version
 
-GraphJin is a compiler:
+DeepORG is a compiler:
 
 1. Parse GraphQL into an AST.
 2. Resolve tables, columns, relationships, roles, variables, and directives against schema metadata.
-3. Lower the operation into QCode, GraphJin's internal representation.
+3. Lower the operation into QCode, DeepORG's internal representation.
 4. Emit SQL for SQL databases, JSON DSL for MongoDB, or source-specific work for other surfaces.
 5. Return the nested JSON shape requested by the query.
 
-{{< svg "compiler-flow" "GraphJin compiler flow" >}}
+{{< svg "compiler-flow" "DeepORG compiler flow" >}}
 
 ## Why that matters
 
@@ -35,14 +35,14 @@ query {
 }
 ```
 
-For a SQL source, GraphJin emits dialect-specific SQL that returns the requested nested JSON. For MongoDB, it emits a JSON DSL that the custom driver turns into an aggregation pipeline. For filesystem, OpenAPI, CodeSQL, workflow, or GraphJin system roots, GraphJin still keeps the query shape and policy model centralized even when the execution backend is not SQL.
+For a SQL source, DeepORG emits dialect-specific SQL that returns the requested nested JSON. For MongoDB, it emits a JSON DSL that the custom driver turns into an aggregation pipeline. For filesystem, OpenAPI, CodeSQL, workflow, or DeepORG system roots, DeepORG still keeps the query shape and policy model centralized even when the execution backend is not SQL.
 
 {{< verified by="Example_query" file="tests/query_test.go" line="18" >}}
 {{< verified by="TestQueryDSLParsing" file="mongodriver/driver_test.go" line="17" >}}
 
 ## QCode is the boundary
 
-QCode is GraphJin's intermediate representation. It records selected roots, fields, relationship paths, role checks, variables, filters, order clauses, pagination, aggregate functions, remote joins, and database joins before the backend compiler renders anything.
+QCode is DeepORG's intermediate representation. It records selected roots, fields, relationship paths, role checks, variables, filters, order clauses, pagination, aggregate functions, remote joins, and database joins before the backend compiler renders anything.
 
 That boundary matters for features like multi-database support. A nested relationship in the same SQL database can stay inside one generated statement; a cross-database child is marked as a database join and resolved after the parent result exists.
 

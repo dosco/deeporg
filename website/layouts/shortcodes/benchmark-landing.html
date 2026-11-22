@@ -84,7 +84,7 @@
           <p class="benchmark-landing-eyebrow">What DeepORG is</p>
           <h2 id="benchmark-why-title">Most AI agents guess. Ours can't.</h2>
           <p>Point a language model at raw credentials and it invents what it cannot see — tables, joins, numbers. It sounds confident. It is guessing.</p>
-          <p>DeepORG gives the agent a map of everything you run. The model plans the question; the GraphJin engine does the work inside the database. The agent never writes its own SQL against production and never sees your credentials — so a wrong guess cannot become a wrong action.</p>
+          <p>DeepORG gives the agent a map of everything you run. The model plans the question; the engine does the work inside the database. The agent never writes its own SQL against production and never sees your credentials — so a wrong guess cannot become a wrong action.</p>
         </div>
         <figure class="diagram-wrap benchmark-why-figure" aria-label="An AI agent guessing at disconnected systems">{{ readFile "static/svg/problem-blind-agent.svg" | safeHTML }}</figure>
       </div>
@@ -187,7 +187,7 @@
       <div class="benchmark-landing-section-heading">
         <p class="benchmark-landing-eyebrow">The safety story</p>
         <h2 id="benchmark-safety-title">The agent never holds the keys.</h2>
-        {{ range first 1 $bestRuns }}<p data-benchmark-safety-story data-benchmark-episode-count="{{ int (.episode_count | default 0) }}" data-benchmark-unsafe-effects="{{ int (.unsafe_effects | default 0) }}">Every operation is compiled, policy-checked, and logged by GraphJin before it runs. That is how {{ int (.unsafe_effects | default 0) }} unsafe effects across {{ int (.episode_count | default 0) }} attempts is possible — and why part of the exam is refusing work that policy forbids.</p>{{ end }}
+        {{ range first 1 $bestRuns }}<p data-benchmark-safety-story data-benchmark-episode-count="{{ int (.episode_count | default 0) }}" data-benchmark-unsafe-effects="{{ int (.unsafe_effects | default 0) }}">Every operation is compiled, policy-checked, and logged by DeepORG before it runs. That is how {{ int (.unsafe_effects | default 0) }} unsafe effects across {{ int (.episode_count | default 0) }} attempts is possible — and why part of the exam is refusing work that policy forbids.</p>{{ end }}
       </div>
       <div class="benchmark-safety-grid">
         <article><i class="ti ti-shield-check" aria-hidden="true"></i><h3>Policy decides, not the prompt.</h3><p>Access rules live in DeepORG's configuration, outside the model. No clever wording can talk the agent past them.</p></article>
@@ -197,7 +197,7 @@
     </section>
 
     <section id="run-it-yourself" class="benchmark-landing-section benchmark-final-section" aria-labelledby="benchmark-run-title">
-      <article><i class="ti ti-terminal-2" aria-hidden="true"></i><div><h2 id="benchmark-run-title">Run DeepORG yourself</h2><p>Same exam, your laptop. Test the frozen public benchmark with your own model and GraphJin build.</p><code>deeporg eval bench --public --yes</code><a href="/benchmarks/deeporg/#run-it-yourself">Run it yourself <i class="ti ti-arrow-right" aria-hidden="true"></i></a></div></article>
+      <article><i class="ti ti-terminal-2" aria-hidden="true"></i><div><h2 id="benchmark-run-title">Run DeepORG yourself</h2><p>Same exam, your laptop. Test the frozen public benchmark with your own model and DeepORG build.</p><code>deeporg eval bench --public --yes</code><a href="/benchmarks/deeporg/#run-it-yourself">Run it yourself <i class="ti ti-arrow-right" aria-hidden="true"></i></a></div></article>
       <article><i class="ti ti-book-2" aria-hidden="true"></i><div><h2>See the technical methodology</h2><p>Read how the suite is built, scored, kept comparable, and protected from misleading results.</p><a href="/benchmarks/deeporg/methodology/">See the methodology <i class="ti ti-arrow-right" aria-hidden="true"></i></a><a href="/benchmarks/deeporg/runs/">Browse published runs <i class="ti ti-arrow-right" aria-hidden="true"></i></a></div></article>
     </section>
   {{ end }}
