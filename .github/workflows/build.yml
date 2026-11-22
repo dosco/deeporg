@@ -190,7 +190,7 @@ jobs:
           - { db: redshift, cache: db }
           - { db: mysql, cache: db-mysql }
           - { db: mariadb, cache: db-mariadb }
-          - { db: sqlite, cache: db-sqlite }
+          - { db: sqlite, cache: none }
           - { db: mssql, cache: db-mssql }
     steps:
       - name: Checkout
@@ -202,7 +202,11 @@ jobs:
           go-version-file: go.work
           cache: false
 
+      # sqlite builds inside its own Docker image (scripts/test-sqlite.sh,
+      # for SpatiaLite) with Docker volumes for its Go cache, so the runner's
+      # directories hold nothing for it.
       - name: Cache Go build
+        if: matrix.db != 'sqlite'
         uses: actions/cache@v4
         with:
           path: |
