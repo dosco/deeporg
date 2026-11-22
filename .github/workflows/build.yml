@@ -167,7 +167,7 @@ jobs:
         run: make test-cmd-shard SHARD=${{ matrix.shard }} CMD_SHARDS=3
 
   database:
-    name: DB ${{ matrix.db }}
+    name: DB ${{ matrix.db }}${{ matrix.shard && format(' {0}/3', matrix.shard) || '' }}
     needs: changes
     if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.db == 'true'
     runs-on: ubuntu-latest
@@ -185,7 +185,12 @@ jobs:
           - { db: mongodb, cache: db }
           - { db: cassandra, cache: db }
           - { db: clickhouse, cache: db }
-          - { db: snowflake, cache: db }
+          # The simulator makes snowflake the slowest suite, so it runs in
+          # three shards; scripts/test-snowflake.sh gives TestSubscription the
+          # last one to itself. Keep the 3 in step with DB_SHARDS below.
+          - { db: snowflake, cache: db, shard: 1 }
+          - { db: snowflake, cache: db, shard: 2 }
+          - { db: snowflake, cache: db, shard: 3 }
           - { db: bigquery, cache: db }
           - { db: redshift, cache: db }
           - { db: mysql, cache: db-mysql }
@@ -216,4 +221,7 @@ jobs:
           restore-keys: ${{ runner.os }}-go-${{ matrix.cache }}-race-
 
       - name: Run ${{ matrix.db }} tests
+        env:
+          DB_SHARD: ${{ matrix.shard }}
+          DB_SHARDS: ${{ matrix.shard && '3' || '' }}
         run: make test-db DB=${{ matrix.db }}
