@@ -17,7 +17,7 @@ ALL_DBS="postgres mysql mariadb sqlite oracle mssql mongodb cassandra clickhouse
 # Allow caller to select a subset via env var
 DBS="${PARALLEL_DBS:-$ALL_DBS}"
 
-# Max number of suites to run concurrently (default 4)
+# Max number of suites to run concurrently (default 2)
 MAX_PARALLEL="${MAX_PARALLEL:-2}"
 
 # Temp directory for per-suite output
@@ -74,6 +74,15 @@ db_test_cmd() {
 # Convert space-separated list to array
 DB_ARRAY=($DBS)
 DB_COUNT=${#DB_ARRAY[@]}
+
+# A single suite (one CI job per database) runs in the foreground so its
+# output streams live instead of being held back unless it fails.
+if [ "$DB_COUNT" -eq 1 ]; then
+    cmd=$(db_test_cmd "${DB_ARRAY[0]}")
+    echo "==> Running ${DB_ARRAY[0]}: $cmd"
+    eval "$cmd"
+    exit $?
+fi
 
 echo "==> Starting parallel DB test suites: $DBS"
 echo "==> Concurrency limit: $MAX_PARALLEL (total suites: $DB_COUNT)"

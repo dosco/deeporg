@@ -16,7 +16,7 @@ endif
 # Build-time Go variables
 BUILD_FLAGS ?= -ldflags '-s -w -X "main.version=${BUILD_VERSION}" -X "main.commit=${BUILD}" -X "main.date=${BUILD_DATE}" -X "github.com/dosco/graphjin/serv/v3.version=${BUILD_VERSION}"'
 
-.PHONY: all download-tools build wasm-build gen config-schema agent-openapi clean tidy test test-parallel-dbs test-sequential test-norace run demo demo-agent demo-smoke demo-agent-smoke smoke-all smoke-default env-image env-image-smoke run-github-actions lint changlog release version help test-mongodb test-cassandra test-clickhouse $(PLATFORMS)
+.PHONY: all download-tools build wasm-build gen config-schema agent-openapi clean tidy test test-parallel-dbs test-packages test-db test-sequential test-norace run demo demo-agent demo-smoke demo-agent-smoke smoke-all smoke-default env-image env-image-smoke run-github-actions lint changlog release version help test-mongodb test-cassandra test-clickhouse $(PLATFORMS)
 
 tidy:
 	@find . -name "go.mod" -execdir go mod tidy \;
@@ -32,6 +32,15 @@ test: test-parallel-dbs
 
 test-parallel-dbs:
 	@bash scripts/test-parallel.sh
+
+# The two halves of `make test`, run as separate jobs in CI (.github/workflows/build.yml).
+test-packages:
+	@go test -v -race -timeout $(GO_TEST_TIMEOUT) $(PACKAGES)
+
+# One database suite, e.g. `make test-db DB=postgres`.
+test-db:
+	@test -n "$(DB)" || { echo "usage: make test-db DB=<postgres|mysql|...>"; exit 2; }
+	@PARALLEL_DBS="$(DB)" bash scripts/test-parallel.sh
 
 test-sequential: test-postgres test-mysql test-mariadb test-sqlite test-oracle test-mssql test-mongodb test-cassandra test-clickhouse
 	@go test -v -race -timeout $(GO_TEST_TIMEOUT) $(PACKAGES)

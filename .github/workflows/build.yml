@@ -3,7 +3,10 @@ name: Build
 on:
   pull_request:
     branches: [master]
-    paths-ignore: ["**.md", "docs/**"]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - "website/**"
   push:
     branches: [master]
     paths-ignore:
@@ -11,30 +14,128 @@ on:
       - "docs/**"
       - ".github/workflows/**"
       - "website/**"
+  # Runs every job, whatever changed. Pushes that only touch workflows don't
+  # trigger Build, so this is how a workflow change gets its first run.
+  # Auto Release only follows push runs, so a manual run never releases.
+  workflow_dispatch:
+
+# Every suite is its own job so they run side by side. As one job the database
+# suites ran two at a time and the package tests waited for all of them: ~57
+# minutes. Now the run takes as long as its slowest job.
+#
+# Auto Release waits for this whole workflow to succeed, so every job here
+# gates a release. A job skipped because nothing it tests changed counts as
+# success.
 
 jobs:
-  lint-and-test:
-    name: Lint and Test
+  changes:
+    name: Detect changes
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      db: ${{ steps.filter.outputs.db }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Filter paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            # Everything the tests/ module compiles in. Regenerate with:
+            #   go list -deps -test -tags "mysql mariadb mssql sqlite fts5" ./tests | grep dosco/graphjin
+            # tests/ imports serv/v3, which pulls in agent, auth and codesql,
+            # so a change to any of them can break a database suite.
+            db:
+              - "core/**"
+              - "conf/**"
+              - "serv/**"
+              - "agent/**"
+              - "auth/**"
+              - "codesql/**"
+              - "plugin/**"
+              - "mongodriver/**"
+              - "bigquerydriver/**"
+              - "cassandradriver/**"
+              - "clickhousedriver/**"
+              - "tests/**"
+              - "go.work"
+              - "go.work.sum"
+              - "Makefile"
+              - "scripts/test-*.sh"
+              - ".github/workflows/build.yml"
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
-          go-version: "1.23.1"
-
-      - name: Cache Go modules
-        uses: actions/cache@v3
-        with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
+          go-version-file: go.work
+          cache-dependency-path: "**/go.sum"
 
       - name: Build
         run: make build
 
-      - name: Run Tests
-        run: make test
+  packages:
+    name: Package tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.work
+          cache-dependency-path: "**/go.sum"
+
+      - name: Run package tests
+        run: make test-packages
+
+  database:
+    name: DB ${{ matrix.db }}
+    needs: changes
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.db == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      # One failing database must not cancel the others' results.
+      fail-fast: false
+      matrix:
+        # Keep in step with ALL_DBS in scripts/test-parallel.sh.
+        db:
+          - postgres
+          - mysql
+          - mariadb
+          - sqlite
+          - oracle
+          - mssql
+          - mongodb
+          - cassandra
+          - clickhouse
+          - snowflake
+          - bigquery
+          - redshift
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.work
+          cache-dependency-path: "**/go.sum"
+
+      - name: Run ${{ matrix.db }} tests
+        run: make test-db DB=${{ matrix.db }}
