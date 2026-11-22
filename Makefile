@@ -16,7 +16,7 @@ endif
 # Build-time Go variables
 BUILD_FLAGS ?= -ldflags '-s -w -X "main.version=${BUILD_VERSION}" -X "main.commit=${BUILD}" -X "main.date=${BUILD_DATE}" -X "github.com/dosco/graphjin/serv/v3.version=${BUILD_VERSION}"'
 
-.PHONY: all download-tools build wasm-build gen config-schema agent-openapi clean tidy test test-parallel-dbs test-packages test-db test-sequential test-norace run demo demo-agent demo-smoke demo-agent-smoke smoke-all smoke-default env-image env-image-smoke run-github-actions lint changlog release version help test-mongodb test-cassandra test-clickhouse $(PLATFORMS)
+.PHONY: all download-tools build wasm-build gen config-schema agent-openapi clean tidy test test-parallel-dbs test-packages test-packages-except-cmd test-cmd-shard test-db test-sequential test-norace run demo demo-agent demo-smoke demo-agent-smoke smoke-all smoke-default env-image env-image-smoke run-github-actions lint changlog release version help test-mongodb test-cassandra test-clickhouse $(PLATFORMS)
 
 tidy:
 	@find . -name "go.mod" -execdir go mod tidy \;
@@ -36,6 +36,19 @@ test-parallel-dbs:
 # The two halves of `make test`, run as separate jobs in CI (.github/workflows/build.yml).
 test-packages:
 	@go test -v -race -timeout $(GO_TEST_TIMEOUT) $(PACKAGES)
+
+# CI splits test-packages: cmd/ runs its tests one at a time (~10 min under
+# -race), so it is sharded across jobs and the rest run in one job.
+CMD_PACKAGE ?= ./cmd
+CMD_SHARDS  ?= 3
+
+test-packages-except-cmd:
+	@go test -v -race -timeout $(GO_TEST_TIMEOUT) $(filter-out $(CMD_PACKAGE),$(PACKAGES))
+
+# One slice of cmd/'s tests, e.g. `make test-cmd-shard SHARD=1`.
+test-cmd-shard:
+	@test -n "$(SHARD)" || { echo "usage: make test-cmd-shard SHARD=<1..$(CMD_SHARDS)>"; exit 2; }
+	@GO_TEST_TIMEOUT=$(GO_TEST_TIMEOUT) bash scripts/test-shard.sh $(CMD_PACKAGE) $(SHARD) $(CMD_SHARDS)
 
 # One database suite, e.g. `make test-db DB=postgres`.
 test-db:

@@ -27,6 +27,20 @@ on:
 # gates a release. A job skipped because nothing it tests changed counts as
 # success.
 
+env:
+  # Explicit so every job, and every script under it, builds into the cached
+  # directory (scripts/test-redshift.sh otherwise defaults it to /tmp).
+  GOCACHE: /home/runner/.cache/go-build
+  GOMODCACHE: /home/runner/go/pkg/mod
+
+# Build caches: each job compiles a -race test binary, which takes 2-4 minutes
+# cold. setup-go's built-in cache keeps one entry for every job, saved by
+# whichever job finishes first (the plain `make build`), so no test build was
+# ever cached. Instead each kind of build has its own entry, keyed on the
+# dependency set and saved once per dependency change; jobs that compile the
+# same binary share one. Changes to GraphJin's own packages still recompile,
+# the third-party packages do not.
+
 jobs:
   changes:
     name: Detect changes
@@ -81,7 +95,16 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: go.work
-          cache-dependency-path: "**/go.sum"
+          cache: false
+
+      - name: Cache Go build
+        uses: actions/cache@v4
+        with:
+          path: |
+            /home/runner/.cache/go-build
+            /home/runner/go/pkg/mod
+          key: ${{ runner.os }}-go-build-${{ hashFiles('**/go.sum', 'go.work.sum') }}
+          restore-keys: ${{ runner.os }}-go-build-
 
       - name: Build
         run: make build
@@ -89,7 +112,7 @@ jobs:
   packages:
     name: Package tests
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -98,10 +121,50 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: go.work
-          cache-dependency-path: "**/go.sum"
+          cache: false
 
-      - name: Run package tests
-        run: make test-packages
+      - name: Cache Go build
+        uses: actions/cache@v4
+        with:
+          path: |
+            /home/runner/.cache/go-build
+            /home/runner/go/pkg/mod
+          key: ${{ runner.os }}-go-pkg-race-${{ hashFiles('**/go.sum', 'go.work.sum') }}
+          restore-keys: ${{ runner.os }}-go-pkg-race-
+
+      - name: Run package tests (all but cmd)
+        run: make test-packages-except-cmd
+
+  cmd:
+    name: cmd tests ${{ matrix.shard }}/3
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        # Keep the count in step with CMD_SHARDS in the Makefile.
+        shard: [1, 2, 3]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.work
+          cache: false
+
+      - name: Cache Go build
+        uses: actions/cache@v4
+        with:
+          path: |
+            /home/runner/.cache/go-build
+            /home/runner/go/pkg/mod
+          key: ${{ runner.os }}-go-cmd-race-${{ hashFiles('**/go.sum', 'go.work.sum') }}
+          restore-keys: ${{ runner.os }}-go-cmd-race-
+
+      - name: Run cmd tests, shard ${{ matrix.shard }}
+        run: make test-cmd-shard SHARD=${{ matrix.shard }} CMD_SHARDS=3
 
   database:
     name: DB ${{ matrix.db }}
@@ -113,20 +176,22 @@ jobs:
       # One failing database must not cancel the others' results.
       fail-fast: false
       matrix:
-        # Keep in step with ALL_DBS in scripts/test-parallel.sh.
-        db:
-          - postgres
-          - mysql
-          - mariadb
-          - sqlite
-          - oracle
-          - mssql
-          - mongodb
-          - cassandra
-          - clickhouse
-          - snowflake
-          - bigquery
-          - redshift
+        # Keep in step with ALL_DBS in scripts/test-parallel.sh. `cache` names
+        # the build: suites without build tags compile the same test binary and
+        # share an entry; tagged suites each compile their own.
+        include:
+          - { db: postgres, cache: db }
+          - { db: oracle, cache: db }
+          - { db: mongodb, cache: db }
+          - { db: cassandra, cache: db }
+          - { db: clickhouse, cache: db }
+          - { db: snowflake, cache: db }
+          - { db: bigquery, cache: db }
+          - { db: redshift, cache: db }
+          - { db: mysql, cache: db-mysql }
+          - { db: mariadb, cache: db-mariadb }
+          - { db: sqlite, cache: db-sqlite }
+          - { db: mssql, cache: db-mssql }
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -135,7 +200,16 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: go.work
-          cache-dependency-path: "**/go.sum"
+          cache: false
+
+      - name: Cache Go build
+        uses: actions/cache@v4
+        with:
+          path: |
+            /home/runner/.cache/go-build
+            /home/runner/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ matrix.cache }}-race-${{ hashFiles('**/go.sum', 'go.work.sum') }}
+          restore-keys: ${{ runner.os }}-go-${{ matrix.cache }}-race-
 
       - name: Run ${{ matrix.db }} tests
         run: make test-db DB=${{ matrix.db }}
