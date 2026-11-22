@@ -146,7 +146,7 @@ mutation {
 
 GraphJin joins each row to the table row with the same primary key. Because the list scopes the update, the `where` clause is optional on PostgreSQL, MySQL, MariaDB, and SQLite. A `where` clause, when given, further limits which listed rows may change. Snowflake also matches rows by primary key but still requires a `where` clause.
 
-Every row must include the full primary key, and every row should carry the same fields: the columns to update come from the first row, and a field missing from a later row sets that column to `NULL` for that row. Rows whose key matches no table row are skipped. A bulk update must use a variable, not an inline list, and cannot nest writes to related tables. Other databases, including SQL Server, Oracle, and MongoDB, reject list updates.
+Every row must include the full primary key and set the same fields as the first row. A row that leaves out a field, or adds one, is refused with an error that names the row and the field, and no row changes. To clear a column, set it to `null` explicitly. Rows whose key matches no table row are skipped. The response returns at most `default_limit` rows (20 unless configured), even when more rows were updated. A bulk update must use a variable, not an inline list, and cannot nest writes to related tables. Other databases, including SQL Server, Oracle, and MongoDB, reject list updates.
 
 {{< verified by="TestBulkUpdateMatchesRowsByPrimaryKey" file="tests/update_test.go" line="490" >}}
 {{< verified by="TestBulkUpdateRejectsUnmatchableRows" file="core/internal/qcode/bulk_update_test.go" line="84" >}}
