@@ -583,19 +583,27 @@ if (await exists(path.join(publicRoot, 'index.html'))) {
   if (oldNameCount !== 1 || !homeMain.includes('formerly GraphJin')) {
     failures.push(`Homepage body names GraphJin ${oldNameCount} times; only the hero's "formerly GraphJin" line may`);
   }
-  // The homepage lists the systems as a short labelled strip. The full logo
-  // grid took most of a screen there; it stays on the deeper pages.
-  const stripStart = homeHTML.search(/id=["']?databases\b/);
-  const stripEnd = homeHTML.search(/id=["']?engine\b/);
-  const homeStrip = stripStart >= 0 && stripEnd > stripStart ? homeHTML.slice(stripStart, stripEnd) : '';
-  if (!homeStrip) {
-    failures.push('Homepage #databases strip not found ahead of #engine');
+  // The systems DeepORG connects to have a section of their own near the top
+  // of the homepage: a heading, a short paragraph and the logo of every entry
+  // in data/databases.yaml. It answers 'does it work with what I run?' before
+  // the page goes into detail. (For a while this was a strip of small marks
+  // under the eighth reason, which undersold it.)
+  const systemsStart = homeHTML.search(/id=["']?databases(?=["'\s>])/);
+  const systemsEnd = homeHTML.search(/id=["']?deployment-proof\b/);
+  const homeSystems =
+    systemsStart >= 0 && systemsEnd > systemsStart ? homeHTML.slice(systemsStart, systemsEnd) : '';
+  if (!homeSystems) {
+    failures.push('Homepage #databases section not found ahead of #deployment-proof');
   } else {
-    if (!/database-strip--compact/.test(homeStrip)) {
-      failures.push('Homepage #databases shows the full logo grid; it should be the compact strip');
+    if (!/<h2\b[^>]*>Every database you run, behind one agent\.<\/h2>/.test(homeSystems)) {
+      failures.push('Homepage #databases section lost its heading');
     }
-    if (!homeStrip.includes('Works with what you already run')) {
-      failures.push('Homepage #databases strip lost its label');
+    const listed = (await readFile(path.join(siteRoot, 'data', 'databases.yaml'), 'utf8')).match(/^- name:/gm) ?? [];
+    const shown = homeSystems.match(/database-logo-item/g) ?? [];
+    if (listed.length < 5 || shown.length !== listed.length) {
+      failures.push(
+        `Homepage #databases shows ${shown.length} systems; data/databases.yaml lists ${listed.length}`
+      );
     }
   }
   const engineStart = homeHTML.search(/id=["']?engine\b/);

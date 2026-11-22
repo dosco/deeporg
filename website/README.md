@@ -40,10 +40,10 @@ file in `static/logos/provider-*.svg` is a single-colour `<svg>` of `<path>`
 elements and nothing else; `npm run check` refuses anything more.
 
 The systems DeepORG connects to are listed in `data/databases.yaml` and drawn by
-`{{</* database-logos */>}}`. The homepage passes `compact="true"`, which draws
-a short strip of small marks with the name beside each; the deeper pages keep
-the full grid. A logo drawn in a dark colour sets `on_dark: lighten` so it stays
-visible on the dark theme.
+`{{</* database-logos */>}}` as a grid of logos. The homepage gives them a
+section of their own (`#databases`, class `dx-systems`), which sizes the grid a
+little tighter than the deeper pages do. A logo drawn in a dark colour sets
+`on_dark: lighten` so it stays visible on the dark theme.
 
 The link preview card is `static/og/deeporg-site-og.png`, rendered from
 `scripts/og-card.html` (the command is in that file). The tab icons
