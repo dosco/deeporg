@@ -560,4 +560,15 @@ func TestBulkUpdateMatchesRowsByPrimaryKey(t *testing.T) {
 		products(update: $data) { id }
 	}`, json.RawMessage(`{ "data": [{ "name": "No Key" }] }`), nil)
 	require.ErrorContains(t, err, `primary key "id"`)
+
+	// A row that leaves out a field the first row sets would set that column
+	// to NULL, so the whole update is refused and no row changes.
+	_, err = gj.GraphQL(ctx, `mutation {
+		products(update: $data) { id }
+	}`, json.RawMessage(`{ "data": [
+		{ "id": 91, "name": "Partial Product 91", "price": 5 },
+		{ "id": 92, "price": 6 }
+	] }`), nil)
+	require.ErrorContains(t, err, `row 2 does not set "name"`)
+	require.Equal(t, map[float64]string{91: "Filtered Product 91", 92: "Bulk Product 92"}, stored())
 }

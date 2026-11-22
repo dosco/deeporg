@@ -105,6 +105,24 @@ func TestBulkUpdateRejectsUnmatchableRows(t *testing.T) {
 			want: "the list of rows is empty",
 		},
 		{
+			name: "later row leaves out a field",
+			gql:  `mutation { products(update: $data) { id } }`,
+			data: `[{"id": 1, "name": "a", "price": 5}, {"id": 2, "price": 6}]`,
+			want: `row 2 does not set "name", which the first row sets`,
+		},
+		{
+			name: "later row sets an extra field",
+			gql:  `mutation { products(update: $data) { id } }`,
+			data: `[{"id": 1, "name": "a"}, {"id": 2, "name": "b"}, {"id": 3, "name": "c", "price": 6}]`,
+			want: `row 3 sets "price", which the first row does not`,
+		},
+		{
+			name: "row is not an object",
+			gql:  `mutation { products(update: $data) { id } }`,
+			data: `[{"id": 1, "name": "a"}, 2]`,
+			want: "row 2 is not an object",
+		},
+		{
 			name: "nested mutation",
 			gql:  `mutation { products(update: $data) { id } }`,
 			data: `[{"id": 1, "name": "a", "users": {"email": "a@b.c"}}]`,

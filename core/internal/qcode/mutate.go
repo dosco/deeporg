@@ -303,7 +303,38 @@ func (co *Compiler) checkBulkUpdateData(m Mutate) (withoutWhere bool, err error)
 	if len(m.Ti.PrimaryCols) == 0 {
 		return false, fmt.Errorf("bulk update: table %q has no primary key to match rows on", m.Ti.Name)
 	}
+	if err := checkBulkUpdateRowFields(m.Data.Children); err != nil {
+		return false, err
+	}
 	return withoutWhere, nil
+}
+
+// checkBulkUpdateRowFields requires every row of a bulk update to set the
+// same fields as the first row. The columns to update come from the first
+// row, so a later row that leaves a field out would set that column to NULL
+// and a field only a later row sets would be dropped; both lose data the
+// caller never meant to change.
+func checkBulkUpdateRowFields(rows []*graph.Node) error {
+	first := rows[0]
+	for i, row := range rows {
+		if row.Type != graph.NodeObj {
+			return fmt.Errorf("bulk update: row %d is not an object", i+1)
+		}
+		if i == 0 {
+			continue
+		}
+		for _, f := range first.Children {
+			if _, ok := row.CMap[f.Name]; !ok {
+				return fmt.Errorf("bulk update: row %d does not set %q, which the first row sets; every row must set the same fields", i+1, f.Name)
+			}
+		}
+		for _, f := range row.Children {
+			if _, ok := first.CMap[f.Name]; !ok {
+				return fmt.Errorf("bulk update: row %d sets %q, which the first row does not; every row must set the same fields", i+1, f.Name)
+			}
+		}
+	}
+	return nil
 }
 
 // checkBulkUpdateMutates verifies that each root bulk update carries the
