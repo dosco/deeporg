@@ -59,13 +59,14 @@
       <span data-pagefind-meta="source" data-pagefind-filter="source">{{ $source }}</span>
     </div>
 
-    {{- /* Four destinations for a visitor. The docs sections (Start, Core,
+    {{- /* Five destinations for a visitor. The docs sections (Start, Core,
            Integrations, Agentic, Configure, Reference) are one click further,
            in the sidebar of every docs page. */ -}}
     {{ $docsSections := slice "start" "story" "core" "integrations" "agentic" "configure" "reference" }}
     {{ $sectionLinks := slice
       (dict "label" "Why DeepORG" "href" "/why/" "active" (eq $section "why"))
       (dict "label" "Benchmark" "href" "/benchmark/" "active" (in (slice "benchmark" "benchmarks") $section))
+      (dict "label" "Guides" "href" "/guides/" "active" (in (slice "guides" "compare") $section))
       (dict "label" "Environment" "href" "/environment/overview/" "active" (eq $section "environment"))
       (dict "label" "Docs" "href" "/start/install/" "active" (in $docsSections $section))
     }}
@@ -178,7 +179,6 @@
         <nav class="site-footer-links" aria-label="Footer">
           {{ range $sectionLinks }}<a href="{{ .href | relURL }}">{{ .label }}</a>{{ end }}
           <a href="{{ "/start/demos/" | relURL }}">Demos</a>
-          <a href="{{ "/guides/" | relURL }}">Guides</a>
           <a href="{{ "/compare/" | relURL }}">Compare</a>
           <a href="{{ site.Params.github }}" rel="external">GitHub</a>
         </nav>

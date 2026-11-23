@@ -663,7 +663,7 @@ if (await exists(path.join(publicRoot, 'index.html'))) {
     if (!/data-ascii=["']?how\b/.test(engine)) failures.push('Homepage #engine section lost its step-by-step figure');
   }
 
-  const navTargets = ['/why/', '/benchmark/', '/environment/overview/', '/start/install/'];
+  const navTargets = ['/why/', '/benchmark/', '/guides/', '/environment/overview/', '/start/install/'];
   for (const page of [['index.html'], ['start', 'install', 'index.html'], ['why', 'complete-agent', 'index.html'], ['404.html']]) {
     const html = await read(...page);
     const name = page.join('/');
@@ -841,6 +841,21 @@ if (await exists(path.join(publicRoot, 'index.html'))) {
   const footer = homeHTML.match(/<footer class=["']?site-footer[\s\S]*?<\/footer>/)?.[0] ?? '';
   for (const href of ['/guides/', '/compare/']) {
     if (!linksTo(footer, href)) failures.push(`Footer does not link ${href}`);
+  }
+  // A visitor finds the guides from the header, the homepage, the docs
+  // sidebar and the database reference, not only from logos and the footer.
+  const sectionNav = homeHTML.match(/<nav class=["']?section-nav[\s\S]*?<\/nav>/)?.[0] ?? '';
+  if (!linksTo(sectionNav, '/guides/')) failures.push('Header section nav does not link /guides/');
+  const homeDatabases = homeHTML.match(/<section id=["']?databases[\s\S]*?<\/section>/)?.[0] ?? '';
+  if (!linksTo(homeDatabases, '/guides/')) failures.push('Homepage databases section does not link /guides/');
+  const installHTML = await read('start', 'install', 'index.html');
+  const sideNav = installHTML.match(/<aside class=["']?side-nav[\s\S]*?<\/aside>/)?.[0] ?? '';
+  for (const href of ['/guides/', '/compare/']) {
+    if (!linksTo(sideNav, href)) failures.push(`Docs sidebar does not link ${href}`);
+  }
+  const supportHTML = await read('reference', 'database-support', 'index.html');
+  for (const href of guideLinks) {
+    if (!linksTo(supportHTML, href)) failures.push(`/reference/database-support/ does not link ${href}`);
   }
 }
 

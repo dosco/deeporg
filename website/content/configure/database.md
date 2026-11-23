@@ -25,6 +25,8 @@ sources:
 
 DeepORG has configuration examples for PostgreSQL, MySQL/MariaDB, SQLite, Oracle, SQL Server, MongoDB, Snowflake, BigQuery, ClickHouse, and CodeSQL sources.
 
+For a step-by-step setup of one database, from connection string to an AI client, see the [guides by database](/guides/).
+
 CodeSQL is not a `kind: database` source. Declare source-code indexes with `kind: code` so source capabilities, read-only behavior, and managed SQLite setup are applied correctly.
 
 ## Connection pools and TLS

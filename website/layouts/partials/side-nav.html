@@ -9,4 +9,14 @@
       {{ end }}
     </div>
   {{ end }}
+  {{- /* Guides and comparisons are landing pages, not docs, so they are not in
+         data/nav.yaml or the next-page order. The sidebar still points at them,
+         right after Start, where someone setting up a database looks. */ -}}
+  {{ if eq .id "start" }}
+    <div class="side-section">
+      <div class="side-title">Guides</div>
+      <a href="{{ "/guides/" | relURL }}">By database</a>
+      <a href="{{ "/compare/" | relURL }}">Comparisons</a>
+    </div>
+  {{ end }}
 {{ end }}

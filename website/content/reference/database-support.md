@@ -8,18 +8,20 @@ weight: 10
 
 ## Core support
 
+Each linked name opens a setup guide for that database: connection config, adding it to an AI client, and its limits.
+
 | Source | Status | Notes |
 | --- | --- | --- |
-| PostgreSQL | Supported | Broadest SQL feature coverage |
-| MySQL / MariaDB | Supported | Linear mutation strategy |
-| SQLite | Supported | Local/dev and embedded use |
-| SQL Server | Supported | Dialect-specific limit/offset and JSON handling |
-| Oracle | Supported | Boolean/function return types need care |
-| MongoDB | Supported | JSON DSL to aggregation pipeline |
-| Snowflake | Supported | Warehouse dialect surface |
-| BigQuery | Experimental | Read-only: schema discovery and queries. Connects with `bigquery://project/dataset` |
+| [PostgreSQL](/guides/postgres-mcp-server/) | Supported | Broadest SQL feature coverage |
+| [MySQL / MariaDB](/guides/mysql-mcp-server/) | Supported | Linear mutation strategy |
+| [SQLite](/guides/sqlite-mcp-server/) | Supported | Local/dev and embedded use |
+| [SQL Server](/guides/sql-server-mcp-server/) | Supported | Dialect-specific limit/offset and JSON handling |
+| [Oracle](/guides/oracle-ai-agent/) | Supported | Boolean/function return types need care |
+| [MongoDB](/guides/mongodb-mcp-server/) | Supported | JSON DSL to aggregation pipeline |
+| [Snowflake](/guides/snowflake-ai-agent/) | Supported | Warehouse dialect surface |
+| [BigQuery](/guides/bigquery-ai-agent/) | Experimental | Read-only: schema discovery and queries. Connects with `bigquery://project/dataset` |
 | ClickHouse | Configured source | Use with feature-specific validation |
-| Cassandra / Amazon Keyspaces | Supported | CQL dialect; Keyspaces connects through the same driver |
+| [Cassandra / Amazon Keyspaces](/guides/cassandra-ai-agent/) | Supported | CQL dialect; Keyspaces connects through the same driver |
 | Filesystems | Supported | Local/S3/GCS virtual tables |
 | OpenAPI | Supported for selected GETs | Remote fields and joins |
 | CodeSQL | Supported | Source-code index tables |
