@@ -46,6 +46,7 @@ const requiredRoutes = [
   'guides/cassandra-ai-agent/index.html',
   'compare/deeporg-vs-hand-built-mcp-tools/index.html',
   'compare/deeporg-vs-text-to-sql/index.html',
+  'rollout/index.html',
   'install.sh',
   '404.html',
   'favicon.svg',
@@ -98,12 +99,13 @@ const requiredRoutes = [
   'pagefind/pagefind-entry.json',
 ];
 
-// One anchor per homepage section or card, in page order, then the closing
-// ones. The three values that define DeepORG come first; four more are cards
-// in #reasons. The detail that used to live under #problem, #mcp,
-// #security-model, #codesql, #capabilities and #how moved to the /why/ pages
-// and is asserted there.
+// One anchor per homepage section or card, then the closing ones. A short
+// #problem section (why AI rollouts stall) sits under the hero; the three
+// values that define DeepORG follow; four more are cards in #reasons. The
+// detail that used to live under #mcp, #security-model, #codesql,
+// #capabilities and #how moved to the /why/ pages and is asserted there.
 const requiredAnchors = [
+  'problem',
   'pillars',
   'agent',
   'ai-queries',
@@ -115,7 +117,7 @@ const requiredAnchors = [
   'no-tools',
   'evidence',
   'rules',
-  'systems',
+  'terms',
   'databases',
   'engine',
   'quickstart',
@@ -211,6 +213,7 @@ const requiredContent = [
   'guides/cassandra-ai-agent.md',
   'compare/deeporg-vs-hand-built-mcp-tools.md',
   'compare/deeporg-vs-text-to-sql.md',
+  'rollout.md',
 ];
 
 const failures = [];
@@ -320,6 +323,11 @@ const requiredRenderedContent = [
   ['index.html', 'One AI agent for your whole organization.'],
   ['index.html', 'Three things set it apart.'],
   ['index.html', 'Four more reasons it holds up in a real company.'],
+  // Why rollouts stall, and the guide for whoever does the rollout.
+  ['index.html', 'Company data has no test suite.'],
+  ['index.html', 'What a rollout takes, step by step'],
+  ['rollout/index.html', 'Most of an AI rollout is not the model.'],
+  ['rollout/index.html', 'Write down what your terms mean.'],
   ['index.html', 'How a question becomes one database query.'],
   ['index.html', 'formerly GraphJin'],
   ['index.html', 'A change waits for your yes.'],
