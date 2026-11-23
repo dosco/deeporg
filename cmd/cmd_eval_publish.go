@@ -220,6 +220,17 @@ func runEvalPublish(cmd *cobra.Command, evalOpts *evalCLIOptions, opts *evalPubl
 	if report.Metrics.TaskCount == 0 {
 		return &evalExitError{Code: 1, Err: fmt.Errorf("run %s has no scored tasks", runID)}
 	}
+	// A quick check is a cheap screen: a 25-task slice, one attempt each, about
+	// three times as noisy as a full run. No flag publishes one, not even as an
+	// unranked archive row, because a board reader cannot tell the difference.
+	// The repeats check also catches quick runs made from an older suite,
+	// whose fingerprint no longer matches today's quick check.
+	if isQuickEvalReport(&report) {
+		return &evalExitError{Code: 2, Err: fmt.Errorf("run %s is a quick check; quick runs are never published, run \"deeporg eval bench --public\" for a publishable result", runID)}
+	}
+	if report.Provenance.Repeats != 0 && report.Provenance.Repeats < gjeval.DefaultRepeats {
+		return &evalExitError{Code: 2, Err: fmt.Errorf("run %s made %d attempt(s) per task; published results need %d", runID, report.Provenance.Repeats, gjeval.DefaultRepeats)}
+	}
 	buildCommit := report.Provenance.GraphJinCommit
 	buildFingerprint := report.Provenance.BinaryFingerprint
 	buildLabel := "run"

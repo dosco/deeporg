@@ -60,6 +60,9 @@ type evalCLIOptions struct {
 	AutoResumeAttempts int
 	FreezeTime         string
 	Pool               int
+	// Quick runs the public quick check: a fixed subset of the frozen public
+	// suite, one attempt per task. Never publishable.
+	Quick bool
 }
 
 // evalFrozenClock returns the clock the harness and its oracles read, or nil to
@@ -738,6 +741,12 @@ func evalBenchCmd(opts *evalCLIOptions) *cobra.Command {
 		Short: "Generate and run the extended stratified benchmark distribution",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			if opts.Quick {
+				if benchmarkSlug != defaultBenchmarkSlug {
+					return fmt.Errorf("--quick is only defined for the %s benchmark", defaultBenchmarkSlug)
+				}
+				public = true
+			}
 			if public {
 				if benchmarkSlug == DeepContosoBenchmarkSlug {
 					opts.Demo = true
@@ -798,7 +807,11 @@ func evalBenchCmd(opts *evalCLIOptions) *cobra.Command {
 			}
 			catalogClient := &http.Client{Timeout: 120 * time.Second}
 			var suite *gjeval.Suite
-			if public {
+			repeats := gjeval.DefaultRepeats
+			if opts.Quick {
+				suite, err = loadQuickEvalSuite()
+				repeats = quickEvalRepeats
+			} else if public {
 				suite, err = loadNamedEvalSuite(benchmarkSlug)
 			} else {
 				suite, err = (gjeval.Generator{
@@ -822,7 +835,7 @@ func evalBenchCmd(opts *evalCLIOptions) *cobra.Command {
 			// changing the dataset fingerprint the resume must match.
 			attempt := func(ctx context.Context, policy gjeval.ResumePolicy, resumeRunID string) (*gjeval.Report, error) {
 				prepared, err := (gjeval.Runner{Client: evalAgentClient(status), Now: frozenClock}).Prepare(ctx, *suite, instance, gjeval.RunOptions{
-					Mode: gjeval.RunModeBenchmark, Intent: gjeval.RunIntentBench, Repeats: gjeval.DefaultRepeats, Seed: seed,
+					Mode: gjeval.RunModeBenchmark, Intent: gjeval.RunIntentBench, Repeats: repeats, Seed: seed,
 					Provenance: evalProvenance(instance, seed, status), Baseline: baseline, Store: store,
 					ResumePolicy: policy, ResumeRunID: resumeRunID, BinaryFingerprint: evalBinaryFingerprint(),
 					InvocationArgs: evalInvocationArgs(opts, projectPath, scale, seed, public), Concurrency: opts.Concurrency,
@@ -852,6 +865,9 @@ func evalBenchCmd(opts *evalCLIOptions) *cobra.Command {
 				return evalExecutionError(err)
 			}
 			printEvalReport(cmd, opts, report, store)
+			if opts.Quick && !opts.JSON {
+				fmt.Fprint(cmd.OutOrStdout(), quickEvalNotice)
+			}
 			return evalReportExit(report)
 		},
 	}
@@ -859,6 +875,8 @@ func evalBenchCmd(opts *evalCLIOptions) *cobra.Command {
 	cmd.Flags().Int64Var(&seed, "seed", 23, "deterministic generator and rollout seed")
 	cmd.Flags().BoolVar(&public, "public", false, "run the frozen, reproducible public benchmark suite")
 	cmd.Flags().StringVar(&benchmarkSlug, "benchmark", defaultBenchmarkSlug, "public benchmark slug (deeporg, deepcontoso)")
+	cmd.Flags().BoolVar(&opts.Quick, "quick", false,
+		"run the quick check: a fixed 25-task slice of the public suite, one attempt each (implies --public; never publishable)")
 	cmd.Flags().BoolVar(&opts.AutoResume, "auto-resume", false,
 		"resume this run automatically when the provider stops it for a transient reason (timeout, rate limit, transport fault, 5xx); requires --yes")
 	cmd.Flags().IntVar(&opts.AutoResumeAttempts, "auto-resume-attempts", defaultAutoResumeAttempts,
@@ -1321,8 +1339,12 @@ func printEvalReport(cmd *cobra.Command, opts *evalCLIOptions, report *gjeval.Re
 	// Per-family publication gates, printed for every complete run. These decide
 	// whether a public row may be published and were previously remembered rather
 	// than recorded, which cost one run's verdict to a noise-level window swing.
-	// A run of mined tests is never a public row, so it has none.
-	if len(tiers) == 0 {
+	// A run of mined tests is never a public row, so it has none. Neither is a
+	// quick check, and its 2-4 tasks per family can never reach floors sized
+	// for the full suite, so printing them would only report noise as failure.
+	if isQuickEvalReport(report) {
+		fmt.Fprintln(cmd.OutOrStdout(), "Publication gates: not applied to a quick check.")
+	} else if len(tiers) == 0 {
 		if gatesMet, unmet := gjeval.PublicationGatesMet(*report); gatesMet {
 			fmt.Fprintf(cmd.OutOrStdout(), "Publication gates: all met.\n%s", gjeval.FormatPublicationGates(*report))
 		} else {
@@ -1547,6 +1569,9 @@ func evalInvocationArgs(opts *evalCLIOptions, projectPath string, scale int, see
 		// would be worse: the resume would load the generated suite and be
 		// rejected as incompatible with the frozen run it means to continue.
 		args = append(args, "--public")
+	}
+	if opts.Quick {
+		args = append(args, "--quick")
 	}
 	if opts.Demo && !public {
 		args = append(args, "--demo")

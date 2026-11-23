@@ -1,0 +1,32 @@
+{
+  "suite": "DeepORG Public Benchmark 2028.6",
+  "repeats": 1,
+  "selection": "scripts/select-quick-tasks.py: per family, the tasks whose past pass rate best tracks a run's full-suite score",
+  "tasks": [
+    "gjv1_2aafbc0cdc0900cae30d8b21",
+    "gjv1_3d61ddf513504502e275fa6f",
+    "gjv1_7c3ddc2cdc1f734cbf2187e3",
+    "gjv1_536460a0c6b5d6e3b77cbc68",
+    "gjv1_994956acc86d2a5a7c9ad1b7",
+    "gjv1_9c67e09aff289968b4241041",
+    "gjv1_2edfa17cf3b69b5ed523deb4",
+    "gjv1_fd3395a207f1ce74c4f9aa94",
+    "gjv1_0c3af21f120343d714566058",
+    "gjv1_9e6350d7a7baa6fa8cc6e5ba",
+    "gjv1_a02052b125b1a181f8442eb7",
+    "gjv1_18189b986b75b72c0280d713",
+    "gjv1_9a518c54381c569f52c8c9c9",
+    "gjv1_347bbd1a0db909a5df305d69",
+    "gjv1_90aaf6f51e82ed9cd3c5bc56",
+    "gjv1_028d0b7fed24d46783dcf47c",
+    "gjv1_b6e5d635bf90733263bdf7aa",
+    "gjv1_fb4ec2a6cc1d4d46a3d014ab",
+    "gjv1_79e0e851b6a97767cb8223e2",
+    "gjv1_8a35057583225981e4083f74",
+    "gjv1_991ff7d69f25033949908ae4",
+    "gjv1_1f8ff9366706a11ebbf063e2",
+    "gjv1_bc642f6bf1af5aa97dcc1a5b",
+    "gjv1_71673cd67b681bed192190c4",
+    "gjv1_0182e34daa8207d10033859e"
+  ]
+}

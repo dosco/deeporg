@@ -38,6 +38,11 @@ func TestEvalPublishRefusalsAndLowScoreBoundary(t *testing.T) {
 			r.Metrics.GroundTruthRecall = .9
 			r.Metrics.MethodRecall = .2
 		}, 2},
+		{"quick_check", func(r *gjeval.Report) {
+			r.SuiteFingerprint = quickEvalSuiteFingerprint()
+			r.Provenance.Repeats = quickEvalRepeats
+		}, 2},
+		{"single_attempt", func(r *gjeval.Report) { r.Provenance.Repeats = 1 }, 2},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -64,6 +69,23 @@ func TestEvalPublishRefusalsAndLowScoreBoundary(t *testing.T) {
 	data, err := loadBenchmarkData(publishTestDataPath(site), publishTestBenchmark(t))
 	if err != nil || len(data.Runs) != 1 || data.Runs[0].Accepted || !data.Runs[0].BoardEligible || data.Runs[0].ModelKey == "" {
 		t.Fatalf("published low score = %+v err=%v", data.Runs, err)
+	}
+}
+
+// A quick check must stay off the board even when the operator asks for an
+// unranked archive row: the archive is still read as a score.
+func TestEvalPublishRefusesQuickCheckEvenOffSuite(t *testing.T) {
+	project, site := t.TempDir(), t.TempDir()
+	report := publishTestReport("20260803T101112.000000000Z-quick")
+	report.SuiteFingerprint = quickEvalSuiteFingerprint()
+	report.Provenance.Repeats = quickEvalRepeats
+	writePublishTestReport(t, project, report)
+	err := publishTestRun(t, project, site, report.RunID, &evalPublishOptions{Site: site, AllowOffSuite: true})
+	if err == nil || !strings.Contains(err.Error(), "quick check") {
+		t.Fatalf("quick check publish error = %v, want a quick-check refusal", err)
+	}
+	if _, statErr := os.Stat(publishTestDataPath(site)); !os.IsNotExist(statErr) {
+		t.Fatalf("quick check wrote board data: %v", statErr)
 	}
 }
 
