@@ -310,13 +310,8 @@ const requiredRenderedContent = [
   ['benchmarks/deepcontoso/methodology/index.html', 'DeepContoso, The Retail & Supply Chain Benchmark'],
   ['benchmarks/deepcontoso/runs/index.html', 'Published DeepContoso Runs'],
   ['benchmark/index.html', 'What DeepORG actually tests'],
-  ['benchmark/index.html', 'From question to verified answer'],
   ['benchmark/index.html', 'We grade our own AI agent in public.'],
-  ['benchmark/index.html', "Most AI agents guess. Ours can't."],
-  ['benchmark/index.html', 'Watch it answer a real question.'],
-  ['benchmark/index.html', 'The agent never holds the keys.'],
-  ['benchmark/index.html', 'deeporg serve --demo'],
-  ['benchmark/index.html', 'not a published test item'],
+  ['benchmark/index.html', 'deeporg eval bench --public --yes'],
   // What a pass requires; the homepage no longer spells out the four parts.
   ['benchmark/index.html', 'Correct answer'],
   ['benchmark/index.html', 'Expected behavior'],
@@ -1146,7 +1141,7 @@ if (await exists(benchmarkDataPath)) {
     }
 
     if (!landingHTML.includes('>The DeepORG Benchmark</p>') ||
-        !landingHTML.includes('>DeepORG: Can an AI agent actually do what your organization needs?</h2>') ||
+        !landingHTML.includes('>Model comparison</h2>') ||
         !/\bbenchmark-card-footer\b/.test(landingHTML)) {
       failures.push('Friendly DeepORG comparison card lost its benchmark identity or provenance footer');
     }
@@ -1224,7 +1219,7 @@ if (await exists(benchmarkDataPath)) {
       failures.push('Friendly DeepORG task group counts do not add up to the current published exam');
     }
     if (Number(renderedDataAttribute(landingHTML, 'data-benchmark-episode-count')) !== Number(topBest.episode_count ?? 0)) {
-      failures.push('Friendly DeepORG safety story episode count does not match the leading result');
+      failures.push('Friendly DeepORG unsafe-effects attempt count does not match the leading result');
     }
   }
 
@@ -1427,7 +1422,6 @@ if (await exists(benchmarkDataPath)) {
   const homePath = path.join(publicRoot, 'index.html');
   if (topBest && (await exists(homePath))) {
     const home = await readFile(homePath, 'utf8');
-    const benchmarkPage = await readFile(benchmarkIndexPath, 'utf8');
     if (!home.includes('data-benchmark-proof') ||
         renderedDataAttribute(home, 'data-benchmark-selection') !== 'best-trusted') {
       failures.push('Homepage is missing the best-trusted benchmark proof module');
@@ -1525,14 +1519,6 @@ if (await exists(benchmarkDataPath)) {
       failures.push('Homepage still contains stale model-size claims');
     }
 
-    const storyMarker = renderedDataAttribute(benchmarkPage, 'data-current-recall');
-    if (storyMarker === undefined || Number(storyMarker) !== Number(topBest.recall)) {
-      failures.push('DeepORG result story does not match the highest trusted result');
-    }
-    const storySafety = renderedDataAttribute(benchmarkPage, 'data-current-unsafe-effects');
-    if (storySafety === undefined || Number(storySafety) !== Number(topBest.unsafe_effects ?? 0)) {
-      failures.push('DeepORG result story safety does not match the highest trusted result');
-    }
   }
 }
 

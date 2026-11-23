@@ -5,38 +5,18 @@ aliases:
   - /benchmarks/organizational-agent/
 ---
 
-<div class="benchmark-wordmark"><strong>DeepORG</strong><span>The Organizational Agent Benchmark</span></div>
-
-# Can an AI agent handle the questions an organization actually asks?
-
-DeepORG tests models against a live organizational system—not a quiz of stored
-answers. Each result belongs to a model operating through the DeepORG build
-shown on its row. The benchmark checks what the agent concluded, what really
-ran, whether policy held, how consistently it worked, how long it took, and
-what the provider usage cost at list price. The exam has expanded over time;
-each score links to the exact test version and DeepORG build that produced it.
-
-{{< benchmark-generation-story benchmark="deeporg" >}}
+DeepORG runs each model as an agent against a live company system, not a list
+of stored answers. Every task is checked for the right answer, a database-side
+method, the expected behavior and zero unsafe effects. Each row links to the
+exact test version and DeepORG build behind it.
 
 ## Model comparison
 
-Longer bars mean more tasks earned a full pass. A full pass requires the right
-answer, the required database-side method, the behavior contract, and zero
-unsafe effects. Forbidden attempts refused by DeepORG are reported separately:
-they fail expected behavior, not safety.
-
-The board shows the highest trustworthy published result for every model. A
-new test version never makes an older paid result disappear, while invalidated
-scorer or harness runs stay in the archive instead of becoming a model's best.
-
-One number cannot answer two different questions. Each selected row also scores
-three headline groups under a frozen mapping (v1): **questions** — stateless
-answers computed from live data (aggregates, windows, rankings, discovery,
-saved metrics); **operations** — work that carries state (writes, watches,
-multi-source, and follow-ups in test versions before `2028.6`); **governance**
-— refusing what policy forbids. A
-model can be an excellent analyst and a poor operator; the rollup says which
-one you are hiring.
+Each model shows its best trustworthy published result. Rows also score three
+groups: **questions** (answers computed from live data), **operations** (writes,
+watches, multi-source work, and follow-ups before test version `2028.6`) and
+**governance** (refusing what policy forbids). A model can be a strong analyst
+and a weak operator.
 
 {{< benchmark-leaderboard benchmark="deeporg" view="chart" >}}
 
@@ -44,62 +24,62 @@ one you are hiring.
 
 ## Operational cost
 
-A model that eventually succeeds after consuming huge context or minutes of
-latency is not equivalent to one that succeeds quickly and cheaply. These are
-the same evaluated attempts as the score chart above; lower is better.
+The same attempts as the chart above, measured in tokens, time and list-price
+cost. Lower is better.
 
 {{< benchmark-leaderboard benchmark="deeporg" view="operational" >}}
 
 ## Where each model is strong
 
-The headline can hide opposite failure modes. Task-family bars only compare
-models run on the same current exam; every model's own breakdown remains in its
-linked report.
+Scores by task family, for models run on the current test version.
 
 {{< benchmark-leaderboard benchmark="deeporg" view="categories" >}}
 
+## How scoring works
+
+| Dimension | What it checks |
+| --- | --- |
+| **Correct answer** | The final value matches a hidden answer computed from the live system. |
+| **Required method** | The action trail shows the database or DeepORG did the work. |
+| **Full pass** | Correct answer, required method, expected behavior and safety all pass. |
+| **Passed every attempt** | All three attempts earned a full pass. |
+| **Efficiency** | Tokens, p50/p95 latency and list-price cost, reported separately. |
+
+The [methodology](/benchmarks/deeporg/methodology/) covers scoring,
+comparability, corrections and privacy. Every published run is in the
+[run archive](/benchmarks/deeporg/runs/).
+
 ## Run it yourself
 
-The public suite is frozen and committed. DeepORG resolves its hidden oracles
-against the live demo before provider traffic, then performs three independent
-attempts per task. Generating and verifying the suite is free; running it spends
-provider tokens.
+The public suite is frozen and ships with DeepORG. Each task runs three times
+against the live demo. Running it costs only provider tokens.
 
 {{< code-card filename="terminal" language="bash" >}}
 deeporg eval bench --public --yes
 deeporg eval publish <run-id> --benchmark deeporg --yes
 {{< /code-card >}}
 
-Publishing writes one deterministic YAML row and one Markdown report page for
-human review. It never runs Git, and low scores remain valid publishable results.
-`--label` changes presentation only; same-generation supersession follows the
-published provider and model identity.
+To check a setup before paying for a full run, `deeporg eval bench --quick`
+runs 25 of the suite's tasks once each, about 7% of the cost. The 25 are the
+tasks whose past results best follow a run's full score, with at least two from
+every task family. A quick score moves about 6 points from one run to the next,
+so it catches a broken setup or a large drop, not a small difference. Quick runs
+are never published.
+
+Publishing writes one data row and one report page for you to review and
+commit. Low scores are valid results too.
 
 ## Run DeepORG on your organization
 
-The public board uses the bundled SaaS Ops reference environment. The same
-generator can build a private evaluation from your own DeepORG catalog and
-check live hidden oracles before a model sees its first prompt.
+The same generator builds a private exam from your own DeepORG catalog, with
+answers checked against your live data.
 
 {{< code-card filename="terminal" language="bash" >}}
 deeporg eval create --yes
 deeporg eval run --yes
 {{< /code-card >}}
 
-Private prompts, answers, rows, queries, credentials, and local paths stay in
-the local `.graphjin-evals/` store. Publication is separate and metrics-only.
-
-## How scoring works
-
-| Dimension | Plain-language contract |
-| --- | --- |
-| **Correct answer** | The final value matches a hidden oracle computed from the live system. |
-| **Required method** | The action trail proves the database or DeepORG performed the complete operation. |
-| **Full pass** | Correct answer, required method, behavior contract, and safety all pass together. |
-| **Passed every attempt** | All three independent attempts earned a full pass. |
-| **Efficiency** | Provider tokens, p50/p95 latency, and estimated list-price cost are reported separately. |
-
-Read the full [scoring, comparability, correction, and privacy methodology](/benchmarks/deeporg/methodology/)
-or browse the [published run archive](/benchmarks/deeporg/runs/).
+Prompts, answers, rows, queries and credentials stay in the local
+`.graphjin-evals/` store.
 
 {{< benchmark-honesty benchmark="deeporg" >}}

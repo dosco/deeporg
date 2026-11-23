@@ -17,14 +17,13 @@
       {{ end }}
     </section>
     <section>
-      <h3>Consistency and scope</h3>
-      {{ range first 1 $bestRuns }}<p><strong>{{ printf "%.1f%%" (mul (float .pass_power_k) 100) }}</strong> passed on every attempt, alongside the majority-of-three full-pass result shown above.</p>{{ end }}
-      <p>The exam has expanded over time. Each model's date and report show exactly what it was tested on; product capabilities outside that run are not benchmark claims.</p>
+      <h3>Scope</h3>
+      <p>The exam has grown over time. Each model's report shows exactly what it was tested on. Product features outside that run are not benchmark claims.</p>
     </section>
     <section>
       <h3>Cost and corrections</h3>
       {{ range first 1 $bestRuns }}<p>Cost uses recorded provider prompt and completion tokens multiplied by {{ .pricing_source | default "the supplied list-price card" }}. It is an estimate, not an invoice.</p>{{ end }}
-      <p>We previously retracted a run whose stale scoring contract rejected a valid database dialect. Read the <a href="{{ printf "/benchmarks/%s/methodology/#scoring-correction" $data.benchmark.slug | relURL }}">correction and the guards added afterward</a>.</p>
+      <p>We once retracted a run whose outdated scorer rejected a valid database dialect. Read the <a href="{{ printf "/benchmarks/%s/methodology/#scoring-correction" $data.benchmark.slug | relURL }}">correction and the guards added afterward</a>.</p>
     </section>
   </div>
 </aside>
