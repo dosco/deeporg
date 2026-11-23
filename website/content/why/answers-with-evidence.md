@@ -92,5 +92,6 @@ Answers nobody objected to are useful too. Every question answered by one databa
 - [Conversations](/agentic/lead-agent/): how the lead keeps its answers grounded.
 - [Benchmark methodology](/benchmarks/deeporg/methodology/): how answer, method, behavior and safety are scored.
 - [Evaluating the agent](/agentic/evaluation/) on your own questions.
+- [DeepORG vs text-to-SQL](/compare/deeporg-vs-text-to-sql/): why the engine writes the SQL, not the model.
 
 {{< endband >}}

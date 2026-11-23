@@ -5,52 +5,69 @@
 # entry that is not a database names its `source` kind instead. Add a database
 # here only once `deeporg serve` can connect to it.
 #
+# `guide:` links the logo to its page under /guides/; `npm run check` fails
+# if that page was not built.
+#
 # `on_dark: lighten` marks a logo drawn in a dark colour, which would vanish on
 # the dark theme; the stylesheet flips its lightness there.
 - name: PostgreSQL
   logo: postgresql.svg
   type: postgres
+  guide: /guides/postgres-mcp-server/
 - name: MySQL
   logo: mysql.svg
   on_dark: lighten
   type: mysql
+  guide: /guides/mysql-mcp-server/
 - name: MariaDB
   logo: mariadb.svg
   on_dark: lighten
   type: mariadb
+  guide: /guides/mysql-mcp-server/
 - name: MongoDB
   logo: mongodb.svg
   type: mongodb
+  guide: /guides/mongodb-mcp-server/
 - name: SQLite
   logo: sqlite.svg
   type: sqlite
+  guide: /guides/sqlite-mcp-server/
 - name: SQL Server
   logo: mssql.svg
   type: mssql
+  guide: /guides/sql-server-mcp-server/
 - name: Oracle
   logo: oracle.svg
   type: oracle
+  guide: /guides/oracle-ai-agent/
 - name: CockroachDB
   logo: cockroachdb.svg
   type: postgres
+  guide: /guides/postgres-mcp-server/
 - name: YugabyteDB
   logo: yugabytedb.svg
   type: postgres
+  guide: /guides/postgres-mcp-server/
 - name: Snowflake
   logo: snowflake.svg
   type: snowflake
+  guide: /guides/snowflake-ai-agent/
 - name: BigQuery
   label: BQ
   type: bigquery
+  guide: /guides/bigquery-ai-agent/
 - name: Cassandra / Keyspaces
   label: C*
   type: cassandra
+  guide: /guides/cassandra-ai-agent/
 - name: AWS Aurora
   logo: aws-aurora.svg
   type: postgres
+  guide: /guides/postgres-mcp-server/
 - name: Cloud SQL
   logo: google-cloud-sql.svg
   type: postgres
+  guide: /guides/postgres-mcp-server/
 - name: HTTP APIs
   label: API
   source: openapi

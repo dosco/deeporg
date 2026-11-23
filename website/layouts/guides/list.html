@@ -1,0 +1,28 @@
+{{ define "main" }}
+{{- /* The /guides/ and /compare/ indexes: the /why/ hero, then one row per
+     page. A section lists its own pages first, then the pages of every
+     section named in its `also` list, so each index reaches the others. */ -}}
+<article class="why-page guide-page">
+  <header class="why-hero">
+    <div class="why-hero-inner{{ if not .Params.scene }} why-hero-inner--solo{{ end }}">
+      <div>
+        <p class="dx-kicker"><b>{{ .Params.kicker | default .Title }}</b></p>
+        <h1>{{ .Params.headline | default .Title }}</h1>
+        {{ with .Params.lede }}<p class="why-lede">{{ . | markdownify }}</p>{{ end }}
+        {{ with .Params.actions }}<div class="home-actions">{{ range $i, $a := . }}<a class="{{ if eq $i 0 }}button-primary{{ else }}button-secondary{{ end }}" href="{{ $a.href }}">{{ $a.label }}</a>{{ end }}</div>{{ end }}
+      </div>
+    </div>
+  </header>
+  {{ $groups := slice . }}
+  {{ range .Params.also }}{{ with site.GetPage . }}{{ $groups = $groups | append . }}{{ end }}{{ end }}
+  {{ range $groups }}
+    <nav class="why-index guide-index" aria-label="{{ .Params.group_title | default .Title }}">
+      <h2 class="guide-index-title">{{ .Params.group_title | default .Title }}</h2>
+      {{ range $i, $p := sort .RegularPages "Weight" }}
+        <a href="{{ $p.RelPermalink }}"><span>{{ printf "%02d" (add $i 1) }}</span><strong>{{ $p.Params.nav_title | default $p.Title }}</strong><p>{{ $p.Params.summary | default $p.Description }}</p><em aria-hidden="true">-&gt;</em></a>
+      {{ end }}
+    </nav>
+  {{ end }}
+  {{ .Content }}
+</article>
+{{ end }}

@@ -99,5 +99,7 @@ One honest limit: a question that crosses two databases is not one statement. Th
 - [MCP](/agentic/mcp/): the fixed set of tools an outside agent sees.
 - [Sources](/configure/sources-mode/): connecting databases, files, code and APIs.
 - [The compiler](/core/compiler/): how one query becomes one statement.
+- [DeepORG vs hand-built MCP tools](/compare/deeporg-vs-hand-built-mcp-tools/): the two approaches side by side, and when a hand-built tool is still right.
+- [DeepORG vs text-to-SQL](/compare/deeporg-vs-text-to-sql/): what changes when the model stops writing SQL.
 
 {{< endband >}}

@@ -1,0 +1,34 @@
+{{ define "main" }}
+{{- /* A how-to or comparison page: the /why/ hero and bands, a kicker that
+     leads back to its section, and a pager through the section's pages in
+     weight order. Shared by /guides/ and /compare/ through `type: guides`. */ -}}
+{{- $section := .CurrentSection -}}
+{{- $pages := sort $section.RegularPages "Weight" -}}
+{{- $self := .RelPermalink -}}
+{{- $at := -1 -}}
+{{- range $i, $p := $pages }}{{ if eq $p.RelPermalink $self }}{{ $at = $i }}{{ end }}{{ end -}}
+{{- $n := len $pages -}}
+<article class="why-page guide-page">
+  <header class="why-hero">
+    <div class="why-hero-inner{{ if not .Params.scene }} why-hero-inner--solo{{ end }}">
+      <div>
+        <p class="dx-kicker"><a href="{{ $section.RelPermalink }}">{{ $section.Params.kicker | default $section.Title }}</a><i></i><span>{{ .Params.nav_title | default .Title }}</span></p>
+        <h1>{{ .Params.headline | default .Title }}</h1>
+        {{ with .Params.lede }}<p class="why-lede">{{ . | markdownify }}</p>{{ end }}
+        {{ with .Params.actions }}<div class="home-actions">{{ range $i, $a := . }}<a class="{{ if eq $i 0 }}button-primary{{ else }}button-secondary{{ end }}" href="{{ $a.href }}">{{ $a.label }}</a>{{ end }}</div>{{ end }}
+      </div>
+      {{ with .Params.scene }}{{ partial "ascii.html" (dict "page" $ "scene" . "label" $.Params.scene_label "caption" $.Params.scene_caption) }}{{ end }}
+    </div>
+  </header>
+  {{ .Content }}
+  {{ if and (ge $at 0) (gt $n 1) }}
+    {{- $prev := index $pages (mod (add $at (sub $n 1)) $n) -}}
+    {{- $next := index $pages (mod (add $at 1) $n) -}}
+    <nav class="why-pager" aria-label="More {{ lower ($section.Params.kicker | default $section.Title) }}">
+      {{- /* With two pages, previous and next are the same page: show it once. */ -}}
+      {{ if ne $prev.RelPermalink $next.RelPermalink }}<a href="{{ $prev.RelPermalink }}"><span>previous</span><strong>{{ $prev.Params.nav_title | default $prev.Title }}</strong></a>{{ else }}<span></span>{{ end }}
+      <a href="{{ $next.RelPermalink }}"><span>{{ if eq $prev.RelPermalink $next.RelPermalink }}also{{ else }}next{{ end }}</span><strong>{{ $next.Params.nav_title | default $next.Title }}</strong></a>
+    </nav>
+  {{ end }}
+</article>
+{{ end }}

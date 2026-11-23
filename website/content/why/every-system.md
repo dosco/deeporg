@@ -123,6 +123,7 @@ Whatever the source, a query passes through the same checks before it reaches th
 
 {{< band label="In the docs" title="Go deeper." >}}
 
+- [Guides by database](/guides/): setup and limits for PostgreSQL, MySQL, SQL Server, Oracle, MongoDB, SQLite, Snowflake, BigQuery and Cassandra.
 - [Database support](/reference/database-support/): the matrix, engine by engine.
 - [Multiple databases](/integrations/multi-database/): how cross-database queries run.
 - [OpenAPI](/integrations/openapi/): remote APIs as joinable fields.

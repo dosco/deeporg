@@ -33,6 +33,19 @@ const requiredRoutes = [
   'why/training-environment/index.html',
   'why/every-system/index.html',
   'why/open-engine/index.html',
+  'guides/index.html',
+  'compare/index.html',
+  'guides/postgres-mcp-server/index.html',
+  'guides/mysql-mcp-server/index.html',
+  'guides/sql-server-mcp-server/index.html',
+  'guides/oracle-ai-agent/index.html',
+  'guides/mongodb-mcp-server/index.html',
+  'guides/sqlite-mcp-server/index.html',
+  'guides/snowflake-ai-agent/index.html',
+  'guides/bigquery-ai-agent/index.html',
+  'guides/cassandra-ai-agent/index.html',
+  'compare/deeporg-vs-hand-built-mcp-tools/index.html',
+  'compare/deeporg-vs-text-to-sql/index.html',
   'install.sh',
   '404.html',
   'favicon.svg',
@@ -185,6 +198,19 @@ const requiredContent = [
   'why/training-environment.md',
   'why/every-system.md',
   'why/open-engine.md',
+  'guides/_index.md',
+  'compare/_index.md',
+  'guides/postgres-mcp-server.md',
+  'guides/mysql-mcp-server.md',
+  'guides/sql-server-mcp-server.md',
+  'guides/oracle-ai-agent.md',
+  'guides/mongodb-mcp-server.md',
+  'guides/sqlite-mcp-server.md',
+  'guides/snowflake-ai-agent.md',
+  'guides/bigquery-ai-agent.md',
+  'guides/cassandra-ai-agent.md',
+  'compare/deeporg-vs-hand-built-mcp-tools.md',
+  'compare/deeporg-vs-text-to-sql.md',
 ];
 
 const failures = [];
@@ -331,6 +357,24 @@ const requiredRenderedContent = [
   ['why/every-system/index.html', 'A bucket is a table.'],
   ['why/open-engine/index.html', 'One compiler. Any system. Any client.'],
   ['why/open-engine/index.html', 'DeepORG was formerly GraphJin.'],
+  // Guides and comparisons: the pages buyers land on from search. Pin the
+  // claims each one exists to make; the facts behind them are in the docs.
+  ['guides/index.html', 'Put an AI agent on the database you already run.'],
+  ['compare/index.html', 'The other ways to connect an agent to your data.'],
+  ['guides/postgres-mcp-server/index.html', 'Five questions to ask any Postgres MCP server.'],
+  ['guides/postgres-mcp-server/index.html', 'deeporg mcp --path /absolute/path/to/config'],
+  ['guides/mysql-mcp-server/index.html', 'Tell it the joins your schema never declared.'],
+  ['guides/sql-server-mcp-server/index.html', 'FOR JSON PATH'],
+  ['guides/oracle-ai-agent/index.html', 'Declare the return type once'],
+  ['guides/mongodb-mcp-server/index.html', 'A nested query becomes $lookup.'],
+  ['guides/sqlite-mcp-server/index.html', 'deeporg mcp --demo'],
+  ['guides/snowflake-ai-agent/index.html', 'private_key_path'],
+  ['guides/bigquery-ai-agent/index.html', 'max_bytes_billed'],
+  ['guides/cassandra-ai-agent/index.html', 'allow_filtering'],
+  ['compare/deeporg-vs-hand-built-mcp-tools/index.html', 'Five ways a tool list fails.'],
+  ['compare/deeporg-vs-hand-built-mcp-tools/index.html', 'When a hand-built tool is the right call.'],
+  ['compare/deeporg-vs-text-to-sql/index.html', 'The model plans. The engine writes the SQL.'],
+  ['compare/deeporg-vs-text-to-sql/index.html', 'When text-to-SQL is the better choice.'],
 ];
 
 async function exists(file) {
@@ -739,6 +783,64 @@ if (await exists(path.join(publicRoot, 'index.html'))) {
   if (shownProviders === 0) failures.push('Homepage provider line shows no providers');
   else if (shownMarks !== shownProviders) {
     failures.push(`Homepage provider line shows ${shownMarks} marks for ${shownProviders} providers`);
+  }
+}
+
+// Guides and comparisons. Each page leads with its own h1, carries a pager to
+// its neighbours and one product name; each index lists every page in both
+// sections; and every database logo that names a `guide` links to a page that
+// was built, on the homepage and on /why/every-system/.
+{
+  const read = async (...parts) => {
+    const file = path.join(publicRoot, ...parts);
+    return (await exists(file)) ? readFile(file, 'utf8') : '';
+  };
+  const linksTo = (html, href) => {
+    const escaped = href.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`href=(?:"${escaped}"|'${escaped}'|${escaped})(?=\\s|>)`).test(html);
+  };
+  const pages = [];
+  for (const section of ['guides', 'compare']) {
+    const dir = path.join(contentRoot, section);
+    if (!(await exists(dir))) {
+      failures.push(`content/${section}/ is missing`);
+      continue;
+    }
+    for (const name of await readdir(dir)) {
+      if (name.endsWith('.md') && name !== '_index.md') pages.push(`/${section}/${name.slice(0, -3)}/`);
+    }
+  }
+  if (pages.length < 5) failures.push(`Found ${pages.length} guide and comparison pages; expected more`);
+  const guidesIndex = await read('guides', 'index.html');
+  const compareIndex = await read('compare', 'index.html');
+  for (const href of pages) {
+    const html = await read(...href.split('/').filter(Boolean), 'index.html');
+    if (!html) {
+      failures.push(`${href} was not built`);
+      continue;
+    }
+    if (!/<h1[\s>]/.test(html)) failures.push(`${href} does not lead with its own h1`);
+    if (!/\bwhy-pager\b/.test(html)) failures.push(`${href} has no pager to the other pages in its section`);
+    if (/GraphJin/.test(html.replace(/<footer[\s\S]*?<\/footer>/, ''))) {
+      failures.push(`${href} names GraphJin; the product there is DeepORG`);
+    }
+    for (const [name, index] of [['/guides/', guidesIndex], ['/compare/', compareIndex]]) {
+      if (index && !linksTo(index, href)) failures.push(`${name} index does not list ${href}`);
+    }
+  }
+  const strip = await readFile(path.join(siteRoot, 'data', 'databases.yaml'), 'utf8');
+  const guideLinks = [...new Set([...strip.matchAll(/^\s+guide:\s*(\S+)\s*$/gm)].map((match) => match[1]))];
+  if (guideLinks.length < 5) failures.push('data/databases.yaml names fewer than five guides');
+  const homeHTML = await read('index.html');
+  const everySystem = await read('why', 'every-system', 'index.html');
+  for (const href of guideLinks) {
+    if (!pages.includes(href)) failures.push(`data/databases.yaml links ${href}, which is not a guide page`);
+    if (homeHTML && !linksTo(homeHTML, href)) failures.push(`Homepage database logos do not link ${href}`);
+    if (everySystem && !linksTo(everySystem, href)) failures.push(`/why/every-system/ database logos do not link ${href}`);
+  }
+  const footer = homeHTML.match(/<footer class=["']?site-footer[\s\S]*?<\/footer>/)?.[0] ?? '';
+  for (const href of ['/guides/', '/compare/']) {
+    if (!linksTo(footer, href)) failures.push(`Footer does not link ${href}`);
   }
 }
 

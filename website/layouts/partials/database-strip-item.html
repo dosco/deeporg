@@ -1,0 +1,8 @@
+<span class="database-logo-mark">
+  {{ if .logo }}
+    <img src="{{ printf "/logos/%s" .logo | relURL }}" alt="" loading="lazy"{{ if eq .on_dark "lighten" }} class="database-logo--lighten"{{ end }}>
+  {{ else }}
+    <em aria-hidden="true">{{ .label }}</em>
+  {{ end }}
+</span>
+<strong>{{ .name }}</strong>

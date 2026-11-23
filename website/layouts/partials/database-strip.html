@@ -1,16 +1,13 @@
 {{- /* The grid of logos for every system in data/databases.yaml. The homepage
-       section and the deeper pages size it with their own CSS. */ -}}
+       section and the deeper pages size it with their own CSS. An entry with a
+       `guide` links to its page under /guides/. */ -}}
 <div class="database-strip" aria-label="Supported databases and sources">
   {{ range index hugo.Data "databases" }}
-    <span class="database-logo-item">
-      <span class="database-logo-mark">
-        {{ if .logo }}
-          <img src="{{ printf "/logos/%s" .logo | relURL }}" alt="" loading="lazy"{{ if eq .on_dark "lighten" }} class="database-logo--lighten"{{ end }}>
-        {{ else }}
-          <em aria-hidden="true">{{ .label }}</em>
-        {{ end }}
-      </span>
-      <strong>{{ .name }}</strong>
-    </span>
+    {{ $inner := partial "database-strip-item.html" . }}
+    {{ with .guide }}
+      <a class="database-logo-item" href="{{ . | relURL }}">{{ $inner }}</a>
+    {{ else }}
+      <span class="database-logo-item">{{ $inner }}</span>
+    {{ end }}
   {{ end }}
 </div>
