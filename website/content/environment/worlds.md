@@ -57,7 +57,7 @@ runs once.
 The reference image serves the built-in demo. Your own world is a derived image:
 
 ```dockerfile
-FROM dosco/graphjin:env-latest
+FROM dosco/deeporg:env-latest
 COPY clone-acme /world
 ENV GJ_ENV_PATH=/world
 ENV GJ_ENV_SUITE=/world/eval/suite.yml

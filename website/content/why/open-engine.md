@@ -65,13 +65,13 @@ The same binary and config that serve the agent also run your realtime, files, r
 
 {{< band label="The name" title="DeepORG was formerly GraphJin." >}}
 
-The project grew from an engine into an agent built on that engine, and the name followed. The engine keeps its name, and so do the Go module, the npm package and the Docker images, for now. The command is `deeporg`, and `graphjin` still works as an alias.
+The project grew from an engine into an agent built on that engine, and the name followed. The engine keeps its name, and so does the Go module, for now. The npm package and the Docker images are published as `deeporg`, and under the old name as well. The command is `deeporg`, and `graphjin` still works as an alias.
 
 ```bash
 curl -fsSL https://deeporg.io/install.sh | bash   # macOS and Linux
-npm install -g graphjin                           # any platform
-brew install dosco/graphjin/deeporg               # macOS
-docker pull dosco/graphjin
+npm install -g deeporg                            # any platform
+brew install dosco/deeporg/deeporg                # macOS
+docker pull dosco/deeporg
 ```
 
 It is Apache 2.0. Read it, fork it, run it without the agent.

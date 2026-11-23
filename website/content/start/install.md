@@ -23,7 +23,7 @@ Other common development paths:
 
 ```bash
 deeporg serve --demo
-brew install dosco/graphjin/deeporg
+brew install dosco/deeporg/deeporg
 ```
 
 `deeporg serve --demo` is the fastest smoke test - with no `--path` it extracts the built-in SaaS ops demo (SQLite, no Docker) to `./graphjin-demo` and boots it: schema, seeded data, saved queries, workflows, and (with a model key in `./.env`) the built-in agent. The other [demo verticals](/start/demos/) run from a repo clone via `--path examples/<name>`.

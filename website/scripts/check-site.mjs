@@ -1700,6 +1700,16 @@ for (const file of htmlFiles) {
   if (oldCommand) {
     failures.push(`${rel} shows the old command \`${oldCommand[0]}\`; the command is deeporg`);
   }
+  // The npm package, the Homebrew tap and the Docker images are `deeporg`.
+  // The old names still get every release, but a page that shows one teaches
+  // it. `npm uninstall -g graphjin` passes (it is how you leave the old
+  // package), and so does the Go module path github.com/dosco/graphjin/....
+  const oldInstall = html.match(
+    /npm (?:install|i) (?:-g |--global )?graphjin\b|brew \w+ dosco\/graphjin\b|(?<![\w./-])dosco\/graphjin(?![\w/-])/
+  );
+  if (oldInstall) {
+    failures.push(`${rel} shows the old install name \`${oldInstall[0]}\`; the package, tap and image are deeporg`);
+  }
   for (const match of html.matchAll(/\sdata-ascii=(?:"([^"]+)"|'([^']+)'|([^"' >]+))/g)) {
     const scene = match[1] || match[2] || match[3];
     if (!globalThis.DeepOrgAscii?.scenes[scene]) {

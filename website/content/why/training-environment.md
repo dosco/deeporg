@@ -40,7 +40,7 @@ There are two reward profiles. `benchmark` is the published contract. `rl` is fo
 ### A container that boots ready
 
 ```bash
-docker run -d -p 8090:8090 --tmpfs /tmp:size=1g dosco/graphjin:env-latest
+docker run -d -p 8090:8090 --tmpfs /tmp:size=1g dosco/deeporg:env-latest
 ```
 
 Nothing is mounted and nothing is generated: a demo organization and its verified tasks are inside.

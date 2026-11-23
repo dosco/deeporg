@@ -35,7 +35,7 @@ Start an environment, point it at a fake policy, and drive it — no model, no
 GPU, no provider account:
 
 ```bash
-docker run -d -p 8090:8090 --tmpfs /tmp:size=1g dosco/graphjin:env-latest
+docker run -d -p 8090:8090 --tmpfs /tmp:size=1g dosco/deeporg:env-latest
 python3 training/policy_server.py --listen 127.0.0.1:8099 &
 python3 training/rollout_smoke.py --env http://127.0.0.1:8090
 ```

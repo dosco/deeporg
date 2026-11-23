@@ -14,7 +14,7 @@ measure an agent on your own schema instead, start at
 ## Start it
 
 ```bash
-docker run -d -p 8090:8090 --tmpfs /tmp:size=1g dosco/graphjin:env-latest
+docker run -d -p 8090:8090 --tmpfs /tmp:size=1g dosco/deeporg:env-latest
 ```
 
 Nothing is mounted and nothing is generated. The image carries a demo
@@ -84,7 +84,7 @@ docker run -d -p 8090:8090 --tmpfs /tmp:size=1g \
   -e GJ_AGENT_BASE_URL=http://your-inference-server:8000 \
   -e GJ_AGENT_MODEL=your-checkpoint \
   -e GJ_AGENT_API_KEY_ENV=YOUR_KEY_VAR \
-  dosco/graphjin:env-latest
+  dosco/deeporg:env-latest
 ```
 
 ## Configure it
@@ -98,9 +98,9 @@ otherwise indistinguishable from a default.
 # a train container and an eval container that agree on the holdout,
 # with nothing mounted and no coordination between them
 docker run -d -p 8090:8090 --tmpfs /tmp:size=1g \
-  -e GJ_ENV_SPLIT=auto:0.8 -e GJ_ENV_SIDE=train dosco/graphjin:env-latest
+  -e GJ_ENV_SPLIT=auto:0.8 -e GJ_ENV_SIDE=train dosco/deeporg:env-latest
 docker run -d -p 8091:8090 --tmpfs /tmp:size=1g \
-  -e GJ_ENV_SPLIT=auto:0.8 -e GJ_ENV_SIDE=eval  dosco/graphjin:env-latest
+  -e GJ_ENV_SPLIT=auto:0.8 -e GJ_ENV_SIDE=eval  dosco/deeporg:env-latest
 ```
 
 `--split auto` derives the division from each task's content identifier, so two
