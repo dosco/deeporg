@@ -324,7 +324,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GR_TOKEN }}
           GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
-          KO_DOCKER_REPO: dosco/graphjin
+          # No KO_DOCKER_REPO here. GoReleaser lets that variable replace the
+          # `repositories` list of every `kos` entry in .goreleaser.yml, which
+          # is how v3.21.24 pushed its images to one of the two repositories.
 
       - name: Publish to npm
         if: steps.push_release.outputs.pushed == 'true'
