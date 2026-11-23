@@ -100,13 +100,14 @@ const requiredRoutes = [
 ];
 
 // One anchor per homepage section or card, then the closing ones. A short
-// #problem section (why AI rollouts stall) sits under the hero; the three
-// values that define DeepORG follow; four more are cards in #reasons. The
+// #problem section (why AI rollouts stall) sits under the hero; #engine (how
+// the compiler replaces hand-built tools) and #loop (connect, discover,
+// execute, verify, improve) follow; three more reasons are cards. The
 // detail that used to live under #mcp, #security-model, #codesql,
 // #capabilities and #how moved to the /why/ pages and is asserted there.
 const requiredAnchors = [
   'problem',
-  'pillars',
+  'loop',
   'agent',
   'ai-queries',
   'proof',
@@ -320,15 +321,20 @@ const requiredRenderedContent = [
   ['benchmark/index.html', 'Expected behavior'],
   // The /why/ pages own the detail the homepage used to carry inline. Pin the
   // claims that moved, so shortening the homepage cannot quietly lose them.
-  ['index.html', 'One AI agent for your whole organization.'],
-  ['index.html', 'Three things set it apart.'],
-  ['index.html', 'Four more reasons it holds up in a real company.'],
+  ['index.html', 'AI agents for the company you already run. Nothing to rebuild.'],
+  ['index.html', 'No tool for each question. One compiler for all of them.'],
+  ['index.html', 'Connect, discover, execute, verify, improve.'],
+  ['index.html', 'Training a model on them is optional.'],
+  ['index.html', 'Three more reasons it holds up in a real company.'],
   // Why rollouts stall, and the guide for whoever does the rollout.
   ['index.html', 'Company data has no test suite.'],
   ['index.html', 'What a rollout takes, step by step'],
   ['rollout/index.html', 'Most of an AI rollout is not the model.'],
   ['rollout/index.html', 'Write down what your terms mean.'],
-  ['index.html', 'How a question becomes one database query.'],
+  ['rollout/index.html', 'Give it a recurring job.'],
+  ['rollout/index.html', 'Know whether it is working.'],
+  ['rollout/index.html', 'Pay for answers, not for pages of rows.'],
+  ['rollout/index.html', 'DeepORG has no app for those yet'],
   ['index.html', 'formerly GraphJin'],
   ['index.html', 'A change waits for your yes.'],
   ['index.html', 'a searchable map of everything you connect'],
@@ -520,7 +526,8 @@ if (await exists(path.join(publicRoot, 'index.html'))) {
   // the problem." is the /watch/ page's own headline and is pinned there.
   for (const required of [
     'Leave a question running.',
-    'It tells you when something changes.',
+    'Give it a recurring job.',
+    'A routine goes one step further.',
     'It speaks up when the answer changes',
     'database polls, not model calls',
   ]) {
@@ -654,13 +661,13 @@ if (await exists(path.join(publicRoot, 'index.html'))) {
     }
   }
   const engineStart = homeHTML.search(/id=["']?engine\b/);
-  const engineEnd = homeHTML.search(/id=["']?quickstart\b/);
+  const engineEnd = homeHTML.search(/id=["']?loop\b/);
   const engine = engineStart >= 0 && engineEnd > engineStart ? homeHTML.slice(engineStart, engineEnd) : '';
   if (!engine) {
-    failures.push('Homepage #engine section not found ahead of #quickstart');
+    failures.push('Homepage #engine section not found ahead of #loop');
   } else {
     if (/GraphJin/.test(engine)) failures.push('Homepage #engine section names GraphJin; it should say how DeepORG works');
-    for (const required of ['How a question becomes one database query.', 'compiles it into a single database query', 'open source under Apache 2.0']) {
+    for (const required of ['No tool for each question.', 'A tool written by hand for each question', 'compiles it into a single database query', 'open source under Apache 2.0']) {
       if (!engine.includes(required)) failures.push(`Homepage #engine section missing: ${required}`);
     }
     if (!/data-ascii=["']?how\b/.test(engine)) failures.push('Homepage #engine section lost its step-by-step figure');
@@ -1504,10 +1511,10 @@ if (await exists(benchmarkDataPath)) {
     // The hero quotes no benchmark counts (the board in #proof carries them and
     // is checked above). Its figure is one wide scene with a stacked one for
     // small screens; losing the second leaves a phone with an unreadable strip.
-    const heroEnd = home.search(/id=["']?pillars\b/);
+    const heroEnd = home.search(/id=["']?problem\b/);
     const hero = heroEnd >= 0 ? home.slice(home.indexOf('dx-hero'), heroEnd) : '';
     if (!hero) {
-      failures.push('Homepage hero not found ahead of #pillars');
+      failures.push('Homepage hero not found ahead of #problem');
     } else {
       for (const [scene, variant] of [['orgwide', 'ascii--wide'], ['org', 'ascii--narrow']]) {
         const pre = new RegExp(`<pre[^>]*data-ascii=["']?${scene}["']?[\\s>][^>]*>|<pre[^>]*data-ascii=["']?${scene}["']?>`).exec(hero)?.[0] ?? '';

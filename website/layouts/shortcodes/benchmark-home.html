@@ -27,7 +27,7 @@
 <section id="proof" class="dx-proof" aria-labelledby="home-benchmark-title"{{ with $top }} data-proof-run="{{ .run_id }}"{{ end }}>
   <div class="dx-pillars-head">
     <div>
-      <p class="dx-kicker"><b>02</b><i></i><span>Proven in public</span></p>
+      <p class="dx-kicker"><b>Verify</b><i></i><span>Proven in public</span></p>
       {{- with $top }}
       {{- $cents := partial "benchmark-cents.html" (partial "benchmark-pass-cost.html" .) }}
       <h2 id="home-benchmark-title">{{ printf "%.0f" (mul (float .recall) 100) }} out of 100{{ with $cents }}, <span class="dx-answer">for {{ . }} a task.</span>{{ else }}.{{ end }}</h2>

@@ -4781,9 +4781,78 @@ h3 {
   line-height: 1.14;
 }
 
+/* The five steps of the loop, read left to right. */
+.dx-pillar-grid--five {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: clamp(1rem, 2vw, 2rem);
+}
+
+.dx-pillar-grid--five .dx-pillar h3 {
+  font-size: clamp(1.2rem, 1.6vw, 1.45rem);
+}
+
 @media (max-width: 1100px) {
   .dx-pillar-grid--four {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dx-pillar-grid--five {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* A typical agent next to DeepORG, one row per difference. */
+.dx-contrast {
+  margin: 1.4rem 0 0.4rem;
+  border-top: 1px solid var(--line-strong);
+  font-size: 0.95rem;
+}
+
+.dx-contrast > div {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.dx-contrast > div:first-child {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.dx-contrast > div:first-child > :last-child {
+  color: var(--accent-readable);
+}
+
+.dx-contrast b {
+  color: var(--heading);
+  font-weight: 600;
+}
+
+.dx-contrast [role="cell"] {
+  color: var(--muted);
+}
+
+.dx-contrast [role="cell"]:last-child {
+  color: var(--ink);
+}
+
+@media (max-width: 520px) {
+  .dx-contrast > div {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 0.3rem 1rem;
+  }
+
+  .dx-contrast > div > :first-child {
+    grid-column: 1 / -1;
+  }
+
+  .dx-contrast > div:first-child > :first-child {
+    display: none;
   }
 }
 
