@@ -43,11 +43,16 @@ builds:
       - amd64
       - arm64
 
+# Each image is pushed to two repositories. dosco/deeporg is the one to pull
+# from now on. dosco/graphjin, the name the images were published under
+# before the rename, keeps getting the same tags so an existing
+# `docker pull dosco/graphjin` still gets new releases.
 kos:
   - id: graphjin-docker
     build: deeporg
     main: ./cmd
     repositories:
+      - dosco/deeporg
       - dosco/graphjin
     platforms:
       - linux/amd64
@@ -79,6 +84,7 @@ kos:
     build: deeporg
     main: ./cmd
     repositories:
+      - dosco/deeporg
       - dosco/graphjin
     platforms:
       - linux/amd64
@@ -179,8 +185,11 @@ nfpms:
         conflicts:
           - graphjin
 
-# Two formulas from the same archives, in the tap that exists today
-# (dosco/homebrew-graphjin). `deeporg` is the one to install from now on.
+# Two formulas from the same archives, in one tap. The tap repository was
+# renamed from dosco/homebrew-graphjin to dosco/homebrew-deeporg; GitHub
+# redirects the old name, so `brew install dosco/graphjin/deeporg` and a tap
+# added before the rename keep working, as long as nobody creates a new
+# repository under the old name. `deeporg` is the one to install from now on.
 # `graphjin` is still written so that `brew upgrade` on a machine that
 # installed it under the old name keeps getting releases; it can go once the
 # tap carries a formula_renames.json pointing graphjin at deeporg. Both install
@@ -191,7 +200,7 @@ brews:
       - deeporg
     repository:
       owner: dosco
-      name: homebrew-graphjin
+      name: homebrew-deeporg
     directory: Formula
     homepage: https://deeporg.io
     description: "One AI agent for your whole organization"
@@ -210,7 +219,7 @@ brews:
       - deeporg
     repository:
       owner: dosco
-      name: homebrew-graphjin
+      name: homebrew-deeporg
     directory: Formula
     homepage: https://deeporg.io
     description: "One AI agent for your whole organization (old name of deeporg)"

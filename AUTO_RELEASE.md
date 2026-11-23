@@ -61,7 +61,9 @@ npm is the last step of a release. If it alone fails, the GitHub release, the Ho
 gh workflow run auto-release.yml -f npm_publish_version=3.21.22
 ```
 
-The run prints what npm is asked to trust (repository, workflow file, environment) and npm's own reason if it refuses. It does nothing if that version is already on npm, and it refuses a version older than the one npm calls `latest`.
+The package is published under two names, `deeporg` and `graphjin` (its name before the rename), and the run handles each on its own. It prints what npm is asked to trust (repository, workflow file, environment) and npm's own reason if it refuses. It does nothing for a name that already has that version, and it refuses a version older than the one npm calls `latest`.
+
+A new package name has to exist on npm before any of this works, because a trusted publisher can only be set on a package that exists. A placeholder version is enough (`deeporg` started as `0.0.0-stage`); the first release after that publishes the real one.
 
 ## Manual Override
 

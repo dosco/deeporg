@@ -143,6 +143,56 @@ jobs:
           echo "::notice ::Skipping release because master advanced from $WORKFLOW_SHA to $REMOTE_SHA"
           echo "::notice ::Remote master version is $REMOTE_VERSION; planned version is $NEW_VERSION"
 
+      # Before anything is tagged. A channel that turns out to be out of reach
+      # half-way through GoReleaser leaves a release that is partly published,
+      # and the only retry deletes and rebuilds all of it.
+      - name: Check the release can reach Docker Hub and the Homebrew tap
+        if: steps.release_target.outputs.should_release == 'true'
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GR_TOKEN }}
+        run: |
+          set -euo pipefail
+          failed=0
+
+          # Docker Hub: ask the registry for a token to push each image
+          # repository and read which actions it granted. A repository that
+          # does not exist yet is granted too when the account may create it.
+          for image in $(yq '.kos[].repositories[]' .goreleaser.yml | sort -u); do
+            granted=$(curl -fsS -u "$DOCKERHUB_USERNAME:$DOCKERHUB_TOKEN" \
+              "https://auth.docker.io/token?service=registry.docker.io&scope=repository:$image:pull,push" \
+              | node -e '
+                let body = "";
+                process.stdin.on("data", (chunk) => (body += chunk)).on("end", () => {
+                  try {
+                    const claims = JSON.parse(Buffer.from(JSON.parse(body).token.split(".")[1], "base64url").toString());
+                    console.log((claims.access || []).flatMap((entry) => entry.actions || []).join(","));
+                  } catch {
+                    process.exit(1); // no token came back; curl has said why
+                  }
+                });
+              ') || granted="(no token)"
+            if [[ ",$granted," == *",push,"* ]]; then
+              echo "docker.io/$image: push granted"
+            else
+              echo "::error ::Docker Hub does not let this release push to $image (granted: ${granted:-nothing})"
+              failed=1
+            fi
+          done
+
+          # Homebrew: the tap repository must exist under this name and take a push.
+          for tap in $(yq '.brews[].repository | .owner + "/" + .name' .goreleaser.yml | sort -u); do
+            if [ "$(gh api "repos/$tap" --jq .permissions.push 2>/dev/null)" = "true" ]; then
+              echo "github.com/$tap: push allowed"
+            else
+              echo "::error ::The release cannot push formulas to github.com/$tap (missing, renamed, or no push access)"
+              failed=1
+            fi
+          done
+
+          exit $failed
+
       - name: Update package.json version
         if: steps.release_target.outputs.mode == 'create'
         run: |
@@ -284,8 +334,17 @@ jobs:
           # and the trusted publisher configured for this repo + workflow on npmjs.com.
           # If only this step fails, do not re-run the job: that deletes and rebuilds
           # the release. Use the npm-publish job below.
+          #
+          # The same package goes out under two names: deeporg, and graphjin, the
+          # name it had before the rename, so `npm install -g graphjin` keeps
+          # getting releases. Both are tried even if the first fails.
           npm --version
-          npm publish --access public
+          status=0
+          for name in deeporg graphjin; do
+            npm pkg set name="$name"
+            npm publish --access public || status=1
+          done
+          exit $status
 
   # Publish-only retry:
   #   gh workflow run auto-release.yml -f npm_publish_version=3.21.22
@@ -293,18 +352,25 @@ jobs:
   # npm is the last step of a release, so when it alone fails (the trusted publisher
   # on npmjs.com not matching, a registry outage) everything else is already out.
   # This job publishes the package from the release tag and touches nothing else.
+  # It runs once for each name the package is published under and skips a name
+  # that already has the version.
   # It has to live in this file: npm ties the trusted publisher to the workflow
   # filename. The provenance npm records names the commit the workflow was started
   # from (master at that moment), not the tag the package is built from.
   npm-publish:
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch' && inputs.npm_publish_version != ''
+    strategy:
+      fail-fast: false
+      matrix:
+        name: [deeporg, graphjin]
     permissions:
       # contents: read the release. id-token: npm trusted publishing (OIDC).
       contents: read
       id-token: write
     env:
       VERSION: ${{ inputs.npm_publish_version }}
+      NAME: ${{ matrix.name }}
     steps:
       - name: Check the version asked for
         run: |
@@ -332,12 +398,13 @@ jobs:
         run: |
           set -euo pipefail
 
-          NAME=$(node -p "require('./package.json').name")
           TAGGED=$(node -p "require('./package.json').version")
           if [ "$TAGGED" != "$VERSION" ]; then
             echo "::error ::Tag v$VERSION holds package.json version $TAGGED"
             exit 1
           fi
+          # The tag holds one package.json; this run publishes it as $NAME.
+          npm pkg set name="$NAME"
 
           # The package's installer downloads the binary from the GitHub release.
           if [ "$(gh release view "v$VERSION" --json isDraft --jq .isDraft)" != "false" ]; then
@@ -352,7 +419,10 @@ jobs:
           fi
 
           # A publish moves the 'latest' tag to the version published.
-          LATEST=$(npm view "$NAME" version)
+          if ! LATEST=$(npm view "$NAME" version 2>/dev/null) || [ -z "$LATEST" ]; then
+            echo "::error ::$NAME is not on npm. Create the package there first (a placeholder is enough) and set its trusted publisher; one can only be set on a package that exists."
+            exit 1
+          fi
           if [ "$(printf '%s\n%s\n' "$LATEST" "$VERSION" | sort -V | tail -n 1)" != "$VERSION" ]; then
             echo "::error ::npm's latest is $LATEST; publishing $VERSION now would move 'latest' backwards"
             exit 1

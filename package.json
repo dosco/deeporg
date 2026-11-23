@@ -1,7 +1,7 @@
 {
-  "name": "graphjin",
+  "name": "deeporg",
   "version": "3.21.23",
-  "description": "GraphJin — one governed graph for AI agents: GraphQL + MCP over your databases, files, APIs, and code",
+  "description": "DeepORG: one AI agent for your whole organization, across your databases, APIs, files and code. Formerly GraphJin.",
   "bin": {
     "deeporg": "bin/deeporg.js",
     "graphjin": "bin/deeporg.js"
@@ -20,6 +20,9 @@
     "url": "git+https://github.com/dosco/deeporg.git"
   },
   "keywords": [
+    "deeporg",
+    "graphjin",
+    "ai-agent",
     "graphql",
     "sql",
     "database",
