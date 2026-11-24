@@ -1,8 +1,8 @@
 ---
 title: "A complete agent"
-headline: "Ask it. Let it act. Leave it watching."
+headline: "It answers questions, makes changes and keeps watch."
 description: "DeepORG is one agent, not a kit of parts: one endpoint and one chat window that answer questions, propose changes and hold them for approval, keep standing questions running, and work from Claude, Codex or any MCP client."
-lede: "DeepORG is one agent, not a kit of parts. Ask it in plain words and it finds the right tables, has the database do the work, and answers with the data behind it. It can propose a change and wait for your yes, and it can keep a question running after you have left."
+lede: "DeepORG is one agent, not a kit of parts. Ask it in plain words and it finds the right tables, has the database do the work, and answers with the data behind it. It can propose a change and wait for your approval, and it can keep checking a question after you have left."
 scene: "org"
 scene_label: "Animated diagram: a question is asked, three of seven connected systems are queried, and DeepORG returns one answer with its evidence."
 scene_caption: "one question / several systems / one answer"
@@ -55,7 +55,7 @@ Ask for `Accept: text/event-stream` and the same endpoint streams each step as i
 
 {{< endband >}}
 
-{{< band label="Conversations" title="A lead that holds the thread. A worker that fetches the facts." >}}
+{{< band label="Conversations" title="In a conversation, two agents share the work." >}}
 
 In a conversation there are two agents. The **lead** reads the thread's history, works out what is being asked, and sends self-contained questions to a **data agent**. The data agent is meant to run on a small, fast model: it searches the map, writes the query and has the database compute the result. Questions the lead sends together run in parallel.
 
@@ -72,30 +72,30 @@ The lead never computes a total itself. It asks, and the database answers.
 
 {{< endband >}}
 
-{{< band label="It acts" title="A change is proposed, not performed." >}}
+{{< band label="It acts" title="It proposes a change and waits for you." >}}
 
-Ask it to close a ticket or correct a record and, by default, it does not change your data itself. It writes the change, DeepORG rehearses it inside a transaction that is rolled back, and you are shown one line to read, the exact query, and the rows it would touch. It runs once, as you, after you approve that exact version.
+Ask it to close a ticket or correct a record and, by default, it does not change your data itself. It writes the change, and DeepORG tries it inside a transaction and rolls it back. You are shown a one-line summary, the exact query, and the rows it would change. It runs once, as you, after you approve that exact version.
 
 [Your rules, your approval](/why/your-rules/) covers the whole flow, including the rules that let it act alone within limits you set.
 
 {{< endband >}}
 
-{{< band label="It keeps watch" title="Some questions should not need asking twice." >}}
+{{< band label="It keeps watch" title="It keeps checking after you have left." >}}
 
 {{< grid >}}
 
-- **Watches.** Leave a question running. It is answered again on database polls, not model calls, and it speaks up when the answer changes or when something expected never arrives.
-- **Routines.** A watch that wakes the agent. When the data changes, the lead looks into it and can propose a change, which is held for the watch's owner.
+- **Watches.** Leave a question with it. The question is answered again by polling the database, with no model calls, and DeepORG tells you when the answer changes or when something expected never arrives.
+- **Routines.** A job you give it to repeat. When the data changes or its schedule comes up, the agent looks into it and can propose a change, which waits for the owner's approval.
 - **Tasks.** A goal that stays open until the data says it is done. On close, DeepORG runs a saved query as the task's owner and records what the data actually said.
 - **Workflows.** Reviewed procedures the agent can run instead of improvising a multi-step action.
 
 {{< endgrid >}}
 
-The story of one standing question, from silence to an approval, is on [the watch page](/watch/).
+[The watch page](/watch/) follows one question left running, from the first alert to an approved change.
 
 {{< endband >}}
 
-{{< band label="Built-in Web UI" title="Your DeepORG setup, visible." >}}
+{{< band label="Built-in Web UI" title="A console comes built in." >}}
 
 Every DeepORG server includes a first-party console. Ask the agent, inspect source health and discovery coverage, review security posture, run GraphQL, and follow tasks and watches, without deploying another service.
 
@@ -150,7 +150,7 @@ roles:
 
 - **It tries the change before making it.** DeepORG connects to the database and reads the real schema to check your request would actually work. If it would not, nothing changes and you find out in the chat.
 - **It cannot touch your secrets.** Passwords, API keys and login settings are off-limits no matter who asks. A database you marked read-only stays read-only, even if the agent tries to change that.
-- **Only while you are building.** This works on your machine. On a live server the door is shut, and it cannot be opened by asking.
+- **Only while you are building.** This works on your machine. On a live server this is switched off, and no request can switch it on.
 
 {{< endgrid >}}
 

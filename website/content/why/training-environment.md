@@ -1,8 +1,8 @@
 ---
 title: "Your organization as a training environment"
-headline: "Turn your organization into a training environment."
-description: "The machinery that grades DeepORG on its public benchmark also generates checked tasks from your own systems and serves them as graded episodes, with a reward that comes from the database. Measure an agent on your organization, or train one with reinforcement learning."
-lede: "The machinery that grades DeepORG in public also generates checked tasks from your own systems and serves them as graded episodes. Measure an agent on your organization, or train one with reinforcement learning, instead of on a toy."
+headline: "Test an agent on your own systems, or train one."
+description: "The code that tests DeepORG on its public benchmark also builds tasks from your own systems and checks each attempt against your database. Measure an agent on your organization, or train one with reinforcement learning."
+lede: "The code that tests DeepORG in public can also build tasks from your own systems and check each attempt against your database. Use it to measure an agent on your organization, or to train one with reinforcement learning."
 scene: "env"
 scene_label: "Animated diagram of one episode: reset, task, the agent works, it answers, a hidden oracle query is resolved in the same world, and the reward comes back. A fluent wrong answer and a right number with no work behind it both score zero."
 scene_caption: "reset / act / the database marks it"
@@ -15,11 +15,11 @@ landing: true
 toc: false
 ---
 
-{{< band label="The reward" title="The database marks the answer. No model is asked for its opinion." >}}
+{{< band label="The reward" title="The database checks the answer. No model is asked for its opinion." >}}
 
-Most ways of scoring an agent ask a model whether an answer looks right. This one asks the database. Every task carries a hidden oracle: a read-only query resolved against the same world the agent works in. A fluent, confident, wrong answer earns nothing.
+Most ways of scoring an agent ask a model whether an answer looks right. This one asks the database. Every task has a hidden answer key, called the oracle: a read-only query run against the same data the agent works on. An answer that sounds right but is wrong scores zero.
 
-The oracle is written when the task is generated, and the agent never sees it. A policy trained against this reward cannot improve its score by becoming more persuasive.
+The oracle is written when the task is generated, and the agent never sees it. A model trained on this reward cannot raise its score by sounding more convincing.
 
 {{< grid >}}
 
@@ -35,7 +35,7 @@ There are two reward profiles. `benchmark` is the published contract. `rl` is fo
 
 {{< endband >}}
 
-{{< band label="Three ways in" title="Start from our world, your schema, or your people's questions." >}}
+{{< band label="Three ways in" title="Start from our demo company, your schema, or your people's questions." >}}
 
 ### A container that boots ready
 
@@ -111,7 +111,7 @@ The order matters:
 
 {{< endband >}}
 
-{{< band label="Same machinery" title="The public benchmark is this environment, published." >}}
+{{< band label="Same code" title="The public benchmark is this environment, published." >}}
 
 The DeepORG benchmark is a frozen suite of {{< benchmark-stat "tasks" >}} tasks, each run three times, served and graded by the same code. That is why the scores are measurements, and why the same reward is something a policy can be trained on.
 

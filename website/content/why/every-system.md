@@ -1,8 +1,8 @@
 ---
 title: "Every system you run"
-headline: "Every system you already run, behind one agent."
-description: "DeepORG connects databases, warehouses, HTTP APIs, files and source code into one map the agent can search, so one question can draw on several of them. Adding a system is a few lines of config."
-lede: "Databases, warehouses, HTTP APIs, files and source code. Each becomes part of one map the agent can search, and one question can draw on several of them."
+headline: "It connects to the systems you already run."
+description: "DeepORG connects databases, warehouses, HTTP APIs, files and source code into one map the agent can search, so one question can use several of them. Adding a system is a few lines of config."
+lede: "Databases, warehouses, HTTP APIs, files and source code. Each becomes part of one map the agent can search, and one question can use several of them."
 scene: "sources"
 scene_label: "Animated diagram: databases, warehouses, API specs, file stores and source code flow into one map that one agent reads."
 scene_caption: "many systems / one map / one agent"
@@ -23,7 +23,7 @@ Who is at renewal risk is partly in the accounts table, partly in product usage 
 
 {{< endband >}}
 
-{{< band id="databases" label="Databases and warehouses" title="Name it, and it is on the map." >}}
+{{< band id="databases" label="Databases and warehouses" title="Add a database to the config and the agent can use it." >}}
 
 DeepORG works with PostgreSQL, MySQL, SQLite, MongoDB, Oracle, SQL Server, Snowflake and Cassandra, and reads from BigQuery as an experimental source. The [support matrix](/reference/database-support/) says how far each one goes.
 
@@ -54,7 +54,7 @@ MongoDB is not sent SQL. The same question is compiled into an aggregation pipel
 
 {{< endband >}}
 
-{{< band label="APIs" title="Drop in an OpenAPI spec. Its operations join your tables." >}}
+{{< band label="APIs" title="Add an OpenAPI spec and its data joins your tables." >}}
 
 ```yaml
 sources:
@@ -101,7 +101,7 @@ Local disk, S3 and GCS all work the same way. Every file table has the same colu
 
 {{< band id="codesql" label="Source code" title="CodeSQL: query your code as well." >}}
 
-CodeSQL indexes your source tree into a read-only SQLite graph. Agents can ask where a column is used, which code references it, and which symbol owns that reference, through the same interface as everything else. It is evidence from source code without handing a model a shell.
+CodeSQL indexes your source tree into a read-only SQLite graph. Agents can ask where a column is used, which code references it, and which symbol owns that reference, through the same interface as everything else. The agent gets facts from your source code without being given a shell.
 
 <div class="codesql" aria-label="Querying source code with CodeSQL"><div class="codesql-head"><span class="codesql-kicker">agent asks</span><strong>Where is <code>users.email</code> used?</strong></div><div class="codesql-grid"><figure class="codesql-pane codesql-pane-query"><figcaption>GraphQL · gj_code</figcaption>{{< hl graphql >}}query {
   gj_code(where: {

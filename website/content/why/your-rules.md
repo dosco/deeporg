@@ -1,11 +1,11 @@
 ---
 title: "Your rules, your approval"
-headline: "It sees only what you allow. A change waits for your yes."
-description: "DeepORG works inside your access rules: roles, row filters and column lists enforced by the engine on every query the agent writes. By default a change is rehearsed, held, and run only after a person approves that exact version."
+headline: "It sees only what you allow, and asks before it changes anything."
+description: "DeepORG works inside your access rules: roles, row filters and column lists enforced by the engine on every query the agent writes. By default a change is tried out, held, and run only after a person approves that exact version."
 lede: "DeepORG works inside the access rules you write, and by default it does not change your data on its own. The rules are enforced by the engine that runs the query, not by the model that wrote it."
 scene: "gate"
-scene_label: "Animated diagram: a proposed change passes the access rules, is rehearsed in a rolled-back transaction, is held until a person approves it, and only then runs."
-scene_caption: "rules / rehearsal / your yes"
+scene_label: "Animated diagram: a proposed change passes the access rules, is tried in a rolled-back transaction, is held until a person approves it, and only then runs."
+scene_caption: "rules / trial run / your approval"
 actions:
   - label: "Try it in 2 minutes"
     href: "/#quickstart"
@@ -15,7 +15,7 @@ landing: true
 toc: false
 ---
 
-{{< band label="Access rules" title="Declared once. Applied to every query the agent writes." >}}
+{{< band label="Access rules" title="Write the rules once. They apply to every query the agent writes." >}}
 
 Say who may see what, once. For a whole source:
 
@@ -62,11 +62,11 @@ The agent has no sign-in mode of its own. Every query it writes passes through t
 
 {{< endband >}}
 
-{{< band label="Hard edges" title="Some things are not up for discussion." >}}
+{{< band label="Hard limits" title="Limits the agent cannot get around." >}}
 
 {{< grid >}}
 
-- **Read-only stays read-only.** `read_only: true` on a source is a veto. A config change made through an assistant cannot turn it writable.
+- **Read-only stays read-only.** `read_only: true` on a source is final. A config change made through an assistant cannot turn it writable.
 - **One switch makes the agent read-only.** `agent.read_only` limits it to reading and discovery, whatever a role allows.
 - **Secrets stay out of reach.** Config values are redacted wherever they can be read, and a runtime change accepts a reference to a secret, not the secret.
 - **API writes are opt-in.** A call that changes something on a remote API is off until you expose it, and it always waits for a person.
@@ -76,11 +76,11 @@ The agent has no sign-in mode of its own. Every query it writes passes through t
 
 {{< endband >}}
 
-{{< band label="Changes" title="Proposed, rehearsed, held. Then run once, as you." >}}
+{{< band label="Changes" title="A change is tried out, held for you, then run once." >}}
 
 With write approval required, which is the default where the agent runs, it never changes application data or calls a write API itself.
 
-1. **Rehearsed.** At the point a write would run, DeepORG runs it inside a transaction and rolls it back.
+1. **Tried out.** At the point a write would run, DeepORG runs it inside a transaction and rolls it back.
 2. **Held.** The reply is `needs_approval`, with one line to read (`update 3 rows in support_tickets`), the exact query and variables, a preview of the rows it would change, and an expiry (24 hours by default).
 3. **Decided by you.** Approve or reject, sending back the hash that pins exactly what you were shown.
 4. **Run once.** The stored query runs once, as the person who asked, after checking that nothing about the proposal has changed.
@@ -98,13 +98,13 @@ The same decision can be sent to `POST /api/v1/agent/approvals/{id}`, and a pend
 
 {{< note >}}
 
-**Two honest limits.** The rehearsal is a real transaction, so sequences advance and triggers fire before the rollback. And sources a rehearsal would really affect, such as APIs, warehouses and managed databases, are held without a preview.
+**Two limits.** The trial run is a real transaction, so sequences advance and triggers fire before the rollback. And sources a trial run would really affect, such as APIs, warehouses and managed databases, are held without a preview.
 
 {{< endnote >}}
 
 {{< endband >}}
 
-{{< band label="Acting alone" title="Autonomy is a rule you write, row limit included." >}}
+{{< band label="Acting alone" title="You decide what it may do on its own, and to how many rows." >}}
 
 Some changes are not worth a person's attention every time. Say which, on which table, and how many rows at most:
 
@@ -123,11 +123,11 @@ agent:
 
 A proposed change can carry an expectation: a query that measures the effect, the number to watch, and a window. Once the change has run and the window has passed, DeepORG measures again and records a hit or a miss.
 
-The owner is told either way. A miss also wakes the agent in the same thread, so it can find out why and propose a correction or an undo. The tally of hits and misses, by routine and by kind of change, is the record that says how far an agent can be trusted.
+The owner is told either way. A miss also wakes the agent in the same thread, so it can find out why and propose a correction or an undo. The tally of hits and misses, by routine and by kind of change, is the record of how far you can trust the agent.
 
 {{< endband >}}
 
-{{< band id="security-model" label="Before it acts" title="Safer agents, not smaller agents." >}}
+{{< band id="security-model" label="Before it acts" title="The agent can read the rules before it acts." >}}
 
 One policy controls what agents can see, query, and change, and it can be read before anything is attempted. `gj_security` reports effective capabilities, read-only state, weak defaults and recommendations, such as delete enabled outside development or anonymous access to something that should not be public.
 

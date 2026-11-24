@@ -1,6 +1,6 @@
 ---
 title: "No hand-built tools"
-headline: "A map of everything, not a tool for each thing."
+headline: "The agent writes its own queries. Nobody builds it tools."
 description: "Most company agents are wired up one hand-written tool at a time. DeepORG gives the agent a searchable map of everything you connect and lets it write its own queries, checked against your access rules and run as one database query."
 lede: "Most company agents are wired up one tool at a time. DeepORG gives the agent a searchable map of everything you connect, and the agent writes its own queries against it. Connecting a new database or API is a few lines of config, not a new set of tools."
 scene: "map"
@@ -17,15 +17,15 @@ toc: false
 
 {{< band id="problem" label="The problem" title="Your agent is only as good as what it can see." >}}
 
-A capable model still enters your stack blind. It does not know your schema, your permissions, your saved queries, or where a field is written in code, so it works from memory and guesses.
+A capable model still knows nothing about your systems. It does not know your schema, your permissions, your saved queries, or where a field is written in code, so it works from memory and guesses.
 
 The usual fix is a tool for each question: a “get customer” tool here, a “list invoices” tool there, each written and maintained by hand. They break when a schema changes, and every new question or new system means more tools.
 
 {{< grid >}}
 
-- **A tool for every question.** Worldwide AI spend is forecast at $2.5 trillion for 2026,<sup><a href="#sources">1</a></sup> yet teams still hand-write a brittle API or MCP tool for each thing an agent might ask. The surface never keeps up.
+- **A tool for every question.** Worldwide AI spend is forecast at $2.5 trillion for 2026,<sup><a href="#sources">1</a></sup> yet teams still hand-write a brittle API or MCP tool for each thing an agent might ask. The tools never keep up with the questions.
 - **Guesses, not facts.** 21% is the best model's success rate on real enterprise text-to-SQL, down from 91% on academic benchmarks.<sup><a href="#sources">2</a></sup> Without a map, agents invent joins and fields.
-- **Too risky for production.** 88% of organizations saw an AI-agent security incident in the past year.<sup><a href="#sources">3</a></sup> Raw credentials mean hoping the agent guesses right, so it stays read-only, shallow, or boxed out.
+- **Too risky for production.** 88% of organizations saw an AI-agent security incident in the past year.<sup><a href="#sources">3</a></sup> Raw credentials mean hoping the agent guesses right, so it is kept read-only, limited, or shut out.
 
 {{< endgrid >}}
 
@@ -39,7 +39,7 @@ The fix is not a smarter prompt. It is giving the agent the map, and the guardra
 
 DeepORG keeps a catalog of everything it can reach: databases and sources, tables and columns, relationships and the paths that cross from one database to another, functions, workflows, query patterns, and what each source is allowed to do.
 
-The agent learns one habit: search by intent, then inspect the best match. Every run begins with a search for the person's own words. It pulls more only when a path it needs is missing, so the map can be very large while the model reads a small part of it. By default the first search returns up to 40 entries and later ones 20.
+The agent always works the same way: search for what the question is about, then look closely at the best match. Every run begins with a search for the person's own words. It pulls more only when a path it needs is missing, so the map can be very large while the model reads a small part of it. By default the first search returns up to 40 entries and later ones 20.
 
 {{< grid >}}
 
@@ -57,13 +57,13 @@ The model does not pick from a menu of tools. It writes a short program that cal
 
 <div class="agentic-loop"><div class="agentic-steps"><article><span>01</span><h3>Discover</h3><code>gj_catalog</code></article><article><span>02</span><h3>Check</h3><code>gj_security</code></article><article><span>03</span><h3>Validate</h3><code>preview</code></article><article><span>04</span><h3>Act</h3><code>execute</code></article></div></div>
 
-Some steps cannot be skipped. A write may only run after the target table's detail has been inspected, and a workflow is rejected until its detail was read. A model cannot talk its way past that: only real results count.
+Some steps cannot be skipped. A write may only run after the target table's detail has been inspected, and a workflow is rejected until its detail was read. Nothing the model says gets it past that. DeepORG checks what actually ran.
 
 {{< endband >}}
 
 {{< band label="A new system" title="A few lines of config, not a new set of tools." >}}
 
-Connecting a database is naming it:
+To connect a database, name it in the config:
 
 ```yaml
 sources:

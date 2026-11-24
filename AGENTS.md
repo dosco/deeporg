@@ -194,6 +194,31 @@ The candidate phase gates as a **ratchet**: ground-truth recall and method recal
 
 Authoring rules for new cases (enforced by `agent/data_eval_corpus_test.go`): prompts are natural language with zero tool coaching; oracles are pure aggregates or `limit: 1` group-bys only (pure aggregate roots self-set no-limit, keeping oracles immune to the low boot limit); tolerance stays within 1–5% and only for genuinely fractional values; ranking cases must require `order_by` in their method rule. When a field report arrives (an external eval, a user complaint), convert each failure into a corpus case in the matching group — that is how feedback accumulates instead of evaporating. Answers people mark wrong in the console arrive as feedback artifacts: `GET /api/v1/agent/feedback?format=corpus` (an admin reads everyone's) returns them as draft lead-corpus cases with the real conversation and the person's correction. A draft has no oracle; write the database query that proves the right answer before moving it into `agent/testdata/lead_eval_cases.json` (each draft's `observed.queries` are what the agent ran). Questions nobody marked wrong are mined automatically: `GET /api/v1/agent/experience` (admin only) keeps each question to the data agent whose query computes one figure, re-runs it as the person who asked, and drops it unless the stored answer passes; `deeporg eval mine` verifies the cases and writes `eval/mined.yml` (`agent/eval/mine.go`, drop reasons counted in the summary). Confirmed (thumbs-up, one-question turn) and incumbent (never rated) tests are reported apart under `by_family` and must never be summed.
 
+## Website Copy Voice (`website/**`)
+
+Write the site the way you would explain the product to someone across a table. Read each line aloud. If nobody would say it, rewrite it.
+
+-   **Full sentences, plain words.** No clipped fragments ("Ask it. Let it act."), no slogans, no "X, not Y" flourishes, no bare lists of verbs.
+-   **A heading says what its section is about.** A reader who sees only the heading should know what the section tells them.
+-   **Write for a newcomer.** Do not use a word the page has not given them (ledger, oracle, standing question, fires, rehearsed, graded episodes). If a term is needed, say what it means in the same sentence.
+-   **Do not answer an objection the reader does not have.** "Nothing to rebuild" and "No tools to build" in a headline mean nothing to someone who never expected to rebuild or to build tools. Say what the product is and does.
+-   **Prefer the everyday verb.** checks (not marks or grades), tries out (not rehearses), tells you (not speaks up), your approval (not "your yes"), uses (not draws on).
+-   **Say only what is true today, and name the limit.** "There is no Slack app yet" beats a claim the product cannot back. Verify a capability in the code before writing it.
+-   **One product name.** DeepORG, or "the engine" for the compiler underneath. GraphJin appears only in "formerly GraphJin" notes.
+-   **The homepage hero is for newcomers.** It says what the product is. No benchmark counts or insider statistics there.
+-   **Homepage sections stay short.** Detail goes on the deeper page the section links to.
+
+| Instead of | Write |
+| :--- | :--- |
+| No tool for each question. One compiler for all of them. | The agent writes a query. Your database runs it. |
+| Ask it. Let it act. Leave it watching. | It answers questions, makes changes and keeps watch. |
+| Three more reasons it holds up in a real company. | Why you can trust it with real data. |
+| The model made up an answer. The ledger caught it. | A made-up answer is blocked. |
+| A fluent, confident, wrong answer earns nothing. | An answer that sounds right but is wrong still fails. |
+| When its question fires, the agent looks into it. | A routine is a job you give it to repeat, such as checking every morning for tickets nobody has answered. |
+
+`website/scripts/check-site.mjs` pins much of the copy. When you change a line, move its assertion in the same commit, then run `npm run build && npm run check` in `website/`.
+
 ## Key constraints
 -   **Do not use ORMs** internally.
 -   **Do not use reflection** in the hot path.

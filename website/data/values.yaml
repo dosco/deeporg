@@ -6,7 +6,7 @@ values:
   - id: complete-agent
     index: "01"
     title: "A complete agent"
-    line: "Ask it, let it act, leave it watching. One agent across every system you connect, with nothing to assemble."
+    line: "It answers questions, makes changes and keeps watch across every system you connect, with nothing to assemble."
     href: /why/complete-agent/
   - id: benchmark
     index: "02"
@@ -16,12 +16,12 @@ values:
   - id: training-environment
     index: "03"
     title: "Your organization as a training environment"
-    line: "The same machinery turns your own systems into graded episodes, to measure an agent or to train one."
+    line: "The same tests work on your own systems, to measure an agent or to train one."
     href: /why/training-environment/
   - id: watch
     index: "04"
-    title: "It speaks first"
-    line: "Leave a question running. It tells you when the answer changes, or when something expected never arrives."
+    title: "It keeps watch"
+    line: "Leave a question with it. It tells you when the answer changes, or when something expected never arrives."
     href: /watch/
   - id: no-hand-built-tools
     index: "05"
@@ -36,7 +36,7 @@ values:
   - id: your-rules
     index: "07"
     title: "Your rules, your approval"
-    line: "It sees and changes only what your access rules allow, and by default a change waits for your yes."
+    line: "It sees and changes only what your access rules allow, and by default a change waits for your approval."
     href: /why/your-rules/
   - id: every-system
     index: "08"

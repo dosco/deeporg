@@ -1,8 +1,8 @@
 ---
 title: "An open engine underneath"
-headline: "Underneath is DeepORG, and it is still open source."
-description: "DeepORG is built on DeepORG, the Apache 2.0 engine that compiles each query into a single database query. It is also a GraphQL API server and a Go library in its own right."
-lede: "DeepORG is built on DeepORG, the engine that compiles each query into a single database query. It is also a GraphQL API server and a Go library in its own right, under Apache 2.0."
+headline: "The engine underneath is open source, and works on its own."
+description: "DeepORG is built on an Apache 2.0 engine that compiles each query into a single database query. The engine is also a GraphQL API server and a Go library in its own right."
+lede: "DeepORG is built on an engine that compiles each query into a single database query. You can use the engine without the agent, as a GraphQL API server or a Go library, under Apache 2.0."
 scene: "engine"
 scene_label: "Animated diagram: a nested GraphQL query on the left is compiled into one SQL statement on the right."
 scene_caption: "graphql in / one statement out"
@@ -15,9 +15,9 @@ landing: true
 toc: false
 ---
 
-{{< band id="how" label="How it works" title="One compiler. Any system. Any client." >}}
+{{< band id="how" label="How it works" title="One compiler for every system and every client." >}}
 
-Point DeepORG at databases, object storage, source trees, and remote APIs. Underneath is DeepORG, a compiler, not a resolver framework: it learns the live shape, plans the work, and emits one optimized database operation. Then it enforces access rules and serves AI assistants, REST clients, and federated routers from the same engine. No N+1, no resolver code, test-backed against real compiler paths.
+Point DeepORG at databases, object storage, source trees and remote APIs. The engine underneath is a compiler, not a resolver framework. It reads the live schema, plans the work and produces one optimized database query. It applies your access rules, and it serves AI assistants, REST clients and federated routers from the same engine. There is no N+1 problem and no resolver code to write, and the documented examples run as tests.
 
 {{< svg "compiler-flow" "DeepORG compiler flow" >}}
 
@@ -25,7 +25,7 @@ Point DeepORG at databases, object storage, source trees, and remote APIs. Under
 
 {{< band label="The compiler" title="A nested question becomes one statement." >}}
 
-Ask for customers, their purchases, and each product's price. A resolver framework runs a query for the customers, then one for each customer's purchases, then one for each product. DeepORG parses the request, resolves it against the schema it discovered, and emits one statement:
+Ask for customers, their purchases, and each product's price. A resolver framework runs a query for the customers, then one for each customer's purchases, then one for each product. DeepORG parses the request, matches it to the schema it discovered, and produces one statement:
 
 {{< hl sql >}}SELECT json_agg(__sj.json) AS customers
 FROM customers AS c
@@ -65,7 +65,7 @@ The same binary and config that serve the agent also run your realtime, files, r
 
 {{< band label="The name" title="DeepORG was formerly GraphJin." >}}
 
-The project grew from an engine into an agent built on that engine, and the name followed. The engine keeps its name, and so does the Go module, for now. The npm package and the Docker images are published as `deeporg`, and under the old name as well. The command is `deeporg`, and `graphjin` still works as an alias.
+The project grew from an engine into an agent built on that engine, and the name followed. The Go module is still named `graphjin`, for now. The npm package and the Docker images are published as `deeporg`, and under the old name as well. The command is `deeporg`, and `graphjin` still works as an alias.
 
 ```bash
 curl -fsSL https://deeporg.io/install.sh | bash   # macOS and Linux
