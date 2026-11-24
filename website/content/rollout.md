@@ -2,9 +2,9 @@
 title: "Roll out DeepORG in your company"
 nav_title: "Roll it out"
 type: guides
-headline: "Most of an AI rollout is not the model."
+headline: "What a rollout takes, step by step."
 description: "A step-by-step guide for whoever rolls out an AI agent across a company's data: connect the systems, set who may see what, write down what the company's words mean, check answers until people trust them, hand it over, give it recurring work, and know whether it is working."
-lede: "Most of the work is connecting the systems, deciding who may see what, writing down what the company's words mean, checking answers until people trust them, and then giving the agent real work to do every week. Companies usually bring in forward-deployed engineers or consultants for it. This page is for whoever does that work. It goes step by step and shows the part of DeepORG that handles each one."
+lede: "Choosing the model is the small part of an AI rollout. Most of the work is connecting the systems, deciding who may see what, writing down what the company's words mean, checking answers until people trust them, and then giving the agent real work to do every week. Companies usually bring in forward-deployed engineers or consultants for it. This page is for whoever does that work. For each step, it shows the part of DeepORG that handles it."
 actions:
   - label: "Try the demo first"
     href: "/#quickstart"
@@ -42,10 +42,10 @@ sources:
 
 {{< grid >}}
 
-- **No tool for each question.** DeepORG builds a searchable map of every table, column and relationship it finds. The agent looks things up in the map and writes its own queries, so nobody has to build a tool per question.
-- **Joins come from your keys.** Relationships are read from your foreign keys. Ones the schema never declared can be added in config.
-- **Several systems, one question.** One answer can draw on the app database, the warehouse and an HTTP API together.
-- **Read-only means read-only.** `read_only: true` blocks every write to that source, whatever a role or the agent asks for.
+- **It finds your tables for you.** DeepORG builds a searchable map of every table, column and relationship it finds. The agent looks things up in the map and writes its own queries.
+- **It reads relationships from your foreign keys.** Ones the schema never declared can be added in config.
+- **One answer can use several systems.** It can use the app database, the warehouse and an HTTP API together.
+- **A read-only source cannot be changed.** `read_only: true` blocks every write to that source, whatever a role or the agent asks for.
 
 {{< endgrid >}}
 
@@ -72,7 +72,7 @@ roles:
 
 - **Identity comes from the sign-in token.** It never comes from anything the person or the model types.
 - **Hidden columns stay hidden in totals too.** A role that cannot read a column cannot sum it either.
-- **Changes wait for a person.** A change the agent proposes is rehearsed in a transaction that is rolled back, then held until someone approves that exact version.
+- **Changes wait for a person.** A change the agent proposes is first tried out in a transaction that is rolled back, then held until someone approves that exact version.
 - **One switch makes the agent read-only.** `agent.read_only` limits it to reading, whatever a role allows.
 
 {{< endgrid >}}
@@ -99,9 +99,9 @@ A new note starts as a draft that only its author can see. After someone approve
 
 {{< grid >}}
 
-- **The agent can suggest notes.** It can draft one from a conversation. It cannot approve its own draft: a person has to, in a later step.
-- **A note is context, not a permission.** It cannot grant access or make a read-only source writable.
-- **Notes go stale safely.** If the table a note points at disappears, the note is kept and marked stale.
+- **The agent can suggest notes.** It can draft one from a conversation, but it cannot approve its own draft. A person has to approve it.
+- **A note only adds context.** It cannot grant access or make a read-only source writable.
+- **A note is kept when its table goes away.** If the table a note points at disappears, the note is kept and marked stale.
 
 {{< endgrid >}}
 
@@ -111,14 +111,14 @@ A new note starts as a draft that only its author can see. After someone approve
 
 {{< band label="Step 4 · Trust" title="Check the answers until people trust them." >}}
 
-Trust comes from checking, and DeepORG makes each answer quick to check.
+People trust answers they have checked, so DeepORG makes each answer quick to check.
 
 {{< grid >}}
 
 - **Every answer shows its queries.** People can see what was asked of which system, and the agent's claims are backed by what those queries returned.
-- **The database does the maths.** Sums, counts and rankings run in your database, not in the model's head over a page of rows.
+- **The database does the maths.** Sums, counts and rankings run in your database, so the model does not add up rows itself.
 - **People can say when it is wrong.** In the console, each answer has a Helpful and a Wrong button. Wrong asks what it should have said, and the report is kept with the queries the agent ran.
-- **Answers become tests.** A question answered with one figure the database computed can become a test whose answer key is the query itself. Run the tests again before you switch to a new model.
+- **Answers become tests.** A question answered with one figure the database computed can become a test. The test asks the agent again and checks its answer against what the same query returns today. Run the tests before you switch to a new model.
 
 {{< endgrid >}}
 
@@ -129,7 +129,7 @@ Read the corrections, then turn real questions into tests:
 curl -H "Authorization: Bearer $TOKEN" \
   "$DEEPORG_URL/api/v1/agent/feedback?format=corpus"
 
-# Real questions, turned into tests the database marks
+# Turn real questions into tests checked against the database
 deeporg eval mine --url $DEEPORG_URL --token $TOKEN
 deeporg eval run --suite eval/mined.yml
 ```
@@ -154,9 +154,9 @@ GO_ENV=agentic deeporg serve --path ./config
 
 {{< grid >}}
 
-- **A console for everyone.** People ask in plain words at `/agent` and see the queries behind each answer.
-- **Their own AI client.** `deeporg mcp add claude <url>` or `deeporg mcp add codex <url>` connects Claude or Codex to the same server, under the same rules.
-- **An inbox for what needs a person.** A change waiting for approval, a routine's answer, a run that stopped: each lands in the console's Inbox and at `/api/v1/notifications`, with a live stream beside it.
+- **People can ask in the console.** They ask in plain words at `/agent` and see the queries behind each answer.
+- **They can use their own AI client.** `deeporg mcp add claude <url>` or `deeporg mcp add codex <url>` connects Claude or Codex to the same server, under the same rules.
+- **What needs a person goes to an inbox.** A change waiting for approval, a routine's answer, a run that stopped: each lands in the console's Inbox and at `/api/v1/notifications`, with a live stream beside it.
 
 {{< endgrid >}}
 
@@ -168,7 +168,7 @@ Most people outside engineering work in Slack, Teams or email, and DeepORG has n
 
 {{< band id="recurring" label="Step 6 · Recurring work" title="Give it a recurring job." >}}
 
-Questions are where trust starts. The work that pays for a rollout is the job someone does every week: chase tickets nobody answered, flag accounts that stopped using the product, check that last night's load arrived. A routine is that job, written down once. It is a watch whose delivery is a turn for the agent:
+People come to trust the agent by asking it questions. The work that makes a rollout worth paying for is the job someone does every week: chase tickets nobody answered, flag accounts that stopped using the product, check that last night's load arrived. A routine is that job, written down once. It is a watch that, each time it runs, gives the agent its prompt to work on:
 
 ```graphql
 mutation {
@@ -185,9 +185,9 @@ mutation {
 
 {{< grid >}}
 
-- **It looks before it proposes.** When the routine fires, on its schedule or when its question's answer changes, the agent looks up what the decision depends on, then says in plain words whether a change is called for.
-- **A change waits for its owner.** The change is dry-run and held, like any change the agent proposes. The owner gets an "action needed" notification and approves or rejects that exact version.
-- **It checks its own work.** A change can say what it should achieve: a query and the number it should reach. DeepORG measures it before the change and again after, and records `hit` or `miss`. A miss starts a turn so the agent can look into it.
+- **It looks before it proposes.** When the routine runs, on its schedule or when the data it watches changes, the agent looks up what the decision depends on, then says in plain words whether a change is called for.
+- **A change waits for its owner.** Like any change the agent proposes, it is tried out in a transaction that is rolled back, then held. The owner gets an "action needed" notification and approves or rejects that exact version.
+- **It checks its own work.** A change can say what it should achieve: a query and the number it should reach. DeepORG measures it before the change and again after, and records `hit` or `miss`. On a miss, the agent is asked to look into why.
 - **It has a budget.** `agent.budgets` caps model tokens per person and per routine over a rolling day, on by default in agentic mode. A run over its cap stops, and the owner is told.
 
 {{< endgrid >}}
@@ -205,7 +205,7 @@ Three questions tell you whether a rollout is landing, and DeepORG keeps a recor
 {{< grid >}}
 
 - **Do people trust the answers?** Every Helpful and Wrong rating is kept, with the queries behind the answer and, for a wrong one, what it should have said. `GET /api/v1/agent/feedback` lists them; an admin sees everyone's.
-- **Are the answers still right?** The tests mined from real questions in Step 4 pass or fail against today's data. Run them every week, and before you change models.
+- **Are the answers still right?** The tests made from real questions in Step 4 pass or fail against today's data. Run them every week, and before you change models.
 - **Do the changes work?** `GET /api/v1/agent/reliability` tallies how each routine's and each saved agent's changes turned out, hit or miss.
 
 {{< endgrid >}}
@@ -221,14 +221,14 @@ curl -H "Authorization: Bearer $TOKEN" "$DEEPORG_URL/api/v1/agent/reliability"
 
 {{< endband >}}
 
-{{< band id="cost" label="Cost" title="Pay for answers, not for pages of rows." >}}
+{{< band id="cost" label="Cost" title="Keep the model bill down." >}}
 
-Companies pay for tokens gladly when the agent solves a real need, and stop when the bill grows faster than the value. Two things keep it down.
+You pay your model provider for the tokens the agent uses. Two things keep that bill down.
 
 {{< grid >}}
 
-- **The database does the counting.** A total over a million rows reaches the model as one number. What a question costs depends on the question, not on how big your tables are.
-- **Try a cheaper model on your own questions first.** The tests from Step 4 are your own company's questions with the database as the answer key. Run them on a cheaper model, and switch when it passes the same tests.
+- **The database does the counting.** A total over a million rows reaches the model as one number. So the size of your tables does not drive the cost.
+- **You can try a cheaper model on your own questions.** The tests from Step 4 are your company's real questions, checked against your database. Run them on a cheaper model, and switch if it passes the same tests.
 
 {{< endgrid >}}
 

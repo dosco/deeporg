@@ -331,11 +331,11 @@ const requiredRenderedContent = [
   // Why rollouts stall, and the guide for whoever does the rollout.
   ['index.html', 'Company data has no test suite.'],
   ['index.html', 'What a rollout takes, step by step'],
-  ['rollout/index.html', 'Most of an AI rollout is not the model.'],
+  ['rollout/index.html', 'What a rollout takes, step by step.'],
   ['rollout/index.html', 'Write down what your terms mean.'],
   ['rollout/index.html', 'Give it a recurring job.'],
   ['rollout/index.html', 'Know whether it is working.'],
-  ['rollout/index.html', 'Pay for answers, not for pages of rows.'],
+  ['rollout/index.html', 'Keep the model bill down.'],
   ['rollout/index.html', 'DeepORG has no app for those yet'],
   ['index.html', 'formerly GraphJin'],
   ['index.html', 'asks before it changes anything'],
