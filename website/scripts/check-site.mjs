@@ -224,7 +224,7 @@ const failures = [];
 // signal it is load-bearing and should be a link to the page that owns the
 // topic instead.
 const requiredRenderedContent = [
-  ['index.html', 'Turn your own systems into the test and the training ground.'],
+  ['index.html', 'Test an agent on your own systems, or train one.'],
   // Moved off the homepage with its link grid.
   ['core/filters/index.html', 'geo filters'],
   ['core/aggregations-functions/index.html', 'Expression aggregates'],
@@ -323,10 +323,10 @@ const requiredRenderedContent = [
   // claims that moved, so shortening the homepage cannot quietly lose them.
   ['index.html', 'One AI agent for your whole organization.'],
   ['index.html', 'Every answer shows the queries behind it'],
-  ['index.html', 'No tool for each question. One compiler for all of them.'],
-  ['index.html', 'Connect, discover, execute, verify, improve.'],
+  ['index.html', 'The agent writes a query. Your database runs it.'],
+  ['index.html', 'How the parts fit together.'],
   ['index.html', 'Training a model on them is optional.'],
-  ['index.html', 'Three more reasons it holds up in a real company.'],
+  ['index.html', 'Why you can trust it with real data.'],
   // Why rollouts stall, and the guide for whoever does the rollout.
   ['index.html', 'Company data has no test suite.'],
   ['index.html', 'What a rollout takes, step by step'],
@@ -337,7 +337,7 @@ const requiredRenderedContent = [
   ['rollout/index.html', 'Pay for answers, not for pages of rows.'],
   ['rollout/index.html', 'DeepORG has no app for those yet'],
   ['index.html', 'formerly GraphJin'],
-  ['index.html', 'A change waits for your yes.'],
+  ['index.html', 'asks before it changes anything'],
   ['index.html', 'a searchable map of everything you connect'],
   ['why/index.html', 'Nine reasons, one page each.'],
   ['why/complete-agent/index.html', 'Use DeepORG as the agent.'],
@@ -516,7 +516,7 @@ if (await exists(path.join(publicRoot, 'index.html'))) {
   // The homepage no longer ends in a grid of docs links (the footer and the docs
   // sidebar carry those). The phrases that grid held are pinned on the pages
   // that own them, in requiredRenderedContent.
-  for (const required of ['The ledger caught it', 'Your first answer is one command away.', 'backed by evidence', 'Run it in two minutes.']) {
+  for (const required of ['A made-up answer is blocked.', 'Your first answer is one command away.', 'backed by evidence', 'Run it in two minutes.']) {
     if (!home.includes(required)) {
       failures.push(`Homepage missing required enriched copy: ${required}`);
     }
@@ -526,8 +526,8 @@ if (await exists(path.join(publicRoot, 'index.html'))) {
   // The homepage heading says what the section is; "Nothing happened. That was
   // the problem." is the /watch/ page's own headline and is pinned there.
   for (const required of [
-    'Leave a question running.',
-    'Give it a recurring job.',
+    'It can watch your data and run jobs on a schedule.',
+    'Leave a question running',
     'A routine goes one step further.',
     'It speaks up when the answer changes',
     'database polls, not model calls',
@@ -650,7 +650,7 @@ if (await exists(path.join(publicRoot, 'index.html'))) {
   if (!homeSystems) {
     failures.push('Homepage #databases section not found ahead of #deployment-proof');
   } else {
-    if (!/<h2\b[^>]*>Every database you run, behind one agent\.<\/h2>/.test(homeSystems)) {
+    if (!/<h2\b[^>]*>It connects to the databases you already run\.<\/h2>/.test(homeSystems)) {
       failures.push('Homepage #databases section lost its heading');
     }
     const listed = (await readFile(path.join(siteRoot, 'data', 'databases.yaml'), 'utf8')).match(/^- name:/gm) ?? [];
@@ -668,7 +668,7 @@ if (await exists(path.join(publicRoot, 'index.html'))) {
     failures.push('Homepage #engine section not found ahead of #loop');
   } else {
     if (/GraphJin/.test(engine)) failures.push('Homepage #engine section names GraphJin; it should say how DeepORG works');
-    for (const required of ['No tool for each question.', 'A tool written by hand for each question', 'compiles it into a single database query', 'open source under Apache 2.0']) {
+    for (const required of ['The agent writes a query. Your database runs it.', 'A tool written by hand for each question', 'compiles it into a single database query', 'open source under Apache 2.0']) {
       if (!engine.includes(required)) failures.push(`Homepage #engine section missing: ${required}`);
     }
     if (!/data-ascii=["']?how\b/.test(engine)) failures.push('Homepage #engine section lost its step-by-step figure');
