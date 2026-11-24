@@ -62,7 +62,7 @@ deeporg eval mine --remote
 deeporg eval run --suite eval/mined.yml --yes
 ```
 
-Every question your people ask is answered by a database query. When that answer is one figure the database computed, the question becomes a test whose answer key is the query, re-run whenever the test runs. Mining spends no model tokens. [Your company is the environment](/experience/) tells that story in full.
+Every question your people ask is answered by a database query. When that answer is one figure the database computed, the question becomes a test whose answer key is the query, re-run whenever the test runs. Mining spends no model tokens. [Learning from real work](/experience/) tells that story in full.
 
 {{< note >}}
 

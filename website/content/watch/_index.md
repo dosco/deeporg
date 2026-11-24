@@ -1,5 +1,5 @@
 ---
-title: "DeepORG Watch — Standing Questions"
+title: "DeepORG Watch — Questions Left Running"
 nav_title: "Watch"
 description: "Leave a question running and DeepORG keeps answering it against live data — speaking up when the answer changes, when something expected never arrives, or when it needs your permission to act. Evaluation runs on database polls, not model calls."
 nav_group: "agentic"

@@ -237,7 +237,7 @@ const requiredRenderedContent = [
   ['environment/quickstart/index.html', 'is a startup error'],
   ['environment/drive-modes/index.html', 'never reaches the server'],
   ['environment/your-own-graph/index.html', 'No rows are read.'],
-  ['experience/index.html', 'Your company is the environment.'],
+  ['experience/index.html', 'The questions your people ask become the tests.'],
   ['experience/index.html', 'The answer key is a query, not a number'],
   ['experience/index.html', 'No result rows are copied'],
   ['environment/your-own-work/index.html', 'The answer they were given must pass it.'],
@@ -523,8 +523,8 @@ if (await exists(path.join(publicRoot, 'index.html'))) {
   }
   // The homepage carries the watch teaser; the full story lives on /watch/,
   // which is asserted separately below so the copy cannot be lost in the move.
-  // The homepage heading says what the section is; "Nothing happened. That was
-  // the problem." is the /watch/ page's own headline and is pinned there.
+  // The homepage heading says what the section is; the /watch/ page has its own
+  // headline, pinned there.
   for (const required of [
     'It can watch your data and run jobs on a schedule.',
     'Leave a question with DeepORG',
@@ -909,20 +909,20 @@ const watchLandingPath = path.join(publicRoot, 'watch', 'index.html');
 if (await exists(watchLandingPath)) {
   const watchLanding = await readFile(watchLandingPath, 'utf8');
   for (const required of [
-    'Nothing happened. That was the problem.',
+    'Leave a question running. DeepORG tells you when the answer changes.',
     // The window story the homepage used to show in full.
     'No shipment scan in four hours',
     'absence window elapsed',
     '2 watches correlated',
     'approval pending',
-    'Absence is a first-class event',
-    'Noise drains before you see it',
-    'Alerts fail open.',
-    'Actions fail closed.',
-    'Reconnect, resume, retry',
+    'It can watch for something not happening',
+    'It filters the noise first',
+    'An alert always gets through.',
+    'An action never runs unapproved.',
+    'Recover from failures',
     'Notice what did not happen',
     'Database polls, not model calls',
-    'Triage is opt-in and capped',
+    'The AI step is optional and capped',
   ]) {
     if (!watchLanding.includes(required)) {
       failures.push(`Watch landing missing copy: ${required}`);
@@ -935,7 +935,7 @@ if (await exists(watchLandingPath)) {
       failures.push(`Watch landing missing required link: ${href}`);
     }
   }
-  if (!/<h1[^>]*>Nothing happened\./.test(watchLanding)) {
+  if (!/<h1[^>]*>Leave a question running\./.test(watchLanding)) {
     failures.push('Watch landing does not lead with its own h1');
   }
   // One product name on the pages that sell it. The engine's own name belongs

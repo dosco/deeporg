@@ -1,8 +1,8 @@
 <section class="home-section watch-automation-section" data-watch-story>
   <div class="home-section-heading">
-    <p class="home-section-label">Standing questions</p>
-    <h1>Nothing happened. That was the problem.</h1>
-    <p>Everywhere else, you ask. Here you don’t. Leave a question running and DeepORG keeps answering it against live data—then speaks up when the answer changes, when something expected never arrives, or when it needs your permission to act.</p>
+    <p class="home-section-label">Questions left running</p>
+    <h1>Leave a question running. DeepORG tells you when the answer changes.</h1>
+    <p>You ask the question once. DeepORG keeps checking the answer against live data, and tells you when it changes, when something you expected never arrives, or when it needs your permission to act.</p>
   </div>
   <div class="watch-scene" data-watch-stage="1">
     <div class="ai-window watch-window">
@@ -24,34 +24,34 @@
     </div>
   </div>
   <div class="watch-answer-grid" data-watch-stage="2">
-    <article><span>How did it know nothing happened?</span><strong>Absence is a first-class event</strong><p>You declare the window. A watch that sees zero rows in four hours fires exactly like one that sees a thousand, so silence stops vanishing between polls.</p></article>
-    <article><span>Why did it send only one message?</span><strong>Noise drains before you see it</strong><p>Routine events discard or roll into an unseen digest, and related watches correlate by exact ID into one signal. One conversation woke up, not four channels.</p></article>
-    <article><span>What if the model gets it wrong?</span><strong>It can wake you. It cannot act.</strong><p><strong>Alerts fail open.</strong> If AI triage is unavailable, DeepORG still sends the raw notification. <strong>Actions fail closed.</strong> A workflow never runs without the required approval.</p></article>
+    <article><span>How did it know nothing happened?</span><strong>It can watch for something not happening</strong><p>You say how long is too long. A watch that sees no rows in four hours alerts you just as one that sees a thousand would, so a gap in the data does not go unnoticed.</p></article>
+    <article><span>Why did it send only one message?</span><strong>It filters the noise first</strong><p>Routine events are dropped or gathered into one summary, and related watches are combined into a single alert. You got one message, not four.</p></article>
+    <article><span>What if the model gets it wrong?</span><strong>It can alert you, but it cannot act alone</strong><p><strong>An alert always gets through.</strong> If the AI step that sorts alerts is unavailable, DeepORG still sends you the plain notification. <strong>An action never runs unapproved.</strong> A workflow waits for the approval it needs, whatever else fails.</p></article>
   </div>
 </section>
 
 <section id="watch-economics" class="home-section watch-automation-section">
   <div class="home-section-heading">
     <p class="home-section-label">What it costs</p>
-    <h2>A question you leave running is not a model you leave running.</h2>
-    <p>The reason an organization can afford hundreds of standing questions is that keeping one alive does not involve a model at all. DeepORG compiles the question once and then answers it the way a database answers anything.</p>
+    <h2>Keeping a question running does not use a model.</h2>
+    <p>An organization can afford hundreds of these questions because keeping one running involves no model. DeepORG compiles the question once, and after that the database answers it like any other query.</p>
   </div>
   <div class="watch-answer-grid">
-    <article><span>While it runs</span><strong>Database polls, not model calls</strong><p>A watch rides DeepORG’s cursor-backed subscriptions. It resumes from its stored cursor, compares a hash of what came back, and stays quiet when nothing changed. No model decides whether something happened.</p></article>
-    <article><span>When you create it</span><strong>One agent session</strong><p>Describe the question in plain language and the agent writes the subscription. That is where model cost enters — once, at authoring time — which means the model tier you choose does not change what the watch costs to keep.</p></article>
-    <article><span>When it fires</span><strong>Triage is opt-in and capped</strong><p>By default a fired watch lands in your inbox as data. AI triage that summarizes, scores, or suppresses noise is something you turn on per watch, with a daily cap so a noisy source cannot run up a bill.</p></article>
+    <article><span>While it runs</span><strong>Database polls, not model calls</strong><p>A watch polls the database. It picks up where it left off, compares the new result with the last one, and stays quiet when nothing changed. No model decides whether something happened.</p></article>
+    <article><span>When you create it</span><strong>One agent session</strong><p>Describe the question in plain words and the agent writes the query for it. That is the only time a model is used, so choosing a bigger model does not make the watch cost more to keep running.</p></article>
+    <article><span>When it finds something</span><strong>The AI step is optional and capped</strong><p>By default, when a watch finds something it puts the data in your inbox. You can turn on an AI step, watch by watch, that summarizes, scores or filters alerts. It has a daily cap, so a noisy source cannot run up a bill.</p></article>
   </div>
 </section>
 
 <section class="home-section watch-automation-section" data-watch-story>
-  <p class="watch-grid-label">Everything a standing question can do</p>
+  <p class="watch-grid-label">What a question left running can do</p>
   <div class="watch-capability-grid" data-watch-stage="3" aria-label="DeepORG reactive agent capabilities">
-    <article><span>Change</span><strong>React to live data</strong><p>Cursor-backed questions keep running across your systems.</p></article>
-    <article><span>Absence</span><strong>Notice what did not happen</strong><p>“No shipment scan in four hours” becomes a first-class event.</p></article>
-    <article><span>Digest</span><strong>Turn noise into one signal</strong><p>Routine events drain into one useful, unseen summary.</p></article>
-    <article><span>Rollup</span><strong>Correlate independent watches</strong><p>Combine exact watch IDs without unsafe loops.</p></article>
-    <article><span>Snooze</span><strong>Defer without losing the event</strong><p>Hide an unseen event until later without acknowledging it.</p></article>
-    <article><span>Recover</span><strong>Reconnect, resume, retry</strong><p>Persist cursors and back off transient failures automatically.</p></article>
+    <article><span>Change</span><strong>React to live data</strong><p>It keeps checking your systems and picks up where it left off.</p></article>
+    <article><span>Absence</span><strong>Notice what did not happen</strong><p>“No shipment scan in four hours” becomes an alert like any other.</p></article>
+    <article><span>Digest</span><strong>Turn noise into one summary</strong><p>Routine events are gathered into a single summary for you to read later.</p></article>
+    <article><span>Rollup</span><strong>Combine several watches</strong><p>One watch can follow the alerts of others, and DeepORG refuses a loop.</p></article>
+    <article><span>Snooze</span><strong>Put an alert off until later</strong><p>Hide an alert for now. It comes back unread.</p></article>
+    <article><span>Recover</span><strong>Recover from failures</strong><p>After a dropped connection it reconnects, picks up where it left off, and retries.</p></article>
   </div>
 </section>
 
@@ -59,7 +59,7 @@
   <div class="home-section-heading">
     <p class="home-section-label">Try it</p>
     <h2>The demo starts with its inbox already full.</h2>
-    <p>Run the built-in demo and DeepORG registers four standing questions before it finishes booting. Three of them have already fired against the seeded data by the time you open the console. The fourth reports on silence: nothing in the demo is a critical incident, so a couple of minutes in it tells you so.</p>
+    <p>Run the built-in demo and DeepORG sets up four questions before it finishes starting. Three of them have already found something in the sample data by the time you open the console. The fourth watches for critical incidents. The demo has none, so after a couple of minutes it tells you that.</p>
   </div>
-  <div class="home-actions"><a class="button-primary" href="/start/demos/">Run the demo</a><a class="button-secondary" href="/start/demos/#coffee-roastery">Walk the approval story</a><a class="button-secondary" href="/agentic/watch-automation/">Choose watches, flows, and workflows</a></div>
+  <div class="home-actions"><a class="button-primary" href="/start/demos/">Run the demo</a><a class="button-secondary" href="/start/demos/#coffee-roastery">See an approval, step by step</a><a class="button-secondary" href="/agentic/watch-automation/">Choose watches, flows, and workflows</a></div>
 </section>
