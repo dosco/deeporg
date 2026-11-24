@@ -99,10 +99,11 @@ const requiredRoutes = [
   'pagefind/pagefind-entry.json',
 ];
 
-// One anchor per homepage section or card, then the closing ones. A short
-// #problem section (why AI rollouts stall) sits under the hero; #engine (how
-// the compiler replaces hand-built tools) and #loop (connect, discover,
-// execute, verify, improve) follow; three more reasons are cards. The
+// One anchor per homepage section or card, then the closing ones. #engine (how
+// the compiler replaces hand-built tools) sits under the hero and #loop
+// (connect, discover, do the work, verify, improve) follows; three more
+// reasons are cards. A short #problem section (why AI rollouts stall) comes
+// near the end, for a reader deciding whether to roll it out. The
 // detail that used to live under #mcp, #security-model, #codesql,
 // #capabilities and #how moved to the /why/ pages and is asserted there.
 const requiredAnchors = [
@@ -1512,10 +1513,10 @@ if (await exists(benchmarkDataPath)) {
     // The hero quotes no benchmark counts (the board in #proof carries them and
     // is checked above). Its figure is one wide scene with a stacked one for
     // small screens; losing the second leaves a phone with an unreadable strip.
-    const heroEnd = home.search(/id=["']?problem\b/);
+    const heroEnd = home.search(/id=["']?engine\b/);
     const hero = heroEnd >= 0 ? home.slice(home.indexOf('dx-hero'), heroEnd) : '';
     if (!hero) {
-      failures.push('Homepage hero not found ahead of #problem');
+      failures.push('Homepage hero not found ahead of #engine');
     } else {
       for (const [scene, variant] of [['orgwide', 'ascii--wide'], ['org', 'ascii--narrow']]) {
         const pre = new RegExp(`<pre[^>]*data-ascii=["']?${scene}["']?[\\s>][^>]*>|<pre[^>]*data-ascii=["']?${scene}["']?>`).exec(hero)?.[0] ?? '';
