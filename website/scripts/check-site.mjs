@@ -321,7 +321,8 @@ const requiredRenderedContent = [
   ['benchmark/index.html', 'Expected behavior'],
   // The /why/ pages own the detail the homepage used to carry inline. Pin the
   // claims that moved, so shortening the homepage cannot quietly lose them.
-  ['index.html', 'AI agents for the company you already run. Nothing to rebuild.'],
+  ['index.html', 'One AI agent for your whole organization.'],
+  ['index.html', 'Every answer shows the queries behind it'],
   ['index.html', 'No tool for each question. One compiler for all of them.'],
   ['index.html', 'Connect, discover, execute, verify, improve.'],
   ['index.html', 'Training a model on them is optional.'],
