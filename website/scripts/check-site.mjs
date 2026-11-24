@@ -229,8 +229,8 @@ const requiredRenderedContent = [
   ['core/filters/index.html', 'geo filters'],
   ['core/aggregations-functions/index.html', 'Expression aggregates'],
   ['story/index.html', 'as one graph'],
-  ['index.html', 'a fluent, confident, wrong answer earns nothing'],
-  ['index.html', 'never your rows'],
+  ['index.html', 'an answer that sounds right but is wrong still fails'],
+  ['index.html', 'never the rows'],
   ['environment/overview/index.html', 'It is entirely distinguishable to a database.'],
   ['environment/overview/index.html', 'isolated, resettable, and identical'],
   ['environment/quickstart/index.html', 'Nothing is mounted and nothing is generated.'],
@@ -241,7 +241,7 @@ const requiredRenderedContent = [
   ['experience/index.html', 'The answer key is a query, not a number'],
   ['experience/index.html', 'No result rows are copied'],
   ['environment/your-own-work/index.html', 'The answer they were given must pass it.'],
-  ['index.html', 'Or your own questions, as the tests'],
+  ['index.html', 'Or use your own questions.'],
   ['environment/worlds/index.html', 'stays relative to the'],
   ['environment/training/index.html', 'GRPO has no gradient to follow.'],
   ['environment/training/index.html', 'you get n identical answers'],
@@ -516,7 +516,7 @@ if (await exists(path.join(publicRoot, 'index.html'))) {
   // The homepage no longer ends in a grid of docs links (the footer and the docs
   // sidebar carry those). The phrases that grid held are pinned on the pages
   // that own them, in requiredRenderedContent.
-  for (const required of ['A made-up answer is blocked.', 'Your first answer is one command away.', 'backed by evidence', 'Run it in two minutes.']) {
+  for (const required of ['A made-up answer is blocked.', 'Your first answer is one command away.', 'has to come from a query the agent actually ran', 'Run it in two minutes.']) {
     if (!home.includes(required)) {
       failures.push(`Homepage missing required enriched copy: ${required}`);
     }
@@ -527,9 +527,9 @@ if (await exists(path.join(publicRoot, 'index.html'))) {
   // the problem." is the /watch/ page's own headline and is pinned there.
   for (const required of [
     'It can watch your data and run jobs on a schedule.',
-    'Leave a question running',
-    'A routine goes one step further.',
-    'It speaks up when the answer changes',
+    'Leave a question with DeepORG',
+    'A routine is a job you give it to repeat',
+    'It tells you when the answer changes',
     'database polls, not model calls',
   ]) {
     if (!home.includes(required)) {
