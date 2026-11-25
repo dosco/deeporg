@@ -382,7 +382,7 @@ roots fit together architecturally, see the canonical diagram in
 | `gj_watch` / `gj_watch_event` | `owner` (`user_id`) | Read/write, owner-private standing queries and durable inbox events. Watches must reference subscriptions. |
 | `gj_task` / `gj_task_entry` | `owner` (`user_id`) | Read/write, owner-private declared goals and immutable provenance trail. A task ID is correlation only and never grants access. |
 | `gj_workflow` / `gj_workflow_execution` | `owner` (`user_id`) | Read/write, owner-private. Workflows execute under the caller's identity. DB-backed workflows are owner/account-private saved artifacts. Filesystem/global workflows are operator-vetted, read-only, and runnable by all callers (each as themselves). "Global" status is filesystem-only and never user-settable. |
-| `gj_config` | `admin` | Read/write. |
+| `gj_config` | `admin` | Admin reads by default. Writes need `config.write`. With `config.read` and `config.write` both off the root is not mounted at all. |
 | `gj_security` | `admin` | Read-only. |
 | `gj_runtime` | `admin` | Read-only. |
 

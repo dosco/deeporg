@@ -822,12 +822,13 @@ func TestMCPCallerCapabilityProfileReflectsSourceRootAccess(t *testing.T) {
 	}
 
 	adminProfile := ms.callerCapabilityProfile(sourceModeAdminTestContext(), false)
-	for _, root := range []string{"gj_runtime"} {
+	// The admin reads runtime status and the configuration.
+	for _, root := range []string{"gj_runtime", "gj_config"} {
 		if !rootProfilesContain(adminProfile.AvailableRoots, root) {
 			t.Fatalf("expected %s available to admin, got %+v", root, adminProfile.AvailableRoots)
 		}
 	}
-	for _, root := range []string{"gj_security", "gj_config", "gj_workflow"} {
+	for _, root := range []string{"gj_security", "gj_workflow"} {
 		if !rootProfilesContain(adminProfile.BlockedRoots, root) {
 			t.Fatalf("expected disabled %s to remain unavailable to admin, got %+v", root, adminProfile.BlockedRoots)
 		}

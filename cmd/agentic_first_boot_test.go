@@ -36,10 +36,16 @@ func TestGeneratedAgenticConfigWorksOnFirstBoot(t *testing.T) {
 	for _, tc := range []struct {
 		name  string
 		extra string
+		// configReadsOff is set when the config switches config reads off.
+		// Then nobody reads gj_config, the admin included.
+		configReadsOff bool
 	}{
 		{name: "as generated"},
 		// Older generated configs carry the flag. It must make no difference.
 		{name: "with the production flag set", extra: "\nproduction: true\n"},
+		// The gj_config table is mounted along with the catalog. With its
+		// feature off it had no access rules and any signed-in user read it.
+		{name: "with config reads switched off", extra: "\nsystem:\n  capabilities:\n    config.read: false\n", configReadsOff: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			dir := t.TempDir()
@@ -132,6 +138,23 @@ func TestGeneratedAgenticConfigWorksOnFirstBoot(t *testing.T) {
 			body := firstBootGraphQL(t, server.URL, member, `query { orders(order_by: { id: asc }) { id total } }`)
 			if !strings.Contains(body, `"total"`) || strings.Contains(body, "blocked") {
 				t.Fatalf("a signed-in user could not read the orders table: %s", clip(body))
+			}
+
+			// Configuration is the admin's. It names the databases, the roles
+			// and the access rules, so nobody else reads it.
+			const readConfig = `query { gj_config(id: "current") { id sources } }`
+			adminBody := firstBootGraphQL(t, server.URL, admin, readConfig)
+			adminRead := strings.Contains(adminBody, `"sources"`) && !strings.Contains(adminBody, "errors")
+			if tc.configReadsOff && adminRead {
+				t.Fatalf("the configuration was readable with config reads switched off: %s", clip(adminBody))
+			}
+			if !tc.configReadsOff && !adminRead {
+				t.Fatalf("the admin could not read the configuration: %s", clip(adminBody))
+			}
+			for who, token := range map[string]string{"a signed-in user who is not an admin": member, "an anonymous caller": ""} {
+				if body := firstBootGraphQL(t, server.URL, token, readConfig); !strings.Contains(body, "errors") || strings.Contains(body, `"sources"`) {
+					t.Fatalf("%s could read the configuration: %s", who, clip(body))
+				}
 			}
 
 			// Writes stay off until the admin turns them on.

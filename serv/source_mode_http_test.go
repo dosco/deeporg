@@ -452,3 +452,31 @@ func TestSourceModeJWTGroupClaimsBecomeTrustedGroups(t *testing.T) {
 		t.Fatalf("a token without group claims should not set groups, got %#v", got)
 	}
 }
+
+// Configuration names the databases, the roles and the access rules, so only
+// an admin reads it, and nobody does once config reads are switched off. The
+// case where the table stayed mounted with no access rules is covered by
+// TestGeneratedAgenticConfigWorksOnFirstBoot in cmd, which boots a config
+// that mounts it.
+func TestSourceModeConfigRootIsAdminOnlyAndClosedWhenOff(t *testing.T) {
+	memberToken := signSourceModeJWT(t, jwt.MapClaims{"sub": "user_member", "roles": []string{"member"}, "account_id": "acct_1"})
+	adminToken := signSourceModeJWT(t, jwt.MapClaims{"sub": "admin_user", "roles": []string{"admin"}, "account_id": "acct_admin"})
+	const readConfig = `query { gj_config(id: "current") { id } }`
+
+	handler := newSourceModeJWTHTTPTestHandler(t)
+	if resp := postGraphQLJWT(t, handler, adminToken, readConfig, nil); len(resp.Errors) != 0 {
+		t.Fatalf("admin could not read gj_config by default: %s", resp.Errors)
+	}
+	if resp := postGraphQLJWT(t, handler, memberToken, readConfig, nil); len(resp.Errors) == 0 {
+		t.Fatalf("a non-admin read gj_config: %s", resp.Data)
+	}
+
+	off := newSourceModeJWTHTTPTestHandler(t, func(conf *Config) {
+		conf.Core.System.Capabilities[featurecap.KeyConfigRead] = false
+	})
+	for who, token := range map[string]string{"admin": adminToken, "member": memberToken} {
+		if resp := postGraphQLJWT(t, off, token, readConfig, nil); len(resp.Errors) == 0 {
+			t.Fatalf("%s read gj_config with config.read switched off: %s", who, resp.Data)
+		}
+	}
+}

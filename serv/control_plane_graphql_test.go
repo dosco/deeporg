@@ -1102,12 +1102,11 @@ func TestGraphQLControlPlaneAgenticSystemPermissions(t *testing.T) {
 		if string(out["catalog"]) == "null" || len(out["catalog"]) == 0 {
 			t.Fatalf("expected agentic user catalog access, got %s", string(res.Data))
 		}
-		// Workflow-definition, security, and config capabilities default off in
+		// Workflow-definition and security capabilities default off in
 		// agentic mode, so access policy cannot resurrect these roots.
 		for root, query := range map[string]string{
 			"gj_workflow": `query { workflow: gj_workflow(id: "daily_report") { name } }`,
 			"gj_security": `query { security: gj_security(id: "summary") { id } }`,
-			"gj_config":   `query { config: gj_config(id: "current") { id } }`,
 		} {
 			res, err := svc.gj.GraphQL(userCtx, query, nil, &core.RequestConfig{})
 			if err == nil {
@@ -1116,6 +1115,14 @@ func TestGraphQLControlPlaneAgenticSystemPermissions(t *testing.T) {
 			if !strings.Contains(err.Error(), "not found") {
 				t.Fatalf("expected %s absence error, got: %v", root, err)
 			}
+		}
+		// Configuration is there for the admin and refused to everyone else.
+		res, err = svc.gj.GraphQL(userCtx, `query { config: gj_config(id: "current") { id } }`, nil, &core.RequestConfig{})
+		if err == nil {
+			t.Fatalf("a normal user read gj_config: %s", string(res.Data))
+		}
+		if !strings.Contains(err.Error(), "blocked") {
+			t.Fatalf("expected gj_config to be refused for a normal user, got: %v", err)
 		}
 	})
 
@@ -1150,8 +1157,8 @@ func TestGraphQLControlPlaneAgenticSystemPermissions(t *testing.T) {
 		if err == nil {
 			t.Fatalf("expected gj_config to remain denied, got %s", string(res.Data))
 		}
-		if !strings.Contains(err.Error(), "not found") {
-			t.Fatalf("expected disabled gj_config root to remain absent, got: %v", err)
+		if !strings.Contains(err.Error(), "blocked") {
+			t.Fatalf("expected gj_config to stay refused for a normal user, got: %v", err)
 		}
 	})
 

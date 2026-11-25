@@ -398,7 +398,7 @@ Deployment modes:
 |------|-------------------|-----------------|
 | `dev` | Developers | Broad catalog, config, security, workflow-code, raw GraphQL, schema, and dev-tool access for local development |
 | `prod` | Production applications | Production protections and allow-list discipline; the agentic system surface does not mount |
-| `agentic` | Authenticated company end users using an approved agent | Production protections plus `catalog.read` and approved `workflow.execute`; detailed `security.read`, `config.read`, `workflow.read`, writes, raw GraphQL, schema writes, dev tools, and legacy discovery stay blocked unless explicitly enabled |
+| `agentic` | Authenticated company end users using an approved agent | Production protections plus `catalog.read`, admin-only `config.read` and approved `workflow.execute`; detailed `security.read`, `workflow.read`, writes, raw GraphQL, schema writes, dev tools, and legacy discovery stay blocked unless explicitly enabled |
 
 | Source kind | Capability keys |
 |-------------|-----------------|

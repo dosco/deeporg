@@ -390,13 +390,13 @@ Done on 2026-11-24:
 - The catalog needs a sign-in. It was readable with no token, which exposed every table and column name. The MCP catalog tool is now registered from config, not from what the anonymous startup caller may see (`registerCatalogTools`, `serv/mcp_catalog.go`).
 - A Postgres connection string that cannot be read is an error that names the unfilled placeholder.
 - The generated `agentic.yml` has no `production` line and carries a signing secret generated for that install.
+- Only an admin reads `gj_config`. The table was mounted along with the catalog while its feature was off, so it had no access rules and any signed-in user could read it. A control-plane table whose root is off is no longer mounted (`registeredManagedTables`, `serv/control_plane_graphql.go`), and reading config is on in agentic for admins.
 - `cmd/agentic_first_boot_test.go` boots the generated template and checks all of the above.
 
 Left for later phases:
 
 - **A person cannot sign in yet without making a token.** The generated config accepts tokens signed with its secret; accounts and a sign-in page arrive in Phase 2.
 - **The "dev defaults" still apply to an agentic config that leaves `mcp.allow_*` unset.** The demos depend on four of them (raw queries, mutations, workflow execution, dev tools). They go away when those switches stop being user-facing, in Phase 2.
-- **A signed-in user who is not an admin can read `gj_config`** (secrets are redacted). The root is meant to be admin-only. Seen in the first-boot test, cause not yet traced.
 
 **Phase 2: Setup on a laptop.**
 The start config and the store opening first. Admin account and password

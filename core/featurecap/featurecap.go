@@ -100,7 +100,7 @@ var systemRoots = []string{
 var definitions = []Definition{
 	def(KindSystem, KeyCatalogRead, ActionRead, true, true, true, "medium", false, "Read the GraphJin catalog."),
 	def(KindSystem, KeySecurityRead, ActionRead, true, false, false, "high", false, "Read detailed GraphJin security audit rows."),
-	def(KindSystem, KeyConfigRead, ActionRead, true, false, false, "high", false, "Read GraphJin configuration rows."),
+	def(KindSystem, KeyConfigRead, ActionRead, true, false, true, "high", false, "Read GraphJin configuration rows."),
 	def(KindSystem, KeyConfigWrite, ActionWrite, true, false, false, "critical", true, "Write GraphJin configuration.", mcp(MCPAllowConfigUpdates)),
 	def(KindSystem, KeyRuntimeRead, ActionRead, true, false, true, "medium", false, "Read compact GraphJin runtime status and recent redacted events."),
 	def(KindSystem, KeyRawGraphQLQuery, ActionQuery, true, false, false, "high", false, "Execute raw GraphQL queries through MCP.", mcp(MCPAllowRawQueries)),

@@ -36,6 +36,25 @@ func (h controlPlaneGraphQL) ManagedQueryTables() []core.ManagedTable {
 	if h.service != nil && h.service.conf != nil && h.service.conf.workflowsEnabled() {
 		out = append(out, workflowControlPlaneTables()...)
 	}
+	return registeredManagedTables(h.service, out)
+}
+
+// registeredManagedTables drops the tables whose system root is switched off.
+//
+// The tables come in bundles: gj_config rides along with the catalog. Access
+// rules are only generated for registered roots, so a table mounted without
+// its root had no rules and every signed-in caller could read it. A root that
+// is off is simply not there.
+func registeredManagedTables(s *graphjinService, tables []core.ManagedTable) []core.ManagedTable {
+	if s == nil || s.conf == nil || !s.conf.Core.IsSourcesUsed() {
+		return tables
+	}
+	out := tables[:0:0]
+	for _, table := range tables {
+		if systemRootRegistered(s.conf, table.Name) {
+			out = append(out, table)
+		}
+	}
 	return out
 }
 
