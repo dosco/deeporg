@@ -453,14 +453,29 @@ What this slice does not do yet:
 
 What this slice does not do yet:
 
-- **The model step.** The agent page still tells the newcomer to set an environment variable.
 - **Sample data** as an alternative to connecting a database.
 - **Counting the tables on the setup screen.** The count shows on the Runtime page.
 - **Connecting a second database, or changing one, from the console.** The step adds or replaces by name, but only setup calls it.
 - **Changes take effect by restarting the process**, which drops requests in flight. That is fine during setup; changes made later should use the live path the config pipeline already has.
 - **With no database connected, asking for a table that does not exist names the store's own tables in the error.** No data is exposed.
 
-*Remaining slices:* the model step; sample data; hiding the store's tables from data sources.
+*Slice 5, the model step of setup — done on 2026-11-25.*
+
+- After the database step the console shows "Choose a model": a provider (OpenAI, Anthropic or Google Gemini), its API key, and optionally a model name (`serv/web/src/pages/SetupModel.jsx`). It can be left for later, and the screen says what stays off without it.
+- `POST /api/v1/setup/model` needs an admin session. The server checks the key by sending the provider one small request through the same client the agent uses (`CheckAPIKey`, `agent/check_key.go`). A refusal comes back as what went wrong: a key the provider does not accept, a model it does not have, an account with no usage left, a provider that cannot be reached. The key is never repeated back, even when the provider's own error contains it.
+- A key that works is kept encrypted in the store, as its own record and not in the configuration document, so `deeporg config export` does not print it.
+- On start, the key is handed to the agent in an environment variable of its own, `DEEPORG_MODEL_KEY`, which the stored configuration names. A provider variable already in the environment is neither used nor changed.
+
+With this slice the path in Part 1 works from start to finish on a laptop: run `deeporg`, create the admin, connect a database, choose a model, ask a question.
+
+What is still open in Phase 2:
+
+- **Sample data** as an alternative to connecting a database.
+- **`GJ_AGENT_*` variables in the environment override the stored model choice.** Found while testing. Reasonable for an operator, surprising for a newcomer with stray variables.
+- **The setup screens do not show which model a provider's default is.**
+- **Hiding the store's table names** from the error for a table that does not exist, on a server with no database.
+
+*Remaining slices:* sample data; hiding the store's tables from data sources.
 
 **Phase 3: Nothing on disk, and setup on a server.**
 The discovery cache in the store. The one-time setup link. `deeporg setup`

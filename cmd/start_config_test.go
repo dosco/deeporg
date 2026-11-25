@@ -12,6 +12,8 @@ import (
 	"testing"
 	"time"
 
+	ax "github.com/ax-llm/ax/packages/go"
+	gjagent "github.com/dosco/graphjin/agent/v3"
 	"github.com/dosco/graphjin/serv/v3"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -43,6 +45,17 @@ func inEmptyDir(t *testing.T) (work, home string) {
 	t.Setenv(startConfigDirEnv, home)
 	for _, env := range []string{startConfigEnv, startStoreEnv, startSecretKeyEnv, startListenEnv, startLogLevelEnv} {
 		t.Setenv(env, "")
+	}
+	// Settings can be overridden from the environment, and other tests in
+	// this package leave such variables behind (the demo sets the agent's
+	// provider and key that way). A new install has none of them.
+	for _, entry := range os.Environ() {
+		name, _, _ := strings.Cut(entry, "=")
+		for _, prefix := range []string{"GJ_", "SG_", "SJ_"} {
+			if strings.HasPrefix(name, prefix) {
+				t.Setenv(name, "")
+			}
+		}
 	}
 	return work, home
 }
@@ -399,5 +412,154 @@ func TestSetupConnectsADatabaseAndSurvivesARestart(t *testing.T) {
 	res.Body.Close() //nolint:errcheck
 	if res.StatusCode != http.StatusForbidden {
 		t.Fatalf("a non-admin reached the database step: %d", res.StatusCode)
+	}
+}
+
+// okModelClient stands in for a model provider. It accepts every request, or
+// refuses every request with the error it was given.
+type okModelClient struct{ err error }
+
+func (c okModelClient) Chat(context.Context, map[string]ax.Value, map[string]ax.Value) (ax.Value, error) {
+	return ax.Object("results", ax.Array()), c.err
+}
+
+func (c okModelClient) Embed(context.Context, map[string]ax.Value, map[string]ax.Value) (ax.Value, error) {
+	return nil, c.err
+}
+
+func (c okModelClient) Stream(context.Context, map[string]ax.Value, map[string]ax.Value) ([]ax.Value, error) {
+	return nil, c.err
+}
+
+// The model step of setup: the admin gives a provider and its key, the server
+// checks the key, keeps it encrypted, and comes back up with the agent on.
+func TestSetupChoosesAModelAndKeepsItsKeyEncrypted(t *testing.T) {
+	if testing.Short() {
+		t.Skip("embedded service integration")
+	}
+	_, home := inEmptyDir(t)
+	const setupToken = "model-step-setup-token"
+	t.Setenv("DEEPORG_SETUP_TOKEN", setupToken)
+	// A provider variable already in the environment must not be what the
+	// agent ends up using, nor be changed.
+	t.Setenv("OPENAI_API_KEY", "")
+	t.Setenv(serv.StoredModelKeyEnv, "")
+
+	file, _ := usesStartConfig(nil)
+	sc, err := loadStartConfig(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var providerErr error
+	var applied atomic.Int32
+	boot := func() (string, func()) {
+		t.Helper()
+		conf, err := loadStartFlowConfig(sc)
+		if err != nil {
+			t.Fatalf("load from the store: %v", err)
+		}
+		hs, err := serv.NewGraphJinService(conf,
+			serv.OptionSetLogOutput(zapcore.AddSync(&lockedBuffer{})),
+			serv.OptionSetConfigApplier(func() error { applied.Add(1); return nil }),
+			serv.OptionSetAgentClientFactory(func(gjagent.Config) (ax.AIClient, error) { return okModelClient{err: providerErr}, nil }),
+		)
+		if err != nil {
+			t.Fatalf("start: %v", err)
+		}
+		mux := http.NewServeMux()
+		if err := hs.Attach(mux); err != nil {
+			t.Fatal(err)
+		}
+		server := httptest.NewServer(mux)
+		return server.URL, func() { server.Close(); hs.Close() } //nolint:errcheck
+	}
+
+	base, stop := boot()
+	const modelURL = "/api/v1/setup/model"
+	const key = "sk-test-0123456789abcdefghij"
+
+	if status, body, _ := accountsPost(t, base+modelURL, "", map[string]any{"provider": "openai", "api_key": key}); status != http.StatusUnauthorized {
+		t.Fatalf("an anonymous caller reached the model step: %d %s", status, body)
+	}
+	_, _, cookie := accountsPost(t, base+"/api/v1/setup/admin", "", map[string]any{"token": setupToken, "email": "ada@example.com", "password": "a long enough password"})
+	if cookie == "" {
+		t.Fatal("no admin session")
+	}
+	if state := firstBootGet(t, base+"/api/v1/setup"); !strings.Contains(state, `"needs_model":true`) {
+		t.Fatalf("setup state before a model is chosen: %s", state)
+	}
+
+	// What the form can get wrong is said plainly.
+	for _, tc := range []struct {
+		body   map[string]any
+		advice string
+	}{
+		{map[string]any{"api_key": key}, "choose a provider"},
+		{map[string]any{"provider": "openai"}, "paste the provider's API key"},
+		{map[string]any{"provider": "openai", "api_key": "two words"}, "does not look like an API key"},
+	} {
+		if status, body, _ := accountsPost(t, base+modelURL, cookie, tc.body); status != http.StatusBadRequest || !strings.Contains(body, tc.advice) {
+			t.Fatalf("%v answered %d %s, want %q", tc.body, status, body, tc.advice)
+		}
+	}
+
+	// A key the provider refuses is not kept, and the refusal never repeats
+	// the key back, even when the provider's own error contains it.
+	providerErr = fmt.Errorf("401 Unauthorized: incorrect API key provided: %s", key)
+	status, body, _ := accountsPost(t, base+modelURL, cookie, map[string]any{"provider": "openai", "api_key": key})
+	if status != http.StatusBadRequest || !strings.Contains(body, "did not accept that key") {
+		t.Fatalf("a refused key answered %d %s", status, body)
+	}
+	if strings.Contains(body, key) {
+		t.Fatalf("the refusal repeated the key: %s", body)
+	}
+	if applied.Load() != 0 {
+		t.Fatal("a refused key was applied")
+	}
+
+	// A key the provider accepts is kept.
+	providerErr = nil
+	status, body, _ = accountsPost(t, base+modelURL, cookie, map[string]any{"provider": "anthropic", "api_key": key, "model": "some-model"})
+	if status != http.StatusOK || !strings.Contains(body, `"provider":"anthropic"`) || strings.Contains(body, key) {
+		t.Fatalf("choose model: %d %s", status, body)
+	}
+	deadline := time.Now().Add(5 * time.Second)
+	for applied.Load() == 0 && time.Now().Before(deadline) {
+		time.Sleep(50 * time.Millisecond)
+	}
+	if applied.Load() != 1 {
+		t.Fatalf("the model choice was applied %d times, want once", applied.Load())
+	}
+	stop()
+
+	// Encrypted at rest: the key is nowhere in the store's files.
+	for _, name := range []string{"store.db", "store.db-wal"} {
+		if raw, err := os.ReadFile(filepath.Join(home, name)); err == nil && strings.Contains(string(raw), key) {
+			t.Fatalf("%s holds the model key in the clear", name)
+		}
+	}
+	// And it is not in the exported configuration either.
+	doc, err := serv.ReadStoredConfig(context.Background(), sc.Store, sc.sealKey())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(doc, key) || !strings.Contains(doc, "provider: anthropic") || !strings.Contains(doc, "model: some-model") {
+		t.Fatalf("stored configuration after the model step:\n%s", doc)
+	}
+
+	// The server comes back up with the agent ready, using the stored key.
+	base, stop = boot()
+	defer stop()
+	if got := os.Getenv(serv.StoredModelKeyEnv); got != key {
+		t.Fatalf("the stored key was not handed to the agent: %q", got)
+	}
+	if os.Getenv("OPENAI_API_KEY") != "" {
+		t.Fatal("a provider variable in the environment was changed")
+	}
+	if state := firstBootGet(t, base+"/api/v1/setup"); !strings.Contains(state, `"needs_model":false`) {
+		t.Fatalf("setup state after a model is chosen: %s", state)
+	}
+	if status := accountsGet(t, base+"/api/v1/agent/status", cookie); !strings.Contains(status, `"provider":"anthropic"`) || !strings.Contains(status, `"api_key_configured":true`) || strings.Contains(status, key) {
+		t.Fatalf("agent status after the model step: %s", clip(status))
 	}
 }

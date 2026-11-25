@@ -404,11 +404,14 @@ func (s1 *HttpService) Setup(ah auth.HandlerFunc) http.Handler {
 			writeJSONStatus(w, http.StatusOK, map[string]any{
 				"needs_admin":    s.setupNeedsAdmin(r.Context()),
 				"needs_database": s.setupNeedsDatabase(),
+				"needs_model":    s.setupNeedsModel(),
 			})
 		case r.URL.Path == routeSetupAdmin && r.Method == http.MethodPost:
 			s.setupCreateAdmin(w, r, ah)
 		case r.URL.Path == routeSetupDatabase && r.Method == http.MethodPost:
 			s.setupConnectDatabase(w, r, ah)
+		case r.URL.Path == routeSetupModel && r.Method == http.MethodPost:
+			s.setupChooseModel(w, r, ah)
 		default:
 			http.Error(w, "not found", http.StatusNotFound)
 		}

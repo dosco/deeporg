@@ -65,6 +65,7 @@ type consoleBootstrapResponse struct {
 type consoleBootstrapSetup struct {
 	NeedsAdmin    bool `json:"needs_admin"`
 	NeedsDatabase bool `json:"needs_database"`
+	NeedsModel    bool `json:"needs_model"`
 }
 
 // ConsoleBootstrap exposes only the caller-safe information needed to choose
@@ -135,8 +136,8 @@ func (s1 *HttpService) apiV1ConsoleBootstrap(ns *string) http.Handler {
 		}
 
 		var setup *consoleBootstrapSetup
-		if needsAdmin, needsDatabase := s.setupNeedsAdmin(r.Context()), s.setupNeedsDatabase(); needsAdmin || needsDatabase {
-			setup = &consoleBootstrapSetup{NeedsAdmin: needsAdmin, NeedsDatabase: needsDatabase}
+		if needsAdmin, needsDatabase, needsModel := s.setupNeedsAdmin(r.Context()), s.setupNeedsDatabase(), s.setupNeedsModel(); needsAdmin || needsDatabase || needsModel {
+			setup = &consoleBootstrapSetup{NeedsAdmin: needsAdmin, NeedsDatabase: needsDatabase, NeedsModel: needsModel}
 		}
 
 		w.Header().Set("Content-Type", "application/json")

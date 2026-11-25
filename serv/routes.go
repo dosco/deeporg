@@ -76,6 +76,7 @@ func routesHandler(s1 *HttpService, mux Mux, ns *string) (http.Handler, error) {
 				mux.Handle(routeSetup, s1.Setup(ah))
 				mux.Handle(routeSetupAdmin, s1.Setup(ah))
 				mux.Handle(routeSetupDatabase, s1.Setup(ah))
+				mux.Handle(routeSetupModel, s1.Setup(ah))
 			}
 			ah = withConsoleSession(ah)
 		}

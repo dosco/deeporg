@@ -273,6 +273,19 @@ func loadStartFlowConfig(sc *startConfig) (*serv.Config, error) {
 	// Relative paths, such as the discovery cache, sit beside the store.
 	c.Serv.ConfigPath = filepath.Dir(sc.Store)
 	c.SetStore(sc.Store, sc.sealKey())
+
+	// The model provider's key is kept encrypted in the store. The agent
+	// reads its key from an environment variable, so hand it over in one of
+	// its own. The stored configuration names that variable.
+	key, err := serv.ReadStoredSecret(context.Background(), sc.Store, sc.sealKey(), serv.StoredModelKey)
+	if err != nil {
+		return nil, fmt.Errorf("stored model key: %w", err)
+	}
+	if key != "" {
+		if err := os.Setenv(serv.StoredModelKeyEnv, key); err != nil {
+			return nil, err
+		}
+	}
 	return c, nil
 }
 

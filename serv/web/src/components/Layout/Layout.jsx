@@ -12,16 +12,26 @@ import { adoptSuggestedIdentity, operatorIdentityKey, useOperatorIdentity } from
 import { setupState } from "@/services/session";
 import Setup from "@/pages/Setup";
 import SetupDatabase from "@/pages/SetupDatabase";
+import SetupModel from "@/pages/SetupModel";
 
-// The admin can leave the database step for later. That choice lasts for this
+// The admin can leave a setup step for later. That choice lasts for this
 // browser tab; the step comes back the next time the console is opened.
 const SKIP_DATABASE_KEY = "deeporg.setup.skipDatabase";
+const SKIP_MODEL_KEY = "deeporg.setup.skipModel";
 
-function databaseStepSkipped() {
+function stepSkipped(key) {
   try {
-    return sessionStorage.getItem(SKIP_DATABASE_KEY) === "1";
+    return sessionStorage.getItem(key) === "1";
   } catch {
     return false;
+  }
+}
+
+function rememberSkip(key) {
+  try {
+    sessionStorage.setItem(key, "1");
+  } catch {
+    // Private windows may refuse storage; skipping still works for this page.
   }
 }
 
@@ -36,7 +46,8 @@ const Layout = ({ children }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const identity = useOperatorIdentity();
-  const [skippedDatabase, setSkippedDatabase] = React.useState(databaseStepSkipped);
+  const [skippedDatabase, setSkippedDatabase] = React.useState(() => stepSkipped(SKIP_DATABASE_KEY));
+  const [skippedModel, setSkippedModel] = React.useState(() => stepSkipped(SKIP_MODEL_KEY));
   const identityKey = operatorIdentityKey(identity);
   const bootstrapQuery = useQuery({
     queryKey: ["console-bootstrap", identityKey],
@@ -94,12 +105,29 @@ const Layout = ({ children }) => {
             void bootstrapQuery.refetch();
           }}
           onSkip={() => {
-            try {
-              sessionStorage.setItem(SKIP_DATABASE_KEY, "1");
-            } catch {
-              // Private windows may refuse storage; skipping still works for this page.
-            }
+            rememberSkip(SKIP_DATABASE_KEY);
             setSkippedDatabase(true);
+          }}
+        />
+      </div>
+    );
+  }
+
+  // Last, a model for the built-in agent.
+  if (setupState(bootstrapQuery.data).needsModel && signedInAdmin && !skippedModel) {
+    return (
+      <div className="relative min-h-dvh bg-background text-foreground">
+        <div className="horizon" aria-hidden="true" />
+        <div className="starfield" aria-hidden="true" />
+        <SetupModel
+          onDone={() => {
+            queryClient.clear();
+            navigate("/user/agent", { replace: true });
+            void bootstrapQuery.refetch();
+          }}
+          onSkip={() => {
+            rememberSkip(SKIP_MODEL_KEY);
+            setSkippedModel(true);
           }}
         />
       </div>

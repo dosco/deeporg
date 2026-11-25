@@ -36,21 +36,43 @@ export function connectDatabase(connection) {
 }
 
 // waitForDatabase resolves once the server is back up with a database
-// connected. While it restarts, requests fail; those are expected and retried.
-export async function waitForDatabase({ timeoutMs = 45000, intervalMs = 700 } = {}) {
+// connected.
+export function waitForDatabase(options) {
+  return waitForSetupStep("needs_database", options);
+}
+
+// chooseModel gives the server a model provider and its key to check and, if
+// the key works, save. The server restarts with it, so follow this with
+// waitForModel.
+export function chooseModel({ provider, apiKey, model }) {
+  return fetchJSON("/api/v1/setup/model", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ provider, api_key: apiKey, model }),
+  });
+}
+
+// waitForModel resolves once the server is back up with the agent's key.
+export function waitForModel(options) {
+  return waitForSetupStep("needs_model", options);
+}
+
+// waitForSetupStep resolves once the server reports the step is done. A setup
+// step restarts the server; while it does, requests fail, which is expected.
+async function waitForSetupStep(field, { timeoutMs = 45000, intervalMs = 700 } = {}) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     await new Promise((resolve) => setTimeout(resolve, intervalMs));
     try {
       const state = await fetchJSON("/api/v1/setup");
-      if (!state.needs_database) {
+      if (!state[field]) {
         return;
       }
     } catch {
       // The server is restarting.
     }
   }
-  throw new Error("The connection was saved, but the server has not come back yet. Reload this page in a moment.");
+  throw new Error("That was saved, but the server has not come back yet. Reload this page in a moment.");
 }
 
 // setupState reads which first-run step, if any, the server is waiting on.
@@ -58,6 +80,7 @@ export function setupState(bootstrap) {
   return {
     needsAdmin: Boolean(bootstrap?.setup?.needs_admin),
     needsDatabase: Boolean(bootstrap?.setup?.needs_database),
+    needsModel: Boolean(bootstrap?.setup?.needs_model),
   };
 }
 

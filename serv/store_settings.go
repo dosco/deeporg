@@ -206,6 +206,53 @@ func writeStoredConfig(ctx context.Context, st *sqlAuthStore, sealKey, doc strin
 	return st.upsert(ctx, storedConfigKind, storedConfigID, &storedConfigRecord{Sealed: sealed}, time.Time{})
 }
 
+// storedSecretKind marks a single secret kept in the store, such as the model
+// provider's key. Each is encrypted the same way as the configuration.
+const storedSecretKind = "secret"
+
+// StoredModelKey names the model provider's key in the store, and
+// StoredModelKeyEnv the environment variable a start-config install hands it
+// to the agent in. A name of its own keeps it from being mistaken for, or
+// overwritten by, a provider variable already in the environment.
+const (
+	StoredModelKey    = "model_key"
+	StoredModelKeyEnv = "DEEPORG_MODEL_KEY"
+)
+
+// ReadStoredSecret returns the named secret from the store file at path, or
+// "" when it has not been set.
+func ReadStoredSecret(ctx context.Context, path, sealKey, name string) (string, error) {
+	st, done, err := openStoreSettings(ctx, path)
+	if err != nil {
+		return "", err
+	}
+	defer done()
+	return readStoredSecret(ctx, st, sealKey, name)
+}
+
+func readStoredSecret(ctx context.Context, st *sqlAuthStore, sealKey, name string) (string, error) {
+	row, err := st.get(ctx, storedSecretKind, name)
+	if err != nil || row == nil {
+		return "", err
+	}
+	var record storedConfigRecord
+	if err := json.Unmarshal(row.data, &record); err != nil {
+		return "", err
+	}
+	if record.Sealed == "" {
+		return "", nil
+	}
+	return openStoredConfig(sealKey, record.Sealed)
+}
+
+func writeStoredSecret(ctx context.Context, st *sqlAuthStore, sealKey, name, value string) error {
+	sealed, err := sealStoredConfig(sealKey, value)
+	if err != nil {
+		return err
+	}
+	return st.upsert(ctx, storedSecretKind, name, &storedConfigRecord{Sealed: sealed}, time.Time{})
+}
+
 // openStoreSettings opens the store file directly, for the short reads and
 // writes that happen before the server starts. The store allows one
 // connection, so the caller must call done before the server opens it.
