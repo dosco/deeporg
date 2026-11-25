@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/dosco/graphjin/serv/v3"
@@ -254,7 +255,7 @@ func startBaseConfig(sc *startConfig) string {
 // loadStartFlowConfig builds the running configuration for a start-config
 // install: the base, with the document read from the store laid over it.
 func loadStartFlowConfig(sc *startConfig) (*serv.Config, error) {
-	doc, err := serv.ReadStoredConfig(context.Background(), sc.Store)
+	doc, err := serv.ReadStoredConfig(context.Background(), sc.Store, sc.sealKey())
 	if err != nil {
 		return nil, err
 	}
@@ -271,8 +272,25 @@ func loadStartFlowConfig(sc *startConfig) (*serv.Config, error) {
 	}
 	// Relative paths, such as the discovery cache, sit beside the store.
 	c.Serv.ConfigPath = filepath.Dir(sc.Store)
-	c.SetStorePath(sc.Store)
+	c.SetStore(sc.Store, sc.sealKey())
 	return c, nil
+}
+
+// sealKey is the key the stored configuration is encrypted with. It is
+// derived from the secret key, and is not the key that signs sessions.
+func (sc *startConfig) sealKey() string {
+	return serv.DeriveStoreSecret(sc.SecretKey, "sealing")
+}
+
+// restartInPlace replaces this process with a fresh copy of itself, which
+// reads the stored configuration again. The address, the store and the
+// sessions people hold all stay the same.
+func restartInPlace() error {
+	binary, err := os.Executable()
+	if err != nil {
+		return err
+	}
+	return syscall.Exec(binary, os.Args, os.Environ())
 }
 
 // announceSetup tells whoever started a new install how to finish setting it
@@ -373,7 +391,7 @@ Examples:
 			if _, err := serv.NewConfig(merged, "yaml"); err != nil {
 				log.Fatalf("%s: %s", args[0], err)
 			}
-			if err := serv.WriteStoredConfig(context.Background(), sc.Store, doc); err != nil {
+			if err := serv.WriteStoredConfig(context.Background(), sc.Store, sc.sealKey(), doc); err != nil {
 				log.Fatalf("%s", err)
 			}
 			fmt.Printf("Stored the configuration from %s. Restart DeepORG for it to take effect.\n", args[0])
@@ -392,7 +410,7 @@ func configExportCmd() *cobra.Command {
 			if err != nil {
 				log.Fatalf("%s", err)
 			}
-			doc, err := serv.ReadStoredConfig(context.Background(), sc.Store)
+			doc, err := serv.ReadStoredConfig(context.Background(), sc.Store, sc.sealKey())
 			if err != nil {
 				log.Fatalf("%s", err)
 			}

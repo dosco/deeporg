@@ -11,6 +11,19 @@ import { useNotificationStream } from "@/services/notifications";
 import { adoptSuggestedIdentity, operatorIdentityKey, useOperatorIdentity } from "@/services/identity";
 import { setupState } from "@/services/session";
 import Setup from "@/pages/Setup";
+import SetupDatabase from "@/pages/SetupDatabase";
+
+// The admin can leave the database step for later. That choice lasts for this
+// browser tab; the step comes back the next time the console is opened.
+const SKIP_DATABASE_KEY = "deeporg.setup.skipDatabase";
+
+function databaseStepSkipped() {
+  try {
+    return sessionStorage.getItem(SKIP_DATABASE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
 
 const layoutClasses = {
   canvas: "min-h-0 overflow-hidden",
@@ -23,6 +36,7 @@ const Layout = ({ children }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const identity = useOperatorIdentity();
+  const [skippedDatabase, setSkippedDatabase] = React.useState(databaseStepSkipped);
   const identityKey = operatorIdentityKey(identity);
   const bootstrapQuery = useQuery({
     queryKey: ["console-bootstrap", identityKey],
@@ -59,6 +73,33 @@ const Layout = ({ children }) => {
             queryClient.clear();
             navigate("/user/agent", { replace: true });
             void bootstrapQuery.refetch();
+          }}
+        />
+      </div>
+    );
+  }
+
+  // With an admin in place the next step is the database. Only the admin can
+  // take it, so anyone else, signed in or not, gets the ordinary console.
+  const signedInAdmin = Boolean(bootstrapQuery.data?.identity?.authenticated) && bootstrapQuery.data?.identity?.role === "admin";
+  if (setupState(bootstrapQuery.data).needsDatabase && signedInAdmin && !skippedDatabase) {
+    return (
+      <div className="relative min-h-dvh bg-background text-foreground">
+        <div className="horizon" aria-hidden="true" />
+        <div className="starfield" aria-hidden="true" />
+        <SetupDatabase
+          onDone={() => {
+            queryClient.clear();
+            navigate("/user/agent", { replace: true });
+            void bootstrapQuery.refetch();
+          }}
+          onSkip={() => {
+            try {
+              sessionStorage.setItem(SKIP_DATABASE_KEY, "1");
+            } catch {
+              // Private windows may refuse storage; skipping still works for this page.
+            }
+            setSkippedDatabase(true);
           }}
         />
       </div>

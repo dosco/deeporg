@@ -2,32 +2,50 @@ package serv
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 )
+
+const testSealKey = "a sealing key for tests"
 
 func TestStoredConfigRoundTripsThroughTheStoreFile(t *testing.T) {
 	ctx := context.Background()
 	path := filepath.Join(t.TempDir(), "nested", "store.db")
 
 	// A new store has no document and is created on first read.
-	if doc, err := ReadStoredConfig(ctx, path); err != nil || doc != "" {
+	if doc, err := ReadStoredConfig(ctx, path, testSealKey); err != nil || doc != "" {
 		t.Fatalf("new store: doc=%q err=%v", doc, err)
 	}
 	const doc = "sources:\n  - name: shop\n    kind: database\n    type: sqlite\n"
-	if err := WriteStoredConfig(ctx, path, doc); err != nil {
+	if err := WriteStoredConfig(ctx, path, testSealKey, doc); err != nil {
 		t.Fatalf("write: %v", err)
 	}
-	if got, err := ReadStoredConfig(ctx, path); err != nil || got != doc {
+	if got, err := ReadStoredConfig(ctx, path, testSealKey); err != nil || got != doc {
 		t.Fatalf("read back: %q err=%v", got, err)
 	}
 	// Writing again replaces the document.
-	if err := WriteStoredConfig(ctx, path, "sources: []\n"); err != nil {
+	if err := WriteStoredConfig(ctx, path, testSealKey, "sources: []\n"); err != nil {
 		t.Fatalf("rewrite: %v", err)
 	}
-	if got, _ := ReadStoredConfig(ctx, path); got != "sources: []\n" {
+	if got, _ := ReadStoredConfig(ctx, path, testSealKey); got != "sources: []\n" {
 		t.Fatalf("after rewrite: %q", got)
+	}
+
+	// The document carries database passwords, so it is encrypted at rest:
+	// the store file does not contain it, and another key cannot read it.
+	const secret = "sources:\n  - name: shop\n    password: hunter2-in-the-store\n"
+	if err := WriteStoredConfig(ctx, path, testSealKey, secret); err != nil {
+		t.Fatal(err)
+	}
+	for _, file := range []string{path, path + "-wal"} {
+		if raw, err := os.ReadFile(file); err == nil && strings.Contains(string(raw), "hunter2-in-the-store") {
+			t.Fatalf("%s holds the stored configuration in the clear", filepath.Base(file))
+		}
+	}
+	if _, err := ReadStoredConfig(ctx, path, "some other key"); err == nil || !strings.Contains(err.Error(), "different") {
+		t.Fatalf("a different key read the stored configuration: %v", err)
 	}
 }
 
@@ -37,7 +55,7 @@ func TestStoredConfigRefusesSettingsThatBelongToTheStartConfig(t *testing.T) {
 		if err := ValidateStoredConfig(doc); err == nil || !strings.Contains(err.Error(), key) {
 			t.Fatalf("%s was accepted in a stored configuration: %v", key, err)
 		}
-		if err := WriteStoredConfig(context.Background(), filepath.Join(t.TempDir(), "store.db"), doc); err == nil {
+		if err := WriteStoredConfig(context.Background(), filepath.Join(t.TempDir(), "store.db"), testSealKey, doc); err == nil {
 			t.Fatalf("%s was written to the store", key)
 		}
 	}

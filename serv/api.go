@@ -152,6 +152,7 @@ type graphjinService struct {
 	onboardingCandidates map[string]cachedDiscoveredCandidate
 	authLogin            *authLoginService // built-in OIDC login (optional)
 	accounts             *accountService   // local accounts (agentic, optional)
+	configApplier        func() error      // makes a changed stored configuration take effect
 }
 
 // anyDB returns any single connection from the dbs map (for callers

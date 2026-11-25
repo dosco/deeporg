@@ -2,8 +2,12 @@ package serv
 
 import (
 	"context"
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/hmac"
+	"crypto/rand"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -41,15 +45,60 @@ var storedConfigRefusedKeys = []string{
 	"mode", "production", "host_port", "auth", "auth_fail_block", "secrets", "artifacts", "config_path",
 }
 
+// storedConfigRecord is the document as it is kept: encrypted, because it
+// carries database passwords.
 type storedConfigRecord struct {
-	Document string `json:"document"`
+	Sealed string `json:"sealed"`
 }
 
-// SetStorePath names the file a start-config install keeps its store in.
-func (c *Config) SetStorePath(path string) {
+// SetStore names the file a start-config install keeps its store in, and the
+// key its stored configuration is encrypted with.
+func (c *Config) SetStore(path, sealKey string) {
 	if c != nil {
 		c.storePath = strings.TrimSpace(path)
+		c.storeSealKey = sealKey
 	}
+}
+
+// sealStoredConfig encrypts a document with AES-256-GCM.
+func sealStoredConfig(sealKey, doc string) (string, error) {
+	gcm, err := storeCipher(sealKey)
+	if err != nil {
+		return "", err
+	}
+	nonce := make([]byte, gcm.NonceSize())
+	if _, err := rand.Read(nonce); err != nil {
+		return "", err
+	}
+	return base64.StdEncoding.EncodeToString(gcm.Seal(nonce, nonce, []byte(doc), nil)), nil
+}
+
+func openStoredConfig(sealKey, sealed string) (string, error) {
+	gcm, err := storeCipher(sealKey)
+	if err != nil {
+		return "", err
+	}
+	raw, err := base64.StdEncoding.DecodeString(sealed)
+	if err != nil || len(raw) < gcm.NonceSize() {
+		return "", errors.New("the stored configuration is damaged")
+	}
+	doc, err := gcm.Open(nil, raw[:gcm.NonceSize()], raw[gcm.NonceSize():], nil)
+	if err != nil {
+		return "", errors.New("the stored configuration cannot be read with this secret key; it was written with a different one")
+	}
+	return string(doc), nil
+}
+
+func storeCipher(sealKey string) (cipher.AEAD, error) {
+	if strings.TrimSpace(sealKey) == "" {
+		return nil, errors.New("no key to encrypt the stored configuration with")
+	}
+	key := sha256.Sum256([]byte(sealKey))
+	block, err := aes.NewCipher(key[:])
+	if err != nil {
+		return nil, err
+	}
+	return cipher.NewGCM(block)
 }
 
 // ValidateStoredConfig checks that doc is YAML a stored configuration may hold.
@@ -111,35 +160,50 @@ func MergeStoredConfig(base, doc string) (merged string, ignored []string, err e
 
 // ReadStoredConfig returns the configuration document kept in the store file
 // at path, or "" when there is none yet. It creates the store if it is new.
-func ReadStoredConfig(ctx context.Context, path string) (string, error) {
+func ReadStoredConfig(ctx context.Context, path, sealKey string) (string, error) {
 	st, done, err := openStoreSettings(ctx, path)
 	if err != nil {
 		return "", err
 	}
 	defer done()
-	var record storedConfigRecord
-	row, err := st.get(ctx, storedConfigKind, storedConfigID)
-	if err != nil || row == nil {
-		return "", err
-	}
-	if err := json.Unmarshal(row.data, &record); err != nil {
-		return "", err
-	}
-	return record.Document, nil
+	return readStoredConfig(ctx, st, sealKey)
 }
 
 // WriteStoredConfig replaces the configuration document in the store file at
 // path. The server reads it the next time it starts.
-func WriteStoredConfig(ctx context.Context, path, doc string) error {
-	if err := ValidateStoredConfig(doc); err != nil {
-		return err
-	}
+func WriteStoredConfig(ctx context.Context, path, sealKey, doc string) error {
 	st, done, err := openStoreSettings(ctx, path)
 	if err != nil {
 		return err
 	}
 	defer done()
-	return st.upsert(ctx, storedConfigKind, storedConfigID, &storedConfigRecord{Document: doc}, time.Time{})
+	return writeStoredConfig(ctx, st, sealKey, doc)
+}
+
+func readStoredConfig(ctx context.Context, st *sqlAuthStore, sealKey string) (string, error) {
+	row, err := st.get(ctx, storedConfigKind, storedConfigID)
+	if err != nil || row == nil {
+		return "", err
+	}
+	var record storedConfigRecord
+	if err := json.Unmarshal(row.data, &record); err != nil {
+		return "", err
+	}
+	if record.Sealed == "" {
+		return "", nil
+	}
+	return openStoredConfig(sealKey, record.Sealed)
+}
+
+func writeStoredConfig(ctx context.Context, st *sqlAuthStore, sealKey, doc string) error {
+	if err := ValidateStoredConfig(doc); err != nil {
+		return err
+	}
+	sealed, err := sealStoredConfig(sealKey, doc)
+	if err != nil {
+		return err
+	}
+	return st.upsert(ctx, storedConfigKind, storedConfigID, &storedConfigRecord{Sealed: sealed}, time.Time{})
 }
 
 // openStoreSettings opens the store file directly, for the short reads and

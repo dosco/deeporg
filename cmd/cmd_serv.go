@@ -168,6 +168,11 @@ func cmdServ(cmd *cobra.Command, args []string) {
 	if signIn := demoSignInOption(demo, cpath); signIn != nil {
 		opt = append(opt, signIn)
 	}
+	if start != nil {
+		// A setup step saves to the store; the server then comes back up
+		// reading it.
+		opt = append(opt, serv.OptionSetConfigApplier(restartInPlace))
+	}
 	// if deployActive {
 	// 	opt = append(opt, serv.OptionDeployActive())
 	// }

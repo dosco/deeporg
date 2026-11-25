@@ -8,12 +8,23 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/dosco/graphjin/serv/v3"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
+
+// The CLI logs through a package-level logger that main sets up. Give the
+// tests one before any of them starts: assigning it inside a test races with
+// goroutines an earlier test left running.
+func init() {
+	if log == nil {
+		log = zap.NewNop().Sugar()
+	}
+}
 
 // inEmptyDir runs the test in a new empty directory with no GO_ENV and its
 // own home, so nothing it does can touch a real install.
@@ -38,7 +49,6 @@ func inEmptyDir(t *testing.T) (work, home string) {
 
 // Which flow `serve` takes must never change under an existing install.
 func TestStartConfigIsOnlyUsedByNewInstalls(t *testing.T) {
-	log = zap.NewNop().Sugar()
 	_, home := inEmptyDir(t)
 
 	// Nothing here at all: the new flow, with the start config in the home.
@@ -82,7 +92,6 @@ func TestStartConfigIsOnlyUsedByNewInstalls(t *testing.T) {
 }
 
 func TestStartConfigIsCreatedOnceAndThenReadBack(t *testing.T) {
-	log = zap.NewNop().Sugar()
 	_, home := inEmptyDir(t)
 	file := filepath.Join(home, startConfigName)
 
@@ -126,7 +135,6 @@ func TestStartConfigIsCreatedOnceAndThenReadBack(t *testing.T) {
 }
 
 func TestStartConfigProblemsSayWhatToDo(t *testing.T) {
-	log = zap.NewNop().Sugar()
 	_, home := inEmptyDir(t)
 	if err := os.MkdirAll(home, 0o700); err != nil {
 		t.Fatal(err)
@@ -158,7 +166,6 @@ func TestStartConfigInstallBootsFromTheStore(t *testing.T) {
 	if testing.Short() {
 		t.Skip("embedded service integration")
 	}
-	log = zap.NewNop().Sugar()
 	work, home := inEmptyDir(t)
 	const setupToken = "start-config-setup-token"
 	t.Setenv("DEEPORG_SETUP_TOKEN", setupToken)
@@ -221,7 +228,7 @@ func TestStartConfigInstallBootsFromTheStore(t *testing.T) {
 	appPath := filepath.Join(home, "app.sqlite3")
 	seedFirstBootDatabase(t, appPath)
 	doc := fmt.Sprintf("sources:\n  - name: shop\n    kind: database\n    default: true\n    type: sqlite\n    path: %q\n", appPath)
-	if err := serv.WriteStoredConfig(context.Background(), sc.Store, doc); err != nil {
+	if err := serv.WriteStoredConfig(context.Background(), sc.Store, sc.sealKey(), doc); err != nil {
 		t.Fatalf("store the configuration: %v", err)
 	}
 
@@ -267,4 +274,130 @@ func accountsGet(t *testing.T, url, cookie string) string {
 		}
 	}
 	return buf.String()
+}
+
+// The database step of setup: the admin gives a connection, the server tests
+// it, saves it encrypted in the store, and comes back up connected.
+func TestSetupConnectsADatabaseAndSurvivesARestart(t *testing.T) {
+	if testing.Short() {
+		t.Skip("embedded service integration")
+	}
+	_, home := inEmptyDir(t)
+	const setupToken = "database-step-setup-token"
+	t.Setenv("DEEPORG_SETUP_TOKEN", setupToken)
+
+	file, _ := usesStartConfig(nil)
+	sc, err := loadStartConfig(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var applied atomic.Int32
+	boot := func() (string, func()) {
+		t.Helper()
+		conf, err := loadStartFlowConfig(sc)
+		if err != nil {
+			t.Fatalf("load from the store: %v", err)
+		}
+		hs, err := serv.NewGraphJinService(conf,
+			serv.OptionSetLogOutput(zapcore.AddSync(&lockedBuffer{})),
+			// The CLI restarts the process here. The test counts the request
+			// and starts the service again itself.
+			serv.OptionSetConfigApplier(func() error { applied.Add(1); return nil }),
+		)
+		if err != nil {
+			t.Fatalf("start: %v", err)
+		}
+		mux := http.NewServeMux()
+		if err := hs.Attach(mux); err != nil {
+			t.Fatal(err)
+		}
+		server := httptest.NewServer(mux)
+		return server.URL, func() { server.Close(); hs.Close() } //nolint:errcheck
+	}
+
+	base, stop := boot()
+	const email, password = "ada@example.com", "a long enough password"
+	const dbURL = "/api/v1/setup/database"
+
+	// Before there is an admin, nobody connects a database.
+	if status, body, _ := accountsPost(t, base+dbURL, "", map[string]any{"url": "sqlite:/tmp/x.db"}); status != http.StatusUnauthorized {
+		t.Fatalf("an anonymous caller reached the database step: %d %s", status, body)
+	}
+	_, _, cookie := accountsPost(t, base+"/api/v1/setup/admin", "", map[string]any{"token": setupToken, "email": email, "password": password})
+	if cookie == "" {
+		t.Fatal("no admin session")
+	}
+	if state := firstBootGet(t, base+"/api/v1/setup"); !strings.Contains(state, `"needs_admin":false`) || !strings.Contains(state, `"needs_database":true`) {
+		t.Fatalf("setup state after the admin: %s", state)
+	}
+	if page := accountsGet(t, base+"/api/v1/console/bootstrap", cookie); !strings.Contains(page, `"needs_database":true`) {
+		t.Fatalf("the console was not told a database is still to be connected: %s", clip(page))
+	}
+
+	// A connection that does not work is refused, with advice a newcomer can
+	// act on, and nothing is saved.
+	for _, tc := range []struct {
+		body   map[string]any
+		advice string
+	}{
+		{map[string]any{"url": "not a url"}, "does not look like a connection URL"},
+		{map[string]any{"url": "postgres://u:p@no-such-host.invalid:5432/app"}, "could not find the host"},
+		{map[string]any{"url": "postgres://u:p@127.0.0.1:1/app"}, "nothing is accepting connections"},
+		{map[string]any{"type": "postgres"}, "host and the database name"},
+		{map[string]any{}, "paste a connection URL"},
+	} {
+		status, body, _ := accountsPost(t, base+dbURL, cookie, tc.body)
+		if status != http.StatusBadRequest || !strings.Contains(body, tc.advice) {
+			t.Fatalf("%v answered %d %s, want advice containing %q", tc.body, status, body, tc.advice)
+		}
+	}
+	if applied.Load() != 0 {
+		t.Fatal("a failed connection was applied")
+	}
+
+	// A connection that works is saved.
+	appPath := filepath.Join(home, "app.sqlite3")
+	seedFirstBootDatabase(t, appPath)
+	status, body, _ := accountsPost(t, base+dbURL, cookie, map[string]any{"url": "sqlite:" + appPath})
+	if status != http.StatusOK || !strings.Contains(body, `"type":"sqlite"`) || !strings.Contains(body, `"restarting":true`) {
+		t.Fatalf("connect database: %d %s", status, body)
+	}
+	deadline := time.Now().Add(5 * time.Second)
+	for applied.Load() == 0 && time.Now().Before(deadline) {
+		time.Sleep(50 * time.Millisecond)
+	}
+	if applied.Load() != 1 {
+		t.Fatalf("the saved connection was applied %d times, want once", applied.Load())
+	}
+	stop()
+
+	// It is encrypted in the store: the path does not appear in the file.
+	for _, name := range []string{"store.db", "store.db-wal"} {
+		if raw, err := os.ReadFile(filepath.Join(home, name)); err == nil && strings.Contains(string(raw), "app.sqlite3") {
+			t.Fatalf("%s holds the connection in the clear", name)
+		}
+	}
+
+	// The server comes back up connected, for the same admin.
+	base, stop = boot()
+	defer stop()
+	if state := firstBootGet(t, base+"/api/v1/setup"); !strings.Contains(state, `"needs_database":false`) {
+		t.Fatalf("setup state after connecting: %s", state)
+	}
+	if body := accountsGraphQL(t, base, cookie, `query { orders(order_by: { id: asc }) { id total } }`); !strings.Contains(body, `"total"`) {
+		t.Fatalf("the admin could not read the connected database: %s", clip(body))
+	}
+	// Someone who is signed in but is not an admin cannot change the setup.
+	// (There is no way to make such an account yet, so this uses a token
+	// signed with the session key directly.)
+	conf, err := loadStartFlowConfig(sc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	member := signFirstBootToken(t, conf.Auth.JWT.Secret, "sam", "")
+	res := firstBootRequest(t, base+dbURL, member, "", map[string]any{"url": "sqlite:" + appPath})
+	res.Body.Close() //nolint:errcheck
+	if res.StatusCode != http.StatusForbidden {
+		t.Fatalf("a non-admin reached the database step: %d", res.StatusCode)
+	}
 }

@@ -1,0 +1,92 @@
+import React from "react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import SetupDatabase from "./SetupDatabase";
+
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+  vi.useRealTimers();
+});
+
+// replies answers each request in order; the last reply repeats.
+function stubFetch(replies) {
+  let call = 0;
+  const fetchMock = vi.fn(async () => {
+    const reply = replies[Math.min(call, replies.length - 1)];
+    call += 1;
+    if (reply === "down") {
+      throw new TypeError("Failed to fetch");
+    }
+    return { ok: reply.status >= 200 && reply.status < 300, status: reply.status, text: async () => JSON.stringify(reply.body) };
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  return fetchMock;
+}
+
+describe("setup: connect your data", () => {
+  it("sends the connection URL and waits for the server to come back", async () => {
+    const fetchMock = stubFetch([
+      { status: 200, body: { name: "main", type: "postgres", restarting: true } },
+      "down",
+      { status: 200, body: { needs_admin: false, needs_database: true } },
+      { status: 200, body: { needs_admin: false, needs_database: false } },
+    ]);
+    const onDone = vi.fn();
+    render(<SetupDatabase onDone={onDone} />);
+
+    expect(screen.getByRole("heading", { name: "Connect your data" })).toBeInTheDocument();
+    const connect = screen.getByRole("button", { name: "Connect" });
+    expect(connect).toBeDisabled();
+    fireEvent.change(screen.getByLabelText("Connection URL"), { target: { value: " postgres://u:p@db.example.com:5432/shop " } });
+    fireEvent.click(connect);
+
+    expect(await screen.findByRole("status")).toHaveTextContent("Connected. Starting up with your database");
+    await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1), { timeout: 5000 });
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(url).toBe("/api/v1/setup/database");
+    expect(JSON.parse(options.body)).toEqual({ url: "postgres://u:p@db.example.com:5432/shop" });
+  });
+
+  it("shows the server's advice when the connection fails, and nothing more", async () => {
+    stubFetch([{ status: 400, body: { error: "We could not find the host db.example.com. Check the host name for typos.", detail: "lookup db.example.com: no such host" } }]);
+    const onDone = vi.fn();
+    render(<SetupDatabase onDone={onDone} />);
+    fireEvent.change(screen.getByLabelText("Connection URL"), { target: { value: "postgres://u:p@db.example.com/shop" } });
+    fireEvent.click(screen.getByRole("button", { name: "Connect" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("We could not find the host db.example.com");
+    expect(onDone).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Connect" })).toBeEnabled();
+  });
+
+  it("takes the details one by one for someone without a URL", async () => {
+    const fetchMock = stubFetch([
+      { status: 200, body: { restarting: true } },
+      { status: 200, body: { needs_database: false } },
+    ]);
+    const onDone = vi.fn();
+    render(<SetupDatabase onDone={onDone} />);
+    fireEvent.click(screen.getByRole("button", { name: "Enter the details separately" }));
+    expect(screen.queryByLabelText("Connection URL")).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Host"), { target: { value: "db.internal" } });
+    expect(screen.getByRole("button", { name: "Connect" })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText("Database name"), { target: { value: "shop" } });
+    fireEvent.change(screen.getByLabelText("User"), { target: { value: "reader" } });
+    fireEvent.change(screen.getByLabelText("Database password"), { target: { value: "s3cret" } });
+    fireEvent.click(screen.getByRole("button", { name: "Connect" }));
+
+    await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1), { timeout: 5000 });
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ type: "postgres", host: "db.internal", port: 0, database: "shop", user: "reader", password: "s3cret" });
+  });
+
+  it("can be left for later", () => {
+    stubFetch([{ status: 200, body: {} }]);
+    const onSkip = vi.fn();
+    render(<SetupDatabase onSkip={onSkip} />);
+    fireEvent.click(screen.getByRole("button", { name: "Do this later" }));
+    expect(onSkip).toHaveBeenCalledTimes(1);
+  });
+});

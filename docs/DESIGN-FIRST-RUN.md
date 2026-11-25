@@ -443,7 +443,24 @@ What this slice does not do yet:
 - **The discovery cache is still a folder of files**, beside the store.
 - **The rest of the API is still not held back until an admin exists.**
 
-*Remaining slices:* the database and model steps with sample data, with admin config changes and secrets kept in the store; hiding the store's tables from data sources.
+*Slice 4, the database step of setup — done on 2026-11-25.*
+
+- After the admin step the console shows "Connect your data": a connection URL, or the details one by one (`serv/web/src/pages/SetupDatabase.jsx`). It can be left for later.
+- `POST /api/v1/setup/database` needs an admin session. The server tests the connection before saving anything (`serv/setup_database.go`). A failure comes back as what went wrong and what to do, for a wrong host, a closed port, a refused password, a missing database, a database that needs encryption and a timeout.
+- A connection that works is added to the stored configuration and the server restarts itself in place, reading it. The address, the store and the session all stay the same, and the console waits for it to come back.
+- The stored configuration is encrypted at rest with a key derived from the secret key, because it now carries database passwords. Read with a different secret key, it is refused with a message that says so.
+- Fixed along the way: the store's keyed table, which holds the accounts, was readable through GraphQL on a server with local accounts. It is now blocked for every role wherever it is in use.
+
+What this slice does not do yet:
+
+- **The model step.** The agent page still tells the newcomer to set an environment variable.
+- **Sample data** as an alternative to connecting a database.
+- **Counting the tables on the setup screen.** The count shows on the Runtime page.
+- **Connecting a second database, or changing one, from the console.** The step adds or replaces by name, but only setup calls it.
+- **Changes take effect by restarting the process**, which drops requests in flight. That is fine during setup; changes made later should use the live path the config pipeline already has.
+- **With no database connected, asking for a table that does not exist names the store's own tables in the error.** No data is exposed.
+
+*Remaining slices:* the model step; sample data; hiding the store's tables from data sources.
 
 **Phase 3: Nothing on disk, and setup on a server.**
 The discovery cache in the store. The one-time setup link. `deeporg setup`

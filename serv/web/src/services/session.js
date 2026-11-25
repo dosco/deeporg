@@ -25,9 +25,40 @@ export function createFirstAdmin({ token, email, password }) {
   });
 }
 
+// connectDatabase gives the server a database to test and, if it works, save.
+// The server restarts with it, so follow this with waitForDatabase.
+export function connectDatabase(connection) {
+  return fetchJSON("/api/v1/setup/database", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(connection),
+  });
+}
+
+// waitForDatabase resolves once the server is back up with a database
+// connected. While it restarts, requests fail; those are expected and retried.
+export async function waitForDatabase({ timeoutMs = 45000, intervalMs = 700 } = {}) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    try {
+      const state = await fetchJSON("/api/v1/setup");
+      if (!state.needs_database) {
+        return;
+      }
+    } catch {
+      // The server is restarting.
+    }
+  }
+  throw new Error("The connection was saved, but the server has not come back yet. Reload this page in a moment.");
+}
+
 // setupState reads which first-run step, if any, the server is waiting on.
 export function setupState(bootstrap) {
-  return { needsAdmin: Boolean(bootstrap?.setup?.needs_admin) };
+  return {
+    needsAdmin: Boolean(bootstrap?.setup?.needs_admin),
+    needsDatabase: Boolean(bootstrap?.setup?.needs_database),
+  };
 }
 
 export function signOut() {
