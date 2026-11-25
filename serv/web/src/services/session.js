@@ -11,6 +11,25 @@ export function signInAsDemo() {
   return startSession({ method: "demo" });
 }
 
+export function signInWithPassword(email, password) {
+  return startSession({ method: "password", email, password });
+}
+
+// createFirstAdmin makes the first account on a new server and signs it in.
+// The token comes from the setup link the server printed when it started.
+export function createFirstAdmin({ token, email, password }) {
+  return fetchJSON("/api/v1/setup/admin", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, email, password }),
+  });
+}
+
+// setupState reads which first-run step, if any, the server is waiting on.
+export function setupState(bootstrap) {
+  return { needsAdmin: Boolean(bootstrap?.setup?.needs_admin) };
+}
+
 export function signOut() {
   return fetchJSON("/api/v1/auth/session", { method: "DELETE" });
 }

@@ -6,6 +6,7 @@ import Layout from "./components/Layout/Layout";
 import { ThemeProvider } from "./components/theme-provider";
 import ErrorBoundary from "./ErrorBoundary";
 import { LoadingState } from "./components/ui";
+import { useConsole } from "./components/Layout/console-context";
 
 import Dashboard from "./pages/Dashboard";
 import CatalogExplorer from "./pages/CatalogExplorer";
@@ -41,6 +42,7 @@ const App = () => {
               <Suspense fallback={<LoadingState />}>
                 <Routes>
                   <Route path="/" element={<Navigate to="/user/agent" replace />} />
+                  <Route path="/setup" element={<SetupLanding />} />
                   <Route path="/user/agent" element={<AgentChat />} />
                   <Route path="/user/inbox" element={<Inbox />} />
                   <Route path="/user/tasks" element={<MissionControl section="tasks" />} />
@@ -80,6 +82,17 @@ const App = () => {
     </ErrorBoundary>
   );
 };
+
+// SetupLanding holds the setup link's address until the console knows whether
+// setup is still needed. While it is, Layout shows the setup screen in place
+// of every route; this only runs once it is not, and then the link is spent.
+function SetupLanding() {
+  const { isLoading } = useConsole();
+  if (isLoading) {
+    return <LoadingState />;
+  }
+  return <Navigate to="/user/agent" replace />;
+}
 
 function NavigateWithSearch({ to }) {
   const search = window.location.search || "";

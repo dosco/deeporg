@@ -415,9 +415,15 @@ Phase 2 is being built in slices.
 - A session names the account and carries no role. The role and whether the account is active are read from the store on each request, cached for fifteen seconds (`withLocalAccounts`).
 - `cmd/agentic_accounts_test.go` runs the whole path against the generated template.
 
-Not in this slice: the setup page (the link is logged but the console has no page for it yet), invites, personal access tokens, and holding back the rest of the API until an admin exists. The last one waits for the store-first boot, because the demos and tests sign in with hand-made tokens and have no admin account.
+Not in this slice: invites, personal access tokens, and holding back the rest of the API until an admin exists. The last one waits for the store-first boot, because the demos and tests sign in with hand-made tokens and have no admin account.
 
-*Remaining slices:* the setup page; the start config and store-first boot with config and secrets in the store; the database and model steps with sample data; hiding the store's tables from data sources.
+*Slice 2, the setup and sign-in screens — done on 2026-11-25.*
+
+- While no admin exists the console shows one screen, whatever address it was opened at: "Create your admin account", with an email and a password (`serv/web/src/pages/Setup.jsx`). The setup link carries the token, so the newcomer is not asked for it; opened without the link, the screen asks for the token and says where to find it.
+- After the account is created the console opens on the agent, signed in, with the token gone from the address.
+- The sign-in sheet leads with email and password. The access-token form is still there behind "Use an access token instead".
+
+*Remaining slices:* the start config and store-first boot with config and secrets in the store; the database and model steps with sample data; hiding the store's tables from data sources.
 
 **Phase 3: Nothing on disk, and setup on a server.**
 The discovery cache in the store. The one-time setup link. `deeporg setup`

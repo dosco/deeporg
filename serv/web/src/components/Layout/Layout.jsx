@@ -1,6 +1,6 @@
 import React from "react";
-import { useQuery } from "@tanstack/react-query";
-import { useLocation } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import Header from "./Header";
 import { ConsoleProvider } from "./console-context";
@@ -9,6 +9,8 @@ import { cn } from "@/lib/utils";
 import { fetchConsoleBootstrap } from "@/services/console";
 import { useNotificationStream } from "@/services/notifications";
 import { adoptSuggestedIdentity, operatorIdentityKey, useOperatorIdentity } from "@/services/identity";
+import { setupState } from "@/services/session";
+import Setup from "@/pages/Setup";
 
 const layoutClasses = {
   canvas: "min-h-0 overflow-hidden",
@@ -18,6 +20,8 @@ const layoutClasses = {
 
 const Layout = ({ children }) => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const identity = useOperatorIdentity();
   const identityKey = operatorIdentityKey(identity);
   const bootstrapQuery = useQuery({
@@ -39,6 +43,27 @@ const Layout = ({ children }) => {
     isLoading: bootstrapQuery.isLoading,
     error: bootstrapQuery.error,
   }), [bootstrapQuery.data, bootstrapQuery.error, bootstrapQuery.isLoading]);
+
+  // A new server has no admin yet. Nothing else in the console can work until
+  // one exists, so setup takes the whole screen whatever the address was.
+  if (setupState(bootstrapQuery.data).needsAdmin) {
+    return (
+      <div className="relative min-h-dvh bg-background text-foreground">
+        <div className="horizon" aria-hidden="true" />
+        <div className="starfield" aria-hidden="true" />
+        <Setup
+          search={location.search}
+          onDone={() => {
+            // The account exists and this browser holds its session. Drop the
+            // one-time token from the address and start again as that admin.
+            queryClient.clear();
+            navigate("/user/agent", { replace: true });
+            void bootstrapQuery.refetch();
+          }}
+        />
+      </div>
+    );
+  }
 
   return (
     <ConsoleProvider value={consoleValue}>
