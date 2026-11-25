@@ -57,6 +57,13 @@ type consoleBootstrapResponse struct {
 	Scope         consoleBootstrapScope       `json:"scope"`
 	Workspaces    []consoleBootstrapWorkspace `json:"workspaces"`
 	Features      []string                    `json:"features"`
+	// Setup is present while a first-run step is still to be done, so the
+	// console can open on it.
+	Setup *consoleBootstrapSetup `json:"setup,omitempty"`
+}
+
+type consoleBootstrapSetup struct {
+	NeedsAdmin bool `json:"needs_admin"`
 }
 
 // ConsoleBootstrap exposes only the caller-safe information needed to choose
@@ -126,6 +133,11 @@ func (s1 *HttpService) apiV1ConsoleBootstrap(ns *string) http.Handler {
 			scope.Namespace = *ns
 		}
 
+		var setup *consoleBootstrapSetup
+		if s.setupNeedsAdmin(r.Context()) {
+			setup = &consoleBootstrapSetup{NeedsAdmin: true}
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Cache-Control", "private, no-store")
 		_ = json.NewEncoder(w).Encode(consoleBootstrapResponse{
@@ -134,6 +146,7 @@ func (s1 *HttpService) apiV1ConsoleBootstrap(ns *string) http.Handler {
 			Scope:         scope,
 			Workspaces:    workspaces,
 			Features:      features,
+			Setup:         setup,
 		})
 	})
 }

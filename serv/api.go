@@ -151,6 +151,7 @@ type graphjinService struct {
 	onboardingMu         sync.RWMutex
 	onboardingCandidates map[string]cachedDiscoveredCandidate
 	authLogin            *authLoginService // built-in OIDC login (optional)
+	accounts             *accountService   // local accounts (agentic, optional)
 }
 
 // anyDB returns any single connection from the dbs map (for callers
@@ -826,6 +827,13 @@ func newGraphJinService(conf *Config, dbs map[string]*sql.DB, options ...Option)
 		s.log.Infof("auth_login: enabled (oidc issuer: %s)", s.conf.AuthLogin.OIDC.IssuerURL)
 	}
 
+	// Local accounts: email and password sign-in for an agentic server.
+	accounts, err := s.initAccounts(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("accounts: %w", err)
+	}
+	s.accounts = accounts
+
 	// if s.deployActive {
 	// 	err = s.hotStart()
 	// } else {
@@ -1079,6 +1087,7 @@ func (s *HttpService) attach(mux Mux, ns *string) error {
 	// }
 
 	s1.zlog.Info("GraphJin attached to router", fields...)
+	logSetupLink(s1)
 	return nil
 }
 

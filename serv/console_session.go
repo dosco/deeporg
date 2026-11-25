@@ -103,6 +103,9 @@ func (s *graphjinService) consoleSignInMethods() *consoleSignIn {
 	if s.demoSignInAvailable() {
 		out.Methods = append(out.Methods, "demo")
 	}
+	if s.accounts != nil {
+		out.Methods = append(out.Methods, "password")
+	}
 	out.Methods = append(out.Methods, "token")
 	return out
 }
@@ -150,11 +153,17 @@ func (s *graphjinService) startConsoleSession(w http.ResponseWriter, r *http.Req
 		return
 	}
 	var req struct {
-		Token  string `json:"token"`
-		Method string `json:"method"`
+		Token    string `json:"token"`
+		Method   string `json:"method"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
 	}
 	if err := json.NewDecoder(io.LimitReader(r.Body, 16<<10)).Decode(&req); err != nil {
 		writeJSONStatus(w, http.StatusBadRequest, map[string]any{"error": "invalid JSON body"})
+		return
+	}
+	if req.Method == "password" {
+		s.passwordSignIn(w, r, req.Email, req.Password)
 		return
 	}
 

@@ -48,84 +48,31 @@ func TestGeneratedAgenticConfigWorksOnFirstBoot(t *testing.T) {
 		{name: "with config reads switched off", extra: "\nsystem:\n  capabilities:\n    config.read: false\n", configReadsOff: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			dir := t.TempDir()
-			appPath := filepath.Join(dir, "app.sqlite3")
-			seedFirstBootDatabase(t, appPath)
-
-			rendered, err := newTempl(map[string]any{
-				"AppName":     "First Boot",
-				"AppNameSlug": "first_boot",
-				"DBType":      "postgres",
-				"DBHost":      "db",
-				"DBPort":      "5432",
-				"DBUser":      "postgres",
-				"DBPass":      "postgres",
-				"DBName":      "first_boot",
-			}).get("agentic.yml")
-			if err != nil {
-				t.Fatalf("render agentic.yml: %v", err)
-			}
-			config := string(rendered)
-			if strings.Contains(config, "\nproduction:") {
-				t.Fatal("the generated agentic config must not set production")
-			}
-
-			// Keep everything the template says about mode, sign-in and MCP,
-			// and point its one source at a local SQLite file so the test
-			// needs no database server.
-			head, _, found := strings.Cut(config, "\nsources:\n")
-			if !found {
-				t.Fatal("the generated agentic config has no sources block")
-			}
-			config = head + fmt.Sprintf("\nsources:\n  - name: default\n    kind: database\n    default: true\n    type: sqlite\n    path: %q\n", appPath) + tc.extra
-
-			conf, err := serv.NewConfig(config, "yaml")
-			if err != nil {
-				t.Fatalf("load generated config: %v", err)
-			}
-			conf.Serv.ConfigPath = dir
-			secret := conf.Auth.JWT.Secret
-			if len(secret) < 32 {
-				t.Fatalf("the generated config needs its own signing secret, got %d characters", len(secret))
-			}
-
-			logs := &lockedBuffer{}
-			hs, err := serv.NewGraphJinService(conf, serv.OptionSetLogOutput(zapcore.AddSync(logs)))
-			if err != nil {
-				t.Fatalf("start service: %v", err)
-			}
-			defer hs.Close() //nolint:errcheck
-
-			mux := http.NewServeMux()
-			if err := hs.Attach(mux); err != nil {
-				t.Fatalf("attach routes: %v", err)
-			}
-			server := httptest.NewServer(mux)
-			defer server.Close()
+			base, secret, logs := bootGeneratedAgentic(t, tc.extra)
 
 			admin := signFirstBootToken(t, secret, "ada", "admin")
 			member := signFirstBootToken(t, secret, "sam", "")
 
 			// Sign-in is required: no token, no access.
-			anonCatalog := firstBootMCPCall(t, server.URL, "", "query_catalog", map[string]any{"search": "customers and their orders"})
+			anonCatalog := firstBootMCPCall(t, base, "", "query_catalog", map[string]any{"search": "customers and their orders"})
 			if strings.Contains(anonCatalog, `\"cards\"`) || strings.Contains(anonCatalog, `"cards"`) {
 				t.Fatalf("the catalog was readable without signing in: %s", clip(anonCatalog))
 			}
-			anonGraph := firstBootGraphQL(t, server.URL, "", `query { gj_catalog(limit: 1) { id } }`)
+			anonGraph := firstBootGraphQL(t, base, "", `query { gj_catalog(limit: 1) { id } }`)
 			if !strings.Contains(anonGraph, "errors") {
 				t.Fatalf("the catalog was readable over GraphQL without signing in: %s", clip(anonGraph))
 			}
-			anonData := firstBootGraphQL(t, server.URL, "", `query { orders { id total } }`)
+			anonData := firstBootGraphQL(t, base, "", `query { orders { id total } }`)
 			if !strings.Contains(anonData, "errors") {
 				t.Fatalf("a table was readable without signing in: %s", clip(anonData))
 			}
 			// The console still has to learn how to sign in before anyone has.
-			if page := firstBootGet(t, server.URL+"/api/v1/console/bootstrap"); !strings.HasPrefix(page, "200 ") || !strings.Contains(page, `"sign_in"`) {
+			if page := firstBootGet(t, base+"/api/v1/console/bootstrap"); !strings.HasPrefix(page, "200 ") || !strings.Contains(page, `"sign_in"`) {
 				t.Fatalf("the console could not load its sign-in options: %s", clip(page))
 			}
 
 			// The catalog search is the first thing an MCP client calls.
-			catalog := firstBootMCPCall(t, server.URL, admin, "query_catalog", map[string]any{"search": "customers and their orders"})
+			catalog := firstBootMCPCall(t, base, admin, "query_catalog", map[string]any{"search": "customers and their orders"})
 			if strings.Contains(catalog, "invalid query or fragment name") {
 				t.Fatalf("catalog search was rejected by the saved-queries-only rule: %s", clip(catalog))
 			}
@@ -135,7 +82,7 @@ func TestGeneratedAgenticConfigWorksOnFirstBoot(t *testing.T) {
 
 			// A signed-in user who is not an admin can read a table that has
 			// no account_id column. This is a general database agent.
-			body := firstBootGraphQL(t, server.URL, member, `query { orders(order_by: { id: asc }) { id total } }`)
+			body := firstBootGraphQL(t, base, member, `query { orders(order_by: { id: asc }) { id total } }`)
 			if !strings.Contains(body, `"total"`) || strings.Contains(body, "blocked") {
 				t.Fatalf("a signed-in user could not read the orders table: %s", clip(body))
 			}
@@ -143,7 +90,7 @@ func TestGeneratedAgenticConfigWorksOnFirstBoot(t *testing.T) {
 			// Configuration is the admin's. It names the databases, the roles
 			// and the access rules, so nobody else reads it.
 			const readConfig = `query { gj_config(id: "current") { id sources } }`
-			adminBody := firstBootGraphQL(t, server.URL, admin, readConfig)
+			adminBody := firstBootGraphQL(t, base, admin, readConfig)
 			adminRead := strings.Contains(adminBody, `"sources"`) && !strings.Contains(adminBody, "errors")
 			if tc.configReadsOff && adminRead {
 				t.Fatalf("the configuration was readable with config reads switched off: %s", clip(adminBody))
@@ -152,13 +99,13 @@ func TestGeneratedAgenticConfigWorksOnFirstBoot(t *testing.T) {
 				t.Fatalf("the admin could not read the configuration: %s", clip(adminBody))
 			}
 			for who, token := range map[string]string{"a signed-in user who is not an admin": member, "an anonymous caller": ""} {
-				if body := firstBootGraphQL(t, server.URL, token, readConfig); !strings.Contains(body, "errors") || strings.Contains(body, `"sources"`) {
+				if body := firstBootGraphQL(t, base, token, readConfig); !strings.Contains(body, "errors") || strings.Contains(body, `"sources"`) {
 					t.Fatalf("%s could read the configuration: %s", who, clip(body))
 				}
 			}
 
 			// Writes stay off until the admin turns them on.
-			body = firstBootGraphQL(t, server.URL, member, `mutation { orders(insert: { id: 99, customer_id: 1, total: 5 }) { id } }`)
+			body = firstBootGraphQL(t, base, member, `mutation { orders(insert: { id: 99, customer_id: 1, total: 5 }) { id } }`)
 			if !strings.Contains(body, "errors") {
 				t.Fatalf("a signed-in user could write to the orders table by default: %s", clip(body))
 			}
@@ -171,6 +118,68 @@ func TestGeneratedAgenticConfigWorksOnFirstBoot(t *testing.T) {
 			}
 		})
 	}
+}
+
+// bootGeneratedAgentic renders the agentic template the CLI generates, points
+// its one source at a seeded SQLite file, and serves it. extra is appended to
+// the config.
+func bootGeneratedAgentic(t *testing.T, extra string) (base, secret string, logs *lockedBuffer) {
+	t.Helper()
+	dir := t.TempDir()
+	appPath := filepath.Join(dir, "app.sqlite3")
+	seedFirstBootDatabase(t, appPath)
+
+	rendered, err := newTempl(map[string]any{
+		"AppName":     "First Boot",
+		"AppNameSlug": "first_boot",
+		"DBType":      "postgres",
+		"DBHost":      "db",
+		"DBPort":      "5432",
+		"DBUser":      "postgres",
+		"DBPass":      "postgres",
+		"DBName":      "first_boot",
+	}).get("agentic.yml")
+	if err != nil {
+		t.Fatalf("render agentic.yml: %v", err)
+	}
+	config := string(rendered)
+	if strings.Contains(config, "\nproduction:") {
+		t.Fatal("the generated agentic config must not set production")
+	}
+
+	// Keep everything the template says about mode, sign-in and MCP,
+	// and point its one source at a local SQLite file so the test
+	// needs no database server.
+	head, _, found := strings.Cut(config, "\nsources:\n")
+	if !found {
+		t.Fatal("the generated agentic config has no sources block")
+	}
+	config = head + fmt.Sprintf("\nsources:\n  - name: default\n    kind: database\n    default: true\n    type: sqlite\n    path: %q\n", appPath) + extra
+
+	conf, err := serv.NewConfig(config, "yaml")
+	if err != nil {
+		t.Fatalf("load generated config: %v", err)
+	}
+	conf.Serv.ConfigPath = dir
+	secret = conf.Auth.JWT.Secret
+	if len(secret) < 32 {
+		t.Fatalf("the generated config needs its own signing secret, got %d characters", len(secret))
+	}
+
+	logs = &lockedBuffer{}
+	hs, err := serv.NewGraphJinService(conf, serv.OptionSetLogOutput(zapcore.AddSync(logs)))
+	if err != nil {
+		t.Fatalf("start service: %v", err)
+	}
+	t.Cleanup(func() { hs.Close() }) //nolint:errcheck
+
+	mux := http.NewServeMux()
+	if err := hs.Attach(mux); err != nil {
+		t.Fatalf("attach routes: %v", err)
+	}
+	server := httptest.NewServer(mux)
+	t.Cleanup(server.Close)
+	return server.URL, secret, logs
 }
 
 // A connection string that cannot be read must be an error, not a crash. The

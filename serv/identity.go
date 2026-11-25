@@ -89,6 +89,11 @@ func (s *graphjinService) applyIdentityContext(ctx context.Context) context.Cont
 	}
 
 	roles := extractClaimRoles(claims, id.RoleClaims)
+	if isLocalAccountContext(ctx) {
+		// The role was read from the account store. A role claim in the
+		// token never overrides it.
+		roles = nil
+	}
 	if len(roles) != 0 {
 		ctx = context.WithValue(ctx, core.IdentityRolesKey, roles)
 		if !s.identityRolesContainConfiguredRole(roles) {

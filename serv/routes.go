@@ -65,10 +65,17 @@ func routesHandler(s1 *HttpService, mux Mux, ns *string) (http.Handler, error) {
 		if s.conf.Auth.Development {
 			s.log.Warn("api: auth.development=true this allows clients to bypass authentication")
 		}
+		// A session signed for a local account is checked against the account
+		// store on every request, whichever route it arrives on.
+		ah = s.withLocalAccounts(ah)
 		if consoleSessionsEnabled(s.conf) {
 			// The console holds its JWT in a session cookie; sign-in verifies
 			// a token with the plain handler before it becomes a session.
 			mux.Handle(routeAuthSession, s1.AuthSession(ah))
+			if s.accounts != nil {
+				mux.Handle(routeSetup, s1.Setup(ah))
+				mux.Handle(routeSetupAdmin, s1.Setup(ah))
+			}
 			ah = withConsoleSession(ah)
 		}
 
@@ -163,6 +170,7 @@ func routesHandler(s1 *HttpService, mux Mux, ns *string) (http.Handler, error) {
 		if err != nil {
 			s.log.Fatalf("api: error initializing auth handler: %s", err)
 		}
+		ah = s.withLocalAccounts(ah)
 
 		if s.conf.Auth.Development {
 			s.log.Warn("api: auth.development=true this allows clients to bypass authentication")
@@ -182,6 +190,7 @@ func routesHandler(s1 *HttpService, mux Mux, ns *string) (http.Handler, error) {
 		if err != nil {
 			s.log.Fatalf("api: error initializing discovery auth handler: %s", err)
 		}
+		discAuth = s.withLocalAccounts(discAuth)
 		mux.Handle(routeDiscovery, apiV1Handler(s1, ns, discoveryHandler(s1), discAuth))
 		mux.Handle(routeDiscovery+"/", apiV1Handler(s1, ns, discoveryWildcardHandler(s1), discAuth))
 	}
@@ -195,6 +204,7 @@ func routesHandler(s1 *HttpService, mux Mux, ns *string) (http.Handler, error) {
 		if err != nil {
 			s.log.Fatalf("api: error initializing MCP auth handler: %s", err)
 		}
+		mcpAuth = s.withLocalAccounts(mcpAuth)
 		// SSE transport for web-based integrations (with auth)
 		mux.Handle(routeMCP, s1.MCPHandlerWithAuth(mcpAuth))
 		// HTTP transport for stateless API integrations (with auth)

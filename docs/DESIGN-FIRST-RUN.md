@@ -405,6 +405,20 @@ and secrets kept in the store. Store tables hidden from data sources. Running
 `deeporg` with no arguments starts the server. After this phase the
 five-minute path is real.
 
+Phase 2 is being built in slices.
+
+*Slice 1, accounts and sign-in — done on 2026-11-25.*
+
+- Accounts are kept in the store's existing sign-in table as rows of kind `account` (`serv/accounts.go`). That table already exists for SQLite, Postgres and MySQL and is never reachable through GraphQL, so no separate `users` table was needed. Section 3.2 lists one; this is the simpler form of the same thing.
+- The first admin is created with `POST /api/v1/setup/admin`, which needs the one-time setup token. The server logs the setup link when it starts with no admin; `DEEPORG_SETUP_TOKEN` supplies the token where logs are not at hand.
+- People sign in with `POST /api/v1/auth/session` and `{"method": "password"}`. Failed attempts are limited per address and per email.
+- A session names the account and carries no role. The role and whether the account is active are read from the store on each request, cached for fifteen seconds (`withLocalAccounts`).
+- `cmd/agentic_accounts_test.go` runs the whole path against the generated template.
+
+Not in this slice: the setup page (the link is logged but the console has no page for it yet), invites, personal access tokens, and holding back the rest of the API until an admin exists. The last one waits for the store-first boot, because the demos and tests sign in with hand-made tokens and have no admin account.
+
+*Remaining slices:* the setup page; the start config and store-first boot with config and secrets in the store; the database and model steps with sample data; hiding the store's tables from data sources.
+
 **Phase 3: Nothing on disk, and setup on a server.**
 The discovery cache in the store. The one-time setup link. `deeporg setup`
 prompts. The container image starts the server. Demos and the evaluation
