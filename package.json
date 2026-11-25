@@ -1,6 +1,6 @@
 {
   "name": "deeporg",
-  "version": "3.21.31",
+  "version": "3.21.32",
   "description": "DeepORG: one AI agent for your whole organization, across your databases, APIs, files and code. Formerly GraphJin.",
   "bin": {
     "deeporg": "bin/deeporg.js",
