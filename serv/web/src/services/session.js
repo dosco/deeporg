@@ -81,6 +81,7 @@ export function setupState(bootstrap) {
     needsAdmin: Boolean(bootstrap?.setup?.needs_admin),
     needsDatabase: Boolean(bootstrap?.setup?.needs_database),
     needsModel: Boolean(bootstrap?.setup?.needs_model),
+    sampleData: Boolean(bootstrap?.setup?.sample_data),
   };
 }
 

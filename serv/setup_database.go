@@ -41,6 +41,15 @@ func OptionSetConfigApplier(apply func() error) Option {
 	}
 }
 
+// OptionSetSampleData supplies how the sample database is built. It returns
+// the SQLite file to connect. Without it the setup page offers no sample data.
+func OptionSetSampleData(build func(context.Context) (string, error)) Option {
+	return func(s *graphjinService) error {
+		s.sampleData = build
+		return nil
+	}
+}
+
 // storeBacked reports whether this install keeps its configuration in the
 // store, which is what makes the setup steps after the admin available.
 func (s *graphjinService) storeBacked() bool {
@@ -61,6 +70,9 @@ func (s *graphjinService) setupNeedsDatabase() bool {
 }
 
 type setupDatabaseRequest struct {
+	// Sample asks for the built-in sample company's data in place of a
+	// connection of the caller's own.
+	Sample   bool   `json:"sample"`
 	Name     string `json:"name"`
 	Type     string `json:"type"`
 	URL      string `json:"url"`
@@ -260,6 +272,21 @@ func (s *graphjinService) setupConnectDatabase(w http.ResponseWriter, r *http.Re
 	if err := json.NewDecoder(io.LimitReader(r.Body, 64<<10)).Decode(&req); err != nil {
 		writeJSONStatus(w, http.StatusBadRequest, map[string]any{"error": "invalid JSON body"})
 		return
+	}
+	if req.Sample {
+		if s.sampleData == nil {
+			writeJSONStatus(w, http.StatusNotFound, map[string]any{"error": "sample data is not available on this server"})
+			return
+		}
+		path, err := s.sampleData(ctx)
+		if err != nil {
+			if s.log != nil {
+				s.log.Errorf("setup: sample data: %s", err)
+			}
+			writeJSONStatus(w, http.StatusInternalServerError, map[string]any{"error": "The sample data could not be prepared. Connect your own database, or see the server log for why."})
+			return
+		}
+		req = setupDatabaseRequest{Name: "sample", Type: "sqlite", Path: path}
 	}
 	source, dbConf, err := req.source()
 	if err != nil {

@@ -150,9 +150,10 @@ type graphjinService struct {
 	contextCatalogCache  map[string]contextCatalogEntry
 	onboardingMu         sync.RWMutex
 	onboardingCandidates map[string]cachedDiscoveredCandidate
-	authLogin            *authLoginService // built-in OIDC login (optional)
-	accounts             *accountService   // local accounts (agentic, optional)
-	configApplier        func() error      // makes a changed stored configuration take effect
+	authLogin            *authLoginService                     // built-in OIDC login (optional)
+	accounts             *accountService                       // local accounts (agentic, optional)
+	configApplier        func() error                          // makes a changed stored configuration take effect
+	sampleData           func(context.Context) (string, error) // builds the sample database, returns its file
 }
 
 // anyDB returns any single connection from the dbs map (for callers

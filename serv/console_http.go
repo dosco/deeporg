@@ -66,6 +66,8 @@ type consoleBootstrapSetup struct {
 	NeedsAdmin    bool `json:"needs_admin"`
 	NeedsDatabase bool `json:"needs_database"`
 	NeedsModel    bool `json:"needs_model"`
+	// SampleData is true when the database step can load sample data.
+	SampleData bool `json:"sample_data"`
 }
 
 // ConsoleBootstrap exposes only the caller-safe information needed to choose
@@ -137,7 +139,7 @@ func (s1 *HttpService) apiV1ConsoleBootstrap(ns *string) http.Handler {
 
 		var setup *consoleBootstrapSetup
 		if needsAdmin, needsDatabase, needsModel := s.setupNeedsAdmin(r.Context()), s.setupNeedsDatabase(), s.setupNeedsModel(); needsAdmin || needsDatabase || needsModel {
-			setup = &consoleBootstrapSetup{NeedsAdmin: needsAdmin, NeedsDatabase: needsDatabase, NeedsModel: needsModel}
+			setup = &consoleBootstrapSetup{NeedsAdmin: needsAdmin, NeedsDatabase: needsDatabase, NeedsModel: needsModel, SampleData: s.storeBacked() && s.sampleData != nil}
 		}
 
 		w.Header().Set("Content-Type", "application/json")

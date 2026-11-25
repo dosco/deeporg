@@ -405,6 +405,7 @@ func (s1 *HttpService) Setup(ah auth.HandlerFunc) http.Handler {
 				"needs_admin":    s.setupNeedsAdmin(r.Context()),
 				"needs_database": s.setupNeedsDatabase(),
 				"needs_model":    s.setupNeedsModel(),
+				"sample_data":    s.storeBacked() && s.sampleData != nil,
 			})
 		case r.URL.Path == routeSetupAdmin && r.Method == http.MethodPost:
 			s.setupCreateAdmin(w, r, ah)

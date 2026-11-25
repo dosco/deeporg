@@ -172,6 +172,7 @@ func cmdServ(cmd *cobra.Command, args []string) {
 		// A setup step saves to the store; the server then comes back up
 		// reading it.
 		opt = append(opt, serv.OptionSetConfigApplier(restartInPlace))
+		opt = append(opt, serv.OptionSetSampleData(sampleDataBuilder(start)))
 	}
 	// if deployActive {
 	// 	opt = append(opt, serv.OptionDeployActive())

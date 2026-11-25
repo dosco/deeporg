@@ -85,6 +85,7 @@ func newRootCmd() *cobra.Command {
 	rootCmd.AddCommand(evalCmd())
 	rootCmd.AddCommand(envCmd())
 	rootCmd.AddCommand(versionCmd())
+	rootCmd.AddCommand(sampleDataCmd())
 
 	// rootCmd.AddCommand(&cobra.Command{
 	// 	Use:   fmt.Sprintf("conf:dump [%s]", strings.Join(viper.SupportedExts, "|")),

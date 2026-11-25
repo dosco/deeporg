@@ -453,7 +453,6 @@ What this slice does not do yet:
 
 What this slice does not do yet:
 
-- **Sample data** as an alternative to connecting a database.
 - **Counting the tables on the setup screen.** The count shows on the Runtime page.
 - **Connecting a second database, or changing one, from the console.** The step adds or replaces by name, but only setup calls it.
 - **Changes take effect by restarting the process**, which drops requests in flight. That is fine during setup; changes made later should use the live path the config pipeline already has.
@@ -470,12 +469,24 @@ With this slice the path in Part 1 works from start to finish on a laptop: run `
 
 What is still open in Phase 2:
 
-- **Sample data** as an alternative to connecting a database.
 - **`GJ_AGENT_*` variables in the environment override the stored model choice.** Found while testing. Reasonable for an operator, surprising for a newcomer with stray variables.
 - **The setup screens do not show which model a provider's default is.**
 - **Hiding the store's table names** from the error for a table that does not exist, on a server with no database.
 
-*Remaining slices:* sample data; hiding the store's tables from data sources.
+*Slice 6, sample data — done on 2026-11-25.*
+
+- The "Connect your data" screen offers a second choice: "Use sample data". It connects the built-in demo company's database (accounts, users, subscriptions, invoices, payments, support tickets, usage events) the same way a database of the newcomer's own is connected.
+- The data is built by the demo's own schema and seed code. That code works on the CLI's package globals, so the running server cannot call it in its own process: it runs the binary again with a hidden `sample-data` command and connects the file that command prints (`cmd/sample_data.go`). It takes two to three seconds.
+- The demo keeps its own state in the same file; those tables are dropped, so only the company's data is left. The demo project is built in a scratch folder that is removed, and one file, `sample.db`, stays beside the store.
+- The child process is given an environment with this install's start config, secrets and setting overrides taken out.
+
+Known limits of the sample data:
+
+- **Its dates do not move.** The demo, run with `--demo`, shifts its dates forward as days pass. The sample file is a plain database, so "last week" gets less true the longer it sits.
+- **It is the database only.** The demo's policy files, its outside API and its saved routines are not connected.
+- **There is no screen yet for connecting a database of your own afterwards.** `deeporg config import` does it.
+
+*Remaining slices:* hiding the store's tables from data sources.
 
 **Phase 3: Nothing on disk, and setup on a server.**
 The discovery cache in the store. The one-time setup link. `deeporg setup`

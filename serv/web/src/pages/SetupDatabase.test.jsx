@@ -82,6 +82,32 @@ describe("setup: connect your data", () => {
     expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ type: "postgres", host: "db.internal", port: 0, database: "shop", user: "reader", password: "s3cret" });
   });
 
+  it("offers sample data only where the server can load it", async () => {
+    const fetchMock = stubFetch([
+      { status: 200, body: { name: "sample", type: "sqlite", restarting: true } },
+      { status: 200, body: { needs_database: false } },
+    ]);
+    const onDone = vi.fn();
+    const { rerender } = render(<SetupDatabase onDone={onDone} />);
+    expect(screen.queryByRole("button", { name: "Use sample data" })).not.toBeInTheDocument();
+
+    rerender(<SetupDatabase onDone={onDone} sampleData />);
+    fireEvent.click(screen.getByRole("button", { name: "Use sample data" }));
+    await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1), { timeout: 5000 });
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/v1/setup/database");
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ sample: true });
+  });
+
+  it("says so when the sample data cannot be prepared", async () => {
+    stubFetch([{ status: 500, body: { error: "The sample data could not be prepared. Connect your own database, or see the server log for why." } }]);
+    const onDone = vi.fn();
+    render(<SetupDatabase onDone={onDone} sampleData />);
+    fireEvent.click(screen.getByRole("button", { name: "Use sample data" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("The sample data could not be prepared");
+    expect(onDone).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Use sample data" })).toBeEnabled();
+  });
+
   it("can be left for later", () => {
     stubFetch([{ status: 200, body: {} }]);
     const onSkip = vi.fn();

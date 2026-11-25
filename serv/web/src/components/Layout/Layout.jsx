@@ -99,6 +99,7 @@ const Layout = ({ children }) => {
         <div className="horizon" aria-hidden="true" />
         <div className="starfield" aria-hidden="true" />
         <SetupDatabase
+          sampleData={setupState(bootstrapQuery.data).sampleData}
           onDone={() => {
             queryClient.clear();
             navigate("/user/agent", { replace: true });
