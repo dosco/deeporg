@@ -635,7 +635,8 @@ func TestHandleQueryCatalog_NonSourcesUsesSnapshotFallback(t *testing.T) {
 	ms := workflowCatalogTestServer(t, MCPConfig{}, nil)
 	ms.service.conf.Core.Sources = nil
 
-	res, err := ms.handleQueryCatalog(context.Background(), newToolRequest(map[string]any{
+	// The catalog needs a sign-in in agentic mode.
+	res, err := ms.handleQueryCatalog(sourceModeUserTestContext(), newToolRequest(map[string]any{
 		"where": map[string]any{"kind": map[string]any{"eq": "help"}},
 		"limit": 1,
 	}))
@@ -780,10 +781,12 @@ func TestMCPCallerCapabilityProfileReflectsSourceRootAccess(t *testing.T) {
 	ms.service.conf.Core.Tasks.Enabled = true
 
 	anonProfile := ms.callerCapabilityProfile(context.Background(), false)
-	if !rootProfilesContain(anonProfile.AvailableRoots, "gj_catalog") {
-		t.Fatalf("expected anonymous catalog discovery by default, got %+v", anonProfile.AvailableRoots)
+	// Sign-in is required in agentic mode: the catalog names every table and
+	// column, so an anonymous caller does not get it.
+	if rootProfilesContain(anonProfile.AvailableRoots, "gj_catalog") {
+		t.Fatalf("an anonymous caller must not get the catalog, got %+v", anonProfile.AvailableRoots)
 	}
-	for _, root := range []string{"gj_security", "gj_runtime", "gj_config", "gj_workflow"} {
+	for _, root := range []string{"gj_catalog", "gj_security", "gj_runtime", "gj_config", "gj_workflow"} {
 		if !rootProfilesContain(anonProfile.BlockedRoots, root) {
 			t.Fatalf("expected %s blocked for anonymous caller, got %+v", root, anonProfile.BlockedRoots)
 		}
@@ -863,8 +866,11 @@ func TestMCPToolFilterAndMetadataAreCallerAware(t *testing.T) {
 	}
 
 	anon := ms.applyCallerToolMetadata(context.Background(), tools)
-	if !toolListContains(anon, "query_catalog") || !toolListContains(anon, "graphql_help") {
-		t.Fatalf("anonymous caller should see public catalog tools: %+v", toolNamesFromToolList(anon))
+	if toolListContains(anon, "query_catalog") {
+		t.Fatalf("anonymous caller must not see the catalog tool: %+v", toolNamesFromToolList(anon))
+	}
+	if !toolListContains(anon, "graphql_help") {
+		t.Fatalf("anonymous caller should still see help: %+v", toolNamesFromToolList(anon))
 	}
 	if !toolListContains(anon, "execute_saved_query") {
 		t.Fatalf("anonymous caller should still see non-root execution tools: %+v", toolNamesFromToolList(anon))
@@ -908,8 +914,8 @@ func TestMCPToolsListUsesCallerFilterAndMetadata(t *testing.T) {
 	anonSvc := mockMcpServerWithConfig(MCPConfig{AllowRawQueries: true}).service
 	anonMS := anonSvc.newMCPServerWithContext(context.Background())
 	anonTools := toolsFromServer(t, anonMS.srv, context.Background())
-	if _, ok := anonTools["query_catalog"]; !ok {
-		t.Fatalf("anonymous tools/list should include query_catalog: %+v", toolNamesFromToolMap(anonTools))
+	if _, ok := anonTools["query_catalog"]; ok {
+		t.Fatalf("anonymous tools/list must not include query_catalog: %+v", toolNamesFromToolMap(anonTools))
 	}
 	if _, ok := anonTools["graphql_help"]; !ok {
 		t.Fatalf("anonymous tools/list should include graphql_help: %+v", toolNamesFromToolMap(anonTools))

@@ -1121,6 +1121,16 @@ func normalizeConfigMode(c *Config) error {
 	if err := c.Core.NormalizeMode(); err != nil {
 		return err
 	}
+	// Agentic mode has one behaviour everywhere, so the production flag is
+	// ignored there. With it set, the saved-queries-only rule rejects the
+	// queries the agent writes and the unnamed ones the service runs against
+	// its own store (watches, schedules, tasks, threads). The demo agentic
+	// configs never set it; clearing it here makes every agentic config run
+	// the path those demos exercise.
+	if c.Core.Mode == modeAgentic {
+		c.Serv.Production = false
+		c.Core.Production = false
+	}
 	return nil
 }
 

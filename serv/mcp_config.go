@@ -25,9 +25,8 @@ import (
 
 // registerConfigTools registers the config read/validate/update MCP tools.
 // Dev mode only: effectiveMode is the authoritative mode selector, so agentic
-// and prod deployments register nothing here (agentic canonicalizes to
-// production, and effectiveMode reports it as non-dev even before that
-// normalization runs). registerTools calls this outside the agentOnlyMCP gate
+// and prod deployments register nothing here. registerTools calls this
+// outside the agentOnlyMCP gate
 // so external MCP clients keep first-class config access in dev even when the
 // built-in agent is the MCP front door.
 func (ms *mcpServer) registerConfigTools() {

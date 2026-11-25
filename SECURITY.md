@@ -350,7 +350,7 @@ configuration (see [Operating Modes](#operating-modes)).
 ```yaml
 system:
   root_access:
-    gj_catalog: public
+    gj_catalog: authenticated
     gj_artifacts: owner
     gj_watch: owner
     gj_watch_event: owner
@@ -376,7 +376,7 @@ roots fit together architecturally, see the canonical diagram in
 
 | Root | Agentic access | Notes |
 | ---- | -------------- | ----- |
-| `gj_catalog` | `public` | Read-only. |
+| `gj_catalog` | `authenticated` | Read-only, for signed-in users. It names every table and column and carries sampled values, so it is not served to anonymous callers. Set `gj_catalog: public` to open it. |
 | `gj_code` | read: `authenticated`; write: role-gated (default `admin`) | Code writes are global source-file edits, not per-row scopable, so write is gated by role rather than filtered. Connecting a code source is an explicit operator choice — see the supply-chain note below. |
 | `gj_artifacts` | `owner` (`user_id`) | Read/write, owner-private. |
 | `gj_watch` / `gj_watch_event` | `owner` (`user_id`) | Read/write, owner-private standing queries and durable inbox events. Watches must reference subscriptions. |

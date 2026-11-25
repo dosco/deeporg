@@ -137,7 +137,12 @@ func (ms *mcpServer) registerCatalogTools() {
 		),
 		mcp.WithOutputSchema[GraphQLHelpResult](),
 	), ms.handleGraphQLHelp)
-	if !ms.rootVisibleForContext(ms.ctx, "gj_catalog") {
+	// Register the tool whenever the catalog exists for somebody. The server
+	// is built once, before any caller has signed in, so asking whether the
+	// startup caller may read the catalog would drop the tool for everyone as
+	// soon as the catalog needs a sign-in. Each call still runs as its caller,
+	// and the per-caller tool filter hides it from those who cannot use it.
+	if conf := ms.config(); conf != nil && conf.Core.IsSourcesUsed() && !systemRootActionEnabled(conf, "gj_catalog", systemActionRead) {
 		return
 	}
 

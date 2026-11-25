@@ -2,7 +2,9 @@ package main
 
 import (
 	"bytes"
+	"crypto/rand"
 	"embed"
+	"encoding/hex"
 	"net/url"
 	"os"
 	"path"
@@ -146,7 +148,24 @@ type Templ struct {
 }
 
 func newTempl(values map[string]interface{}) *Templ {
+	// The agentic config requires sign-in, so every generated install gets its
+	// own signing secret. A fixed value in the template would be shared by
+	// every install and let anyone sign a token for any of them.
+	if _, ok := values["JWTSecret"]; !ok {
+		values["JWTSecret"] = newInstallSecret()
+	}
 	return &Templ{values}
+}
+
+// newInstallSecret returns 32 random bytes as hex.
+func newInstallSecret() string {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		// crypto/rand does not fail on supported platforms; without it there
+		// is no safe secret to write.
+		log.Fatalf("Failed to generate a signing secret: %s", err)
+	}
+	return hex.EncodeToString(b)
 }
 
 func (t *Templ) get(name string) ([]byte, error) {

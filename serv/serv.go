@@ -159,8 +159,13 @@ func printDevModeInfo(s *graphjinService) {
 	}
 
 	fmt.Println()
-	fmt.Println("Development Server URLs")
-	fmt.Println("───────────────────────")
+	if effectiveMode(s.conf) == modeAgentic {
+		fmt.Println("Server URLs")
+		fmt.Println("───────────")
+	} else {
+		fmt.Println("Development Server URLs")
+		fmt.Println("───────────────────────")
+	}
 
 	if s.conf.WebUI && !s.conf.MCP.Only {
 		fmt.Printf("  Web UI:      http://%s/\n", displayHost)
@@ -178,11 +183,9 @@ func printDevModeInfo(s *graphjinService) {
 
 	if !s.conf.mcpDisabled() {
 		fmt.Println()
-		fmt.Println("Claude Desktop Configuration")
-		fmt.Println("────────────────────────────")
-		fmt.Println("Add to claude_desktop_config.json:")
-		fmt.Println()
-		printClaudeConfig(s.conf, displayHost)
+		fmt.Println("Connect an MCP client")
+		fmt.Println("─────────────────────")
+		printMCPConnectHint(displayHost)
 	}
 	fmt.Println()
 }
@@ -242,22 +245,10 @@ func isConditionalTool(name string) bool {
 	return false
 }
 
-// printClaudeConfig prints a Claude Desktop configuration snippet
-func printClaudeConfig(conf *Config, displayHost string) {
-	execPath, _ := os.Executable()
-	if execPath == "" {
-		execPath = "deeporg"
-	}
-
+// printMCPConnectHint prints the commands that register this server with an
+// MCP client. They are the supported path; the stdio proxy has no --server flag.
+func printMCPConnectHint(displayHost string) {
 	serverURL := fmt.Sprintf("http://%s", displayHost)
-
-	fmt.Printf(`  {
-    "mcpServers": {
-      "GraphJin": {
-        "command": "%s",
-        "args": ["mcp", "--server", "%s"]
-      }
-    }
-  }
-`, execPath, serverURL)
+	fmt.Printf("  deeporg mcp add claude %s\n", serverURL)
+	fmt.Printf("  deeporg mcp add codex %s\n", serverURL)
 }

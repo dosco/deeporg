@@ -316,6 +316,13 @@ func newSourceModeJWTHTTPTestHandler(t *testing.T, mutators ...func(*Config)) ht
 			JWT:  JWTConfig{Secret: sourceModeHTTPJWTSecret},
 		}
 		conf.Serv.AuthFailBlock = true
+		// These tests are about scoping rows by an account column. Agentic
+		// mode no longer assumes one, so the source asks for it.
+		for i := range conf.Core.Sources {
+			if strings.EqualFold(conf.Core.Sources[i].Kind, "database") && conf.Core.Sources[i].Access.Read == "" {
+				conf.Core.Sources[i].Access.Read = core.AccessModeAccount
+			}
+		}
 		for _, mutate := range mutators {
 			mutate(conf)
 		}

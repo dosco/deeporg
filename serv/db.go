@@ -219,7 +219,15 @@ func newDBOnce(
 // initPostgres initializes the postgres database
 func initPostgres(conf *Config, openDB, useTelemetry bool, fs core.FS) (*dbConf, error) {
 	confCopy := conf
-	config, _ := pgx.ParseConfig(confCopy.DB.ConnString)
+	config, err := pgx.ParseConfig(confCopy.DB.ConnString)
+	if err != nil {
+		// pgx redacts the password in its own message. A nil config used
+		// below is a crash, so stop here with something the reader can act on.
+		if strings.Contains(confCopy.DB.ConnString, "${") {
+			return nil, fmt.Errorf("postgres connection_string still contains a ${...} placeholder; placeholders are not filled in from the environment, so put the connection URL itself in the config: %w", err)
+		}
+		return nil, fmt.Errorf("postgres connection_string could not be read: %w", err)
+	}
 
 	// Check if the connection string is empty, if it, look at the other fields
 	if confCopy.DB.ConnString == "" {

@@ -3,7 +3,7 @@ mode: agentic
 # Agentic mode includes a private managed artifact store, approved-watch
 # runner, built-in agent, dual modern/legacy MCP HTTP, and primitive MCP tools.
 # Add explicit settings only to opt out or customize them.
-production: true
+# Agentic mode behaves the same everywhere; the `production` flag is ignored.
 host_port: 0.0.0.0:8080
 # Defaults on in agentic mode so operators can inspect catalog, runtime,
 # security, code, and config system roots from the console.
@@ -14,6 +14,14 @@ http_compress: true
 auth_fail_block: true
 enable_tracing: false
 reload_on_config_change: false
+
+# Sign-in is required. Requests carry a token signed with this secret; the
+# `sub` claim is the user id and a `role` claim of `admin` gives admin access.
+# `deeporg serve new` generates a secret for each install.
+auth:
+  type: jwt
+  jwt:
+    secret: ${GJ_AUTH_JWT_SECRET}
 
 # Local encrypted keystore for write-only model-supplied secrets.
 # Set GJ_SECRETS_KEYSTORE_KEY to a base64-encoded 32-byte key before using

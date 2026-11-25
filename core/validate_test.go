@@ -394,8 +394,15 @@ func TestNormalizeSourcesAppliesIdentityAccessAndArtifactDefaults(t *testing.T) 
 	if err := agentic.NormalizeSources(); err != nil {
 		t.Fatalf("NormalizeSources agentic: %v", err)
 	}
+	// Agentic is a general database agent: a signed-in user reads every table
+	// unless the admin narrows it. No tenant column is assumed.
+	agenticApp, _ := agentic.SourceByName("app")
+	if agenticApp.Access.Read != AccessModeAuthenticated || agenticApp.Access.Write != AccessModeBlocked || agenticApp.Access.Delete != AccessModeBlocked {
+		t.Fatalf("agentic database access defaults not applied: %+v", agenticApp.Access)
+	}
+	// Sign-in is required, so the catalog is for signed-in users too.
 	agenticAccess := agentic.EffectiveSystemRootAccess()
-	if agenticAccess["gj_catalog"] != AccessModePublic ||
+	if agenticAccess["gj_catalog"] != AccessModeAuthenticated ||
 		agenticAccess["gj_security"] != AccessModeAdmin || agenticAccess["gj_runtime"] != AccessModeAdmin ||
 		agenticAccess["gj_config"] != AccessModeAdmin ||
 		agenticAccess["gj_artifacts"] != AccessModeOwner ||

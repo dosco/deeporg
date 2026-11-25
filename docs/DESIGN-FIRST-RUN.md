@@ -383,6 +383,21 @@ error instead of crashing on a connection string that does not parse. Add a
 test that boots from an empty directory. The path is still file-based after
 this phase, but it works.
 
+Done on 2026-11-24:
+
+- Agentic ignores the `production` flag, in the engine (`productionEnabled`, `core/config.go`) and at config load (`normalizeConfigMode`, `serv/config.go`). A generated config now runs the same path the demos do.
+- A signed-in user reads every table by default (`effectiveDatabaseAccess`). Writes stay off.
+- The catalog needs a sign-in. It was readable with no token, which exposed every table and column name. The MCP catalog tool is now registered from config, not from what the anonymous startup caller may see (`registerCatalogTools`, `serv/mcp_catalog.go`).
+- A Postgres connection string that cannot be read is an error that names the unfilled placeholder.
+- The generated `agentic.yml` has no `production` line and carries a signing secret generated for that install.
+- `cmd/agentic_first_boot_test.go` boots the generated template and checks all of the above.
+
+Left for later phases:
+
+- **A person cannot sign in yet without making a token.** The generated config accepts tokens signed with its secret; accounts and a sign-in page arrive in Phase 2.
+- **The "dev defaults" still apply to an agentic config that leaves `mcp.allow_*` unset.** The demos depend on four of them (raw queries, mutations, workflow execution, dev tools). They go away when those switches stop being user-facing, in Phase 2.
+- **A signed-in user who is not an admin can read `gj_config`** (secrets are redacted). The root is meant to be admin-only. Seen in the first-boot test, cause not yet traced.
+
 **Phase 2: Setup on a laptop.**
 The start config and the store opening first. Admin account and password
 sign-in. The setup page with the sample data, database and model steps. Config

@@ -50,6 +50,14 @@ func isAgenticMode(c *Config) bool {
 	return err == nil && mode == sourcecap.ModeAgentic
 }
 
+// productionEnabled reports whether the legacy production behaviour applies.
+// Agentic mode ignores the production flag. The agent writes its queries as
+// it goes, so the saved-queries-only rule cannot hold there, and that rule
+// also rejects the unnamed queries the service runs against its own store.
+func productionEnabled(c *Config) bool {
+	return c != nil && c.Production && !isAgenticMode(c)
+}
+
 // NormalizeMode makes mode the single deployment-mode selector. When mode is
 // omitted, existing production:true configs continue to imply prod mode.
 func (c *Config) NormalizeMode() error {
@@ -733,7 +741,7 @@ func (c *Config) normalizeSourceAccessDefaults() {
 		kind := c.Sources[i].CanonicalKind()
 		switch kind {
 		case sourcecap.KindDatabase:
-			c.Sources[i].Access = effectiveDatabaseAccess(c.Sources[i].Access)
+			c.Sources[i].Access = effectiveDatabaseAccess(c.Sources[i].Access, c.modeForSourceDefaults())
 		case sourcecap.KindAPI:
 			c.Sources[i].Access = effectiveAPIAccess(c.Sources[i].Access)
 		}
@@ -759,9 +767,21 @@ func effectiveAPIAccess(access SourceAccessConfig) SourceAccessConfig {
 	return access
 }
 
-func effectiveDatabaseAccess(access SourceAccessConfig) SourceAccessConfig {
+// effectiveDatabaseAccess fills in the access a database source gets when its
+// config does not say.
+//
+// In agentic mode every signed-in user can read every table: the agent is a
+// general database agent and cannot assume the tables carry a tenant column.
+// The admin narrows access with table blocks, row filters and roles.
+//
+// The legacy dev and prod modes keep the older default, which scopes rows by
+// the namespace column and blocks tables that lack it.
+func effectiveDatabaseAccess(access SourceAccessConfig, mode string) SourceAccessConfig {
 	if strings.TrimSpace(access.Read) == "" {
 		access.Read = AccessModeAccount
+		if strings.EqualFold(strings.TrimSpace(mode), sourcecap.ModeAgentic) {
+			access.Read = AccessModeAuthenticated
+		}
 	} else {
 		access.Read = normalizeAccessMode(access.Read)
 	}
@@ -840,10 +860,12 @@ func (c *Config) EffectiveSystemRootAccess() map[string]string {
 			"gj_config":             AccessModePublic,
 		}
 	case sourcecap.ModeAgentic:
-		// Trusted-agent matrix: discovery open (read-only), personal
-		// artifacts/workflows owner-scoped, control plane admin-only.
+		// Sign-in is required in agentic mode. The catalog names every table
+		// and column and carries sampled values, so it is for signed-in users
+		// only; personal artifacts/workflows are owner-scoped and the control
+		// plane is admin-only.
 		defaults = map[string]string{
-			"gj_catalog":            AccessModePublic,
+			"gj_catalog":            AccessModeAuthenticated,
 			"gj_artifacts":          AccessModeOwner,
 			"gj_watch":              AccessModeOwner,
 			"gj_watch_event":        AccessModeOwner,
@@ -1056,7 +1078,7 @@ func (c *Config) EffectiveThreadsConfig() ThreadsConfig {
 func (c *Config) EffectiveSourceAccess(source SourceConfig) SourceAccessConfig {
 	switch source.CanonicalKind() {
 	case sourcecap.KindDatabase:
-		return effectiveDatabaseAccess(source.Access.clone())
+		return effectiveDatabaseAccess(source.Access.clone(), c.modeForSourceDefaults())
 	case sourcecap.KindAPI:
 		return effectiveAPIAccess(source.Access.clone())
 	default:
