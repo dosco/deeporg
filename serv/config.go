@@ -55,7 +55,11 @@ type Config struct {
 	// that construct Config values directly in Go.
 	parsedConfig         bool
 	managedArtifactStore bool
-	explicitSettings     map[string]bool
+	// storePath, when set, is the file the local store is kept in. A
+	// start-config install names it; otherwise the store sits under the
+	// config directory.
+	storePath        string
+	explicitSettings map[string]bool
 
 	// agentKeyFileDir is the directory of the agent.api_key_file the config
 	// file names. gj_config may switch the key file at runtime only within it,

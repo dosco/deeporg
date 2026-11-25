@@ -62,6 +62,10 @@ func newRootCmd() *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:   "deeporg",
 		Short: BuildDetails(),
+		// Running deeporg with nothing after it starts the server, the same
+		// as `deeporg serve`.
+		Args: cobra.NoArgs,
+		Run:  cmdServ,
 	}
 
 	rootCmd.PersistentFlags().StringVar(&cpath,

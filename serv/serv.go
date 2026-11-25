@@ -195,18 +195,26 @@ func printDevModeInfo(s *graphjinService) {
 // It is logged as a warning so it shows at the generated config's log level,
 // and in JSON logs on a server where nobody is watching a terminal.
 func logSetupLink(s *graphjinService) {
+	if link := setupLink(s); link != "" {
+		s.log.Warnf("No admin account exists yet. Finish setup at %s", link)
+	}
+}
+
+// setupLink is the address that creates the first admin, or "" when there is
+// nothing to set up.
+func setupLink(s *graphjinService) string {
 	if s == nil || s.accounts == nil || !s.setupNeedsAdmin(context.Background()) {
-		return
+		return ""
 	}
 	token := s.accounts.pendingSetupToken()
 	if token == "" {
-		return
+		return ""
 	}
 	displayHost := s.conf.hostPort
 	if strings.HasPrefix(displayHost, "0.0.0.0:") {
 		displayHost = "localhost" + displayHost[7:]
 	}
-	s.log.Warnf("No admin account exists yet. Finish setup at http://%s/setup?token=%s", displayHost, token)
+	return fmt.Sprintf("http://%s/setup?token=%s", displayHost, token)
 }
 
 // mcpMode returns a short string describing the MCP server mode

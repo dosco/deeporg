@@ -117,6 +117,28 @@ func cmdServ(cmd *cobra.Command, args []string) {
 		}
 	}
 
+	// A new install has no config directory: it starts from a start config
+	// and reads everything else from its store. setup() leaves conf alone
+	// once it is set, so the legacy flow below is untouched.
+	var start *startConfig
+	if !servDemoMode {
+		if file, ok := usesStartConfig(cmd); ok {
+			var err error
+			if start, err = loadStartConfig(file); err != nil {
+				// These messages tell the reader what to do next; print them
+				// as they are, without a log prefix.
+				fmt.Fprintln(os.Stderr, err)
+				os.Exit(1)
+			}
+			if conf, err = loadStartFlowConfig(start); err != nil {
+				log.Fatalf("%s", err)
+			}
+			if start.created {
+				log.Infof("Created %s", start.path)
+			}
+		}
+	}
+
 	setup(cpath)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -192,6 +214,9 @@ func cmdServ(cmd *cobra.Command, args []string) {
 
 		<-done
 	} else {
+		if start != nil {
+			announceSetup(gj, start)
+		}
 		if err := gj.Start(); err != nil {
 			log.Fatalf("%s", err)
 		}

@@ -24,6 +24,9 @@ func (s *graphjinService) initManagedArtifactStore() error {
 		return fmt.Errorf("managed artifact store: resolve config path: %w", err)
 	}
 	path := filepath.Join(base, filepath.FromSlash(managedArtifactRelativePath))
+	if s.conf.storePath != "" {
+		path = s.conf.storePath
+	}
 	if err := prepareManagedArtifactPath(path); err != nil {
 		return fmt.Errorf("managed artifact store %s: %w", path, err)
 	}
@@ -55,7 +58,7 @@ func (s *graphjinService) initManagedArtifactStore() error {
 	s.dbs[name] = db
 	s.managedArtifactDB = name
 	s.log.Infof("Managed artifact store ready: %s", path)
-	if s.conf.Core.Mode == "agentic" && s.threadsEnabled() {
+	if s.conf.Core.Mode == "agentic" && s.threadsEnabled() && s.conf.storePath == "" {
 		// Threads, runs and watches are shared state; a private sqlite file
 		// gives every replica its own copy of them.
 		s.log.Warn("The managed artifact store is a local sqlite file, so agent threads are not shared between replicas. Point artifacts.source at a shared Postgres or MySQL source before running more than one replica.")

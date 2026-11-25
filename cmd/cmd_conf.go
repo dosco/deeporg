@@ -52,6 +52,8 @@ Examples:
 	c.AddCommand(configValidateCmd())
 	c.AddCommand(configSchemaCmd())
 	c.AddCommand(configDocsCmd())
+	c.AddCommand(configImportCmd())
+	c.AddCommand(configExportCmd())
 	return c
 }
 

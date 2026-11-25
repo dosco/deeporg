@@ -423,7 +423,27 @@ Not in this slice: invites, personal access tokens, and holding back the rest of
 - After the account is created the console opens on the agent, signed in, with the token gone from the address.
 - The sign-in sheet leads with email and password. The access-token form is still there behind "Use an access token instead".
 
-*Remaining slices:* the start config and store-first boot with config and secrets in the store; the database and model steps with sample data; hiding the store's tables from data sources.
+*Slice 3, the start config and booting from the store — done on 2026-11-25.*
+
+- Running `deeporg` with nothing after it starts the server.
+- A new install is one with no `GO_ENV`, no `--path` and no `./config` directory. It takes the new flow (`usesStartConfig`, `cmd/start_config.go`). Everything else runs as before, including `GO_ENV=agentic` with an `agentic.yml`, which the demos, smokes and evaluation harness still use.
+- The first run writes `~/.deeporg/deeporg.yml` with a generated secret key and a store beside it, and writes nothing to the directory it was started in. `DEEPORG_HOME` moves that folder; `DEEPORG_CONFIG` or a `deeporg.yml` in the current directory names a start config directly. `DEEPORG_STORE`, `DEEPORG_SECRET_KEY`, `DEEPORG_LISTEN` and `DEEPORG_LOG_LEVEL` override the file.
+- A start config created on a laptop listens on `127.0.0.1:8080`, so a trial is not reachable from the network. A start config without `listen` uses `0.0.0.0:8080`.
+- The server builds its configuration from a fixed base plus the document read from the store (`loadStartFlowConfig`). The document cannot set what belongs to the start config or decides who a caller is: `mode`, `production`, `host_port`, `auth`, `auth_fail_block`, `secrets`, `artifacts`.
+- The key that signs sessions is derived from the secret key (`DeriveStoreSecret`), so sessions survive a restart and the sealing key, when it arrives, will be a different key.
+- A server with no database connected starts and is usable: the admin can sign in and gets the whole console.
+- `deeporg config import <file>` loads a configuration document into the store and `deeporg config export` prints it. The server reads the document when it starts.
+- On a laptop the setup link is printed and opened in the browser once the server is listening.
+
+What this slice does not do yet:
+
+- **The store is a local SQLite file only.** A Postgres or MySQL store is refused with a message that says so. That is the server path, in Phase 3.
+- **The configuration document sits in the same keyed table as the accounts**, not in a table of its own, and earlier versions are not kept.
+- **Changes an admin makes while the server runs are not written to the store.** Config writes are still switched off in agentic. That, and encrypted secrets, come with the database and model steps.
+- **The discovery cache is still a folder of files**, beside the store.
+- **The rest of the API is still not held back until an admin exists.**
+
+*Remaining slices:* the database and model steps with sample data, with admin config changes and secrets kept in the store; hiding the store's tables from data sources.
 
 **Phase 3: Nothing on disk, and setup on a server.**
 The discovery cache in the store. The one-time setup link. `deeporg setup`
