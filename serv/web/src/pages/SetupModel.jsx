@@ -94,7 +94,7 @@ const SetupModel = ({ onDone, onSkip }) => {
             Do this later
           </button>
           <p className="text-xs text-muted-foreground">
-            Without a key the built-in agent and routines stay off. You can still connect your own agent, such as Claude Code.
+            Without a key the built-in agent and routines stay off. Everything else in the console works.
           </p>
         </div>
       )}
