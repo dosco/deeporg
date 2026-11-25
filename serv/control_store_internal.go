@@ -149,8 +149,9 @@ func (s *graphjinService) injectInternalStoreRole() {
 			})
 		}
 	}
-	// Login state holds credentials-derived rows that GraphJin reads with
-	// raw SQL only, so it is blocked for every role including the internal one.
+	// The keyed table holds sign-in state and, with local accounts, password
+	// hashes. GraphJin reads it with raw SQL only, so it is blocked for every
+	// role including the internal one.
 	blockAll := func(table, schema string) {
 		for _, role := range append([]string{graphjinInternalStoreRole}, blockRoles...) {
 			appendRuntimeRoleTable(coreConf, role, core.RoleTable{
@@ -166,7 +167,7 @@ func (s *graphjinService) injectInternalStoreRole() {
 		}
 	}
 	addRevisionSignal()
-	if s.authStoreEnabled() {
+	if s.keyedStoreInUse() {
 		if root, schema, ok := s.internalStoreRoot(authStoreTable); ok {
 			blockAll(root, schema)
 		}

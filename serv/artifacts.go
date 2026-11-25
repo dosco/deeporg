@@ -663,7 +663,7 @@ func (s *graphjinService) ensureStoreTables() error {
 			}
 		}
 	}
-	if s.authStoreEnabled() {
+	if s.keyedStoreInUse() {
 		for _, stmt := range authStoreDDL(dbType, s.conf.Core.EffectiveArtifactsConfig().Schema) {
 			if _, err := db.ExecContext(context.Background(), stmt); err != nil {
 				return err

@@ -67,6 +67,14 @@ func TestFirstAdminSetupAndPasswordSignIn(t *testing.T) {
 		t.Fatalf("the new admin could not read the configuration: %s", clip(body))
 	}
 
+	// Accounts and their password hashes are in the store. No role reads the
+	// store's tables through GraphQL: not the admin, not anyone else.
+	assertAccountsNotReadable(t, base, map[string]string{"the admin": cookie})
+	member := signFirstBootToken(t, secret, "sam", "")
+	if body := firstBootGraphQL(t, base, member, storeAccountsQuery); strings.Contains(body, "password_hash") || strings.Contains(body, `"kind"`) {
+		t.Fatalf("a signed-in user read the account table: %s", clip(body))
+	}
+
 	// Signing in again: a wrong password is refused, the right one works, and
 	// the email is not case sensitive.
 	if status, body, _ := accountsPost(t, base+"/api/v1/auth/session", "", map[string]any{"method": "password", "email": email, "password": "not the password"}); status != http.StatusUnauthorized {
@@ -147,4 +155,22 @@ func accountsGraphQL(t *testing.T, base, cookie, query string) string {
 	t.Helper()
 	_, body, _ := accountsPost(t, base+"/api/v1/graphql", cookie, map[string]any{"query": query})
 	return body
+}
+
+// storeAccountsQuery asks for the store's keyed table by the name it has on
+// SQLite. It holds the accounts and their password hashes.
+const storeAccountsQuery = `query { _graphjin_auth_sessions { kind id data } }`
+
+// assertAccountsNotReadable fails if any of the sessions can read the account
+// table through GraphQL.
+func assertAccountsNotReadable(t *testing.T, base string, sessions map[string]string) {
+	t.Helper()
+	for who, cookie := range sessions {
+		// A blocked table answers with an error or with null, depending on
+		// whether another database is connected. Either way no row comes back.
+		body := accountsGraphQL(t, base, cookie, storeAccountsQuery)
+		if strings.Contains(body, "password_hash") || strings.Contains(body, `"kind"`) || strings.Contains(body, "account") {
+			t.Fatalf("%s read the account table through GraphQL: %s", who, clip(body))
+		}
+	}
 }

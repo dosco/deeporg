@@ -98,6 +98,15 @@ func (a *authLoginService) state() authStateStore {
 	return memoryAuthStore{a: a}
 }
 
+// keyedStoreInUse reports whether the store's keyed table exists on this
+// server. It holds sign-in state for built-in login and, on an agentic server
+// with local accounts, the accounts themselves with their password hashes.
+// Wherever the table exists it has to be created before the engine starts and
+// blocked from GraphQL for every role.
+func (s *graphjinService) keyedStoreInUse() bool {
+	return s != nil && s.conf != nil && (s.authStoreEnabled() || localAccountsEnabled(s.conf))
+}
+
 func (s *graphjinService) authStoreEnabled() bool {
 	return s != nil && s.conf != nil && s.conf.AuthLogin.Enabled && s.conf.Core.Artifacts.Enabled
 }
