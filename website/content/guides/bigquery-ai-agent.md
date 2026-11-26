@@ -10,7 +10,7 @@ actions:
   - label: "Connect your dataset"
     href: "#connect"
   - label: "Try the demo first"
-    href: "/#quickstart"
+    href: "/#demos"
 ---
 
 {{< band label="The short version" title="What you get on BigQuery." >}}
