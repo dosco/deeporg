@@ -407,7 +407,8 @@ func (in *Introspection) addOpenAPIMutationTable(table sdata.DBTable, alias stri
 		if column.Blocked {
 			continue
 		}
-		field, err := in.getColumnField(column)
+		// A mutation result has no where type to condition its fields on.
+		field, err := in.getColumnField(column, false)
 		if err != nil {
 			return err
 		}
@@ -435,11 +436,17 @@ func (in *Introspection) addRemoteTable(table sdata.DBTable, alias string) error
 	ft.Name = in.getName(name)
 	ft.Description = table.Comment
 
+	// Only a filesystem remote gets a where type (added below), so only its
+	// fields can take includeIf/skipIf. Advertising them on an API remote
+	// names a type the schema never defines, and GraphiQL then refuses to
+	// build the client schema at all.
+	filesystemRemote := isFilesystemRemoteTable(table)
+
 	for _, c := range table.Columns {
 		if c.Blocked {
 			continue
 		}
-		f, err := in.getColumnField(c)
+		f, err := in.getColumnField(c, filesystemRemote)
 		if err != nil {
 			return err
 		}
@@ -453,7 +460,6 @@ func (in *Introspection) addRemoteTable(table sdata.DBTable, alias string) error
 		}
 		ft.addArg(a.Name, base)
 	}
-	filesystemRemote := isFilesystemRemoteTable(table)
 	if filesystemRemote {
 		ft.addOrReplaceArg("id", newTypeRef("", "ID", nil))
 		ft.addOrReplaceArg("limit", newTypeRef("", "Int", nil))
@@ -596,7 +602,7 @@ func (in *Introspection) addTableTypeWithDepth(
 			hasRecursive = true
 		}
 		var f1 FieldObject
-		f1, err = in.getColumnField(c)
+		f1, err = in.getColumnField(c, true)
 		if err != nil {
 			return
 		}
@@ -729,6 +735,12 @@ func (in *Introspection) addRolesEnumType(roles map[string]*Role) {
 	}
 	sort.Strings(roleNames)
 	for _, name := range roleNames {
+		// Internal roles such as __graphjin_internal_store are not for
+		// clients, and a name outside the enum value grammar makes GraphiQL
+		// reject the whole schema.
+		if !isIntroEnumValueName(name) {
+			continue
+		}
 		ro := roles[name]
 		cmt := ro.Comment
 		if ro.Match != "" {
@@ -740,6 +752,28 @@ func (in *Introspection) addRolesEnumType(roles map[string]*Role) {
 		})
 	}
 	in.addType(ft)
+}
+
+// isIntroEnumValueName reports whether name can be a GraphQL enum value:
+// the name grammar [_A-Za-z][_0-9A-Za-z]*, no reserved "__" prefix, and not
+// true, false or null.
+func isIntroEnumValueName(name string) bool {
+	if name == "" || strings.HasPrefix(name, "__") {
+		return false
+	}
+	switch name {
+	case "true", "false", "null":
+		return false
+	}
+	for i, r := range name {
+		switch {
+		case r == '_', r >= 'A' && r <= 'Z', r >= 'a' && r <= 'z':
+		case i > 0 && r >= '0' && r <= '9':
+		default:
+			return false
+		}
+	}
+	return true
 }
 
 // addOrderByType adds an order by type to the introspection schema
@@ -936,8 +970,10 @@ func (in *Introspection) addArgsType(table sdata.DBTable, fn sdata.DBFunction) (
 	return
 }
 
-// getColumnField returns the field object for the given column
-func (in *Introspection) getColumnField(column sdata.DBColumn) (field FieldObject, err error) {
+// getColumnField returns the field object for the given column. conditional
+// adds the includeIf/skipIf arguments, which take the table's where type; pass
+// it only when the caller also defines that type.
+func (in *Introspection) getColumnField(column sdata.DBColumn, conditional bool) (field FieldObject, err error) {
 	field.Args = []InputValue{}
 	field.Name = in.getName(column.Name)
 	typeValue := newTypeRef("", "String", nil)
@@ -956,6 +992,10 @@ func (in *Introspection) getColumnField(column sdata.DBColumn) (field FieldObjec
 	}
 
 	field.Type = typeValue
+
+	if !conditional {
+		return
+	}
 
 	field.Args = append(field.Args, InputValue{
 		Name: "includeIf", Type: newTypeRef("", (column.Table + SUFFIX_WHERE), nil),
