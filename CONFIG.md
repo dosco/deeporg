@@ -1510,10 +1510,9 @@ marked `failed` by the lease sweep on any replica and is never re-executed,
 because it may already have written data. With the managed sqlite artifact
 store every replica has its own copy of these tables, so set
 `artifacts.source` to a shared Postgres or MySQL source before running more
-than one replica. `deeporg serve db store init` creates or migrates every
-control-plane table (artifacts, watches, tasks, threads) without starting the
-server, so production can run with `artifacts.auto_init: false`;
-`deeporg serve db store status` reports which tables exist.
+than one replica. DeepORG creates and migrates its own control-plane tables
+(artifacts, watches, tasks, threads) each time it starts, so its database user
+needs permission to create tables in the store schema.
 
 Memories are `memory` artifacts. A new memory is personal (`tier: observed`);
 publishing it (`tier: approved`) shares it with the owner's account, and

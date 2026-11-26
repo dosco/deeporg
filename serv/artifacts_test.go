@@ -29,12 +29,11 @@ func TestArtifactControlPlaneInitializesAndScopesRowsByUser(t *testing.T) {
 	}
 	t.Cleanup(func() { db.Close() })
 
-	autoInit := true
 	conf := &Config{Core: core.Config{
 		Sources: []core.SourceConfig{
 			{Name: "app", Kind: "database", Type: "sqlite", Path: dsn, Default: true},
 		},
-		Artifacts: core.ArtifactsConfig{Enabled: true, Source: "app", AutoInit: &autoInit, GlobalsPath: "."},
+		Artifacts: core.ArtifactsConfig{Enabled: true, Source: "app", GlobalsPath: "."},
 	}}
 	conf.ConfigPath = tmp
 	if err := conf.Core.NormalizeSources(); err != nil {
@@ -265,12 +264,11 @@ func isArtifactKindLocked(err error) bool {
 
 func newSQLiteArtifactService(t *testing.T, db *sql.DB, dsn string, locked []string) *graphjinService {
 	t.Helper()
-	autoInit := true
 	conf := &Config{Core: core.Config{
 		Sources: []core.SourceConfig{
 			{Name: "app", Kind: "database", Type: "sqlite", Path: dsn, Default: true},
 		},
-		Artifacts: core.ArtifactsConfig{Enabled: true, Source: "app", AutoInit: &autoInit, GlobalsPath: ".", Locked: locked},
+		Artifacts: core.ArtifactsConfig{Enabled: true, Source: "app", GlobalsPath: ".", Locked: locked},
 	}}
 	conf.ConfigPath = t.TempDir()
 	if err := conf.Core.NormalizeSources(); err != nil {

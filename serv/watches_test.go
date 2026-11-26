@@ -2433,12 +2433,11 @@ func newSQLiteWatchServiceWithDBAndOptions(
 	if _, err := db.Exec(`CREATE TABLE IF NOT EXISTS orders (id INTEGER PRIMARY KEY, status TEXT, updated_at TEXT)`); err != nil {
 		t.Fatalf("create orders table: %v", err)
 	}
-	autoInit := true
 	conf := &Config{Core: core.Config{
 		Sources: []core.SourceConfig{
 			{Name: "app", Kind: "database", Type: "sqlite", Path: dsn, Default: true, Access: core.SourceAccessConfig{Read: core.AccessModeAuthenticated}},
 		},
-		Artifacts: core.ArtifactsConfig{Enabled: true, Source: "app", AutoInit: &autoInit, GlobalsPath: "."},
+		Artifacts: core.ArtifactsConfig{Enabled: true, Source: "app", GlobalsPath: "."},
 		Watches:   core.WatchesConfig{Enabled: true, MaxPerOwner: maxPerOwner},
 		Roles:     []core.Role{{Name: "analyst"}},
 	}}

@@ -256,7 +256,6 @@ artifacts:
   enabled: true
   source: app
   schema: _graphjin
-  auto_init: true
   globals_path: ./config
 ```
 

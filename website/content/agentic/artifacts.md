@@ -59,11 +59,10 @@ artifacts:
   source: app
   schema: _graphjin
   globals_path: ./config
-  auto_init: true
   max_per_owner: 200
 ```
 
-With `auto_init: true`, DeepORG creates `_graphjin.artifacts` when the service starts. Current updates increment the live artifact row's `revision` value in place; DeepORG does not create or expose artifact history rows.
+DeepORG creates `_graphjin.artifacts` when the service starts, so its database user needs permission to create tables in that schema. Current updates increment the live artifact row's `revision` value in place; DeepORG does not create or expose artifact history rows.
 
 For compatibility, an explicit legacy `artifacts.enabled: true` without `source` continues to select the first writable SQL source. Set `artifacts.enabled: false` to opt out. A managed-store open or initialization failure is fatal rather than silently falling back to nondurable storage.
 

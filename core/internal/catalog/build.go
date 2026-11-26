@@ -626,7 +626,7 @@ func configRecipes() []configRecipe {
 			Examples: []string{
 				`query_catalog(search: "user scoped artifacts")`,
 				`dev/agentic single process: omit artifacts config and use private managed SQLite`,
-				`clustered/shared store override: artifacts: { source: "app", schema: "_graphjin", auto_init: true, globals_path: "./config" }`,
+				`clustered/shared store override: artifacts: { source: "app", schema: "_graphjin", globals_path: "./config" }`,
 				`gj_artifacts root access should usually be "authenticated"`,
 			},
 		},

@@ -461,7 +461,6 @@ artifacts:
   enabled: true
   source: app
   schema: _graphjin
-  auto_init: true
   globals_path: ./config
 watches:
   enabled: true
@@ -487,8 +486,8 @@ artifact schema.
 
 Artifact behavior:
 
-- Auto-init runs before normal schema discovery when artifacts are enabled and
-  `auto_init` is true.
+- DeepORG creates and migrates its store tables before normal schema
+  discovery whenever artifacts are enabled.
 - Files from `globals_path` are surfaced as `source=config`,
   `visibility=global`, and `read_only=true`.
 - Config-folder globals are not copied into the database and cannot be mutated
@@ -584,7 +583,6 @@ artifacts:
   enabled: true
   source: app
   schema: _graphjin
-  auto_init: true
   globals_path: ./config
 
 sources:

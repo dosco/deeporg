@@ -17,8 +17,7 @@ import (
 
 func newArtifactOverlayTestService(t *testing.T, files map[string]string) *graphjinService {
 	t.Helper()
-	autoInit := true
-	return newArtifactOverlayTestServiceWithArtifacts(t, files, core.ArtifactsConfig{Enabled: true, Source: "main", AutoInit: &autoInit, GlobalsPath: "."})
+	return newArtifactOverlayTestServiceWithArtifacts(t, files, core.ArtifactsConfig{Enabled: true, Source: "main", GlobalsPath: "."})
 }
 
 func newArtifactOverlayTestServiceWithArtifacts(t *testing.T, files map[string]string, artifacts core.ArtifactsConfig) *graphjinService {
@@ -94,9 +93,8 @@ func artifactUserCtx(userID string) context.Context {
 }
 
 func TestSavedQueryAutoSaveUsesUserArtifactWhenConfigured(t *testing.T) {
-	autoInit := true
 	svc := newArtifactOverlayTestServiceWithOptions(t, nil, core.ArtifactsConfig{
-		Enabled: true, Source: "main", AutoInit: &autoInit, GlobalsPath: ".",
+		Enabled: true, Source: "main", GlobalsPath: ".",
 	}, func(conf *Config) {
 		conf.Core.Mode = "dev"
 	})
@@ -122,9 +120,8 @@ func TestSavedQueryAutoSaveUsesUserArtifactWhenConfigured(t *testing.T) {
 }
 
 func TestArtifactOwnerCapBlocksDirectWritesButLearningNoOps(t *testing.T) {
-	autoInit := true
 	svc := newArtifactOverlayTestServiceWithArtifacts(t, nil, core.ArtifactsConfig{
-		Enabled: true, Source: "main", AutoInit: &autoInit, GlobalsPath: ".", MaxPerOwner: 2,
+		Enabled: true, Source: "main", GlobalsPath: ".", MaxPerOwner: 2,
 	})
 	ctx := artifactUserCtx("user_1")
 	if _, err := svc.saveUserArtifact(ctx, artifactKindSavedQuery, "query_one", `query query_one { users { id } }`, nil); err != nil {
@@ -434,9 +431,8 @@ func TestArtifactNanoProjectionRefreshesAfterMutation(t *testing.T) {
 }
 
 func TestArtifactProjectionLoadsPastGraphQLDefaultLimit(t *testing.T) {
-	autoInit := true
 	svc := newArtifactOverlayTestServiceWithOptions(t, nil, core.ArtifactsConfig{
-		Enabled: true, Source: "main", AutoInit: &autoInit, GlobalsPath: ".",
+		Enabled: true, Source: "main", GlobalsPath: ".",
 	}, func(conf *Config) {
 		conf.Core.DefaultLimit = 2
 	})
@@ -554,9 +550,8 @@ func TestArtifactProjectionCapsJSONFieldsButStoreKeepsFull(t *testing.T) {
 }
 
 func TestArtifactProjectionHonorsConfiguredCap(t *testing.T) {
-	autoInit := true
 	svc := newArtifactOverlayTestServiceWithArtifacts(t, nil, core.ArtifactsConfig{
-		Enabled: true, Source: "main", AutoInit: &autoInit, GlobalsPath: ".",
+		Enabled: true, Source: "main", GlobalsPath: ".",
 		ProjectionContentMaxBytes: 64,
 	})
 	ctx := artifactUserCtx("user_1")
@@ -587,11 +582,9 @@ func TestArtifactProjectionHonorsConfiguredCap(t *testing.T) {
 }
 
 func TestArtifactProjectionSubscriptionCatchesExternalRevision(t *testing.T) {
-	autoInit := true
 	svc := newArtifactOverlayTestServiceWithOptions(t, nil, core.ArtifactsConfig{
 		Enabled:     true,
 		Source:      "main",
-		AutoInit:    &autoInit,
 		GlobalsPath: ".",
 		PollSeconds: 1,
 	}, func(conf *Config) {

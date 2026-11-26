@@ -587,15 +587,14 @@ func EnsureArtifactStore(conf *Config, dbs map[string]*sql.DB) error {
 }
 
 func (s *graphjinService) initArtifactsBeforeCore() error {
-	if s == nil || s.conf == nil || !s.conf.Core.Artifacts.Enabled || !s.conf.Core.Artifacts.AutoInitEnabled() {
+	if s == nil || s.conf == nil || !s.conf.Core.Artifacts.Enabled {
 		return nil
 	}
 	return s.ensureStoreTables()
 }
 
-// ensureStoreTables creates and migrates every control-plane store table,
-// regardless of auto_init. Serve startup reaches it through
-// initArtifactsBeforeCore; `deeporg db store init` calls it directly.
+// ensureStoreTables creates and migrates every control-plane store table.
+// The server runs it each time it starts.
 func (s *graphjinService) ensureStoreTables() error {
 	if s == nil || s.conf == nil || !s.conf.Core.Artifacts.Enabled {
 		return nil

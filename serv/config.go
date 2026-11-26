@@ -949,10 +949,28 @@ func validateRemovedMCPSettings(v *viper.Viper) error {
 	if v.InConfig("agent.sampling") || removedSettingEnvPresent("AGENT_SAMPLING") {
 		return fmt.Errorf("agent.sampling was removed: configure GraphJin-owned agent.provider, agent.model, and agent.api_key_env credentials")
 	}
+	// DeepORG always creates its own store tables. Leaving the setting at
+	// true changes nothing, so an older config still loads; turning it off
+	// asked for something that no longer exists.
+	if autoInitTurnedOff(v) {
+		return fmt.Errorf("artifacts.auto_init: false was removed: DeepORG creates and migrates its own store tables when it starts. Let its database user create tables in the store schema, and delete this setting")
+	}
 	if v.InConfig("mcp.http_stateful") || removedSettingEnvPresent("MCP_HTTP_STATEFUL") {
 		return fmt.Errorf("mcp.http_stateful was removed: GraphJin now serves modern stateless and legacy stateful MCP automatically at the same endpoint")
 	}
 	return nil
+}
+
+// autoInitTurnedOff reports whether the config file or the environment asks
+// for the store tables not to be created.
+func autoInitTurnedOff(v *viper.Viper) bool {
+	for _, prefix := range []string{"GJ_", "SG_", "SJ_"} {
+		if value, ok := os.LookupEnv(prefix + "ARTIFACTS_AUTO_INIT"); ok {
+			on, err := strconv.ParseBool(strings.TrimSpace(value))
+			return err != nil || !on
+		}
+	}
+	return v.InConfig("artifacts.auto_init") && !v.GetBool("artifacts.auto_init")
 }
 
 func removedSettingEnvPresent(suffix string) bool {
@@ -1481,7 +1499,6 @@ func newViperWithDefaults() *viper.Viper {
 	vi.SetDefault("secrets.keystore.path", "")
 
 	// Artifact store defaults.
-	vi.SetDefault("artifacts.auto_init", true)
 	vi.SetDefault("artifacts.schema", "_graphjin")
 	vi.SetDefault("artifacts.globals_path", "./config")
 	vi.SetDefault("artifacts.poll_seconds", 15)

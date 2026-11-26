@@ -26,11 +26,6 @@ func TestControlStoreDirectSQLIsNarrowlyGated(t *testing.T) {
 		"threads.go": {
 			"migrateThreadSchema": true,
 		},
-		"store_admin.go": {
-			// A zero-row probe reports whether a store table exists before
-			// the internal GraphQL roles that would compile against it do.
-			"storeTableExists": true,
-		},
 		"tasks_verify.go": {
 			// Verification fencing needs atomic affected-row counts, which the
 			// internal GraphQL mutation result cannot currently expose.

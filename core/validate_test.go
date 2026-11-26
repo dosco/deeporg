@@ -369,7 +369,7 @@ func TestNormalizeSourcesAppliesIdentityAccessAndArtifactDefaults(t *testing.T) 
 	if conf.Identity.UserIDClaim != "sub" || conf.Identity.NamespaceClaim != "account_id" || conf.Identity.Query != conf.RolesQuery {
 		t.Fatalf("identity defaults not applied: %+v", conf.Identity)
 	}
-	if conf.Artifacts.Source != "app" || conf.Artifacts.Schema != "_graphjin" || conf.Artifacts.GlobalsPath != "./config" || !conf.Artifacts.AutoInitEnabled() || conf.Artifacts.PollSeconds != 15 || conf.Artifacts.MaxPerOwner != 200 {
+	if conf.Artifacts.Source != "app" || conf.Artifacts.Schema != "_graphjin" || conf.Artifacts.GlobalsPath != "./config" || conf.Artifacts.PollSeconds != 15 || conf.Artifacts.MaxPerOwner != 200 {
 		t.Fatalf("artifact defaults not applied: %+v", conf.Artifacts)
 	}
 	app, _ := conf.SourceByName("app")

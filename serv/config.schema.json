@@ -187,12 +187,6 @@
 					"description": "Schema for the artifact store tables",
 					"default": "_graphjin"
 				},
-				"auto_init": {
-					"type": "boolean",
-					"title": "Auto Initialize Artifact Tables",
-					"description": "Create artifact store tables automatically at startup",
-					"default": true
-				},
 				"globals_path": {
 					"type": "string",
 					"title": "Global Config Artifact Path",

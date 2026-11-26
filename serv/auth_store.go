@@ -139,15 +139,13 @@ func (s *graphjinService) openAuthStateStore(ctx context.Context) (authStateStor
 		return nil, nil
 	}
 	schema := s.conf.Core.EffectiveArtifactsConfig().Schema
-	if s.conf.Core.Artifacts.AutoInitEnabled() {
-		for _, stmt := range authStoreDDL(dbType, schema) {
-			if _, err := db.ExecContext(ctx, stmt); err != nil {
-				return nil, fmt.Errorf("auth_login: create auth store: %w", err)
-			}
+	for _, stmt := range authStoreDDL(dbType, schema) {
+		if _, err := db.ExecContext(ctx, stmt); err != nil {
+			return nil, fmt.Errorf("auth_login: create auth store: %w", err)
 		}
-		if err := migrateAuthStoreSchema(ctx, db, dbType, schema); err != nil {
-			return nil, fmt.Errorf("auth_login: migrate auth store: %w", err)
-		}
+	}
+	if err := migrateAuthStoreSchema(ctx, db, dbType, schema); err != nil {
+		return nil, fmt.Errorf("auth_login: migrate auth store: %w", err)
 	}
 	st := newSQLAuthStore(db, dbType, schema)
 	if s.conf.Redis.URL != "" {

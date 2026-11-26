@@ -463,12 +463,11 @@ func TestAuthStoreServiceInitCreatesBlockedTable(t *testing.T) {
 	}
 	t.Cleanup(func() { db.Close() }) //nolint:errcheck
 
-	autoInit := true
 	conf := &Config{Core: core.Config{
 		Sources: []core.SourceConfig{
 			{Name: "app", Kind: "database", Type: "sqlite", Path: dsn, Default: true},
 		},
-		Artifacts: core.ArtifactsConfig{Enabled: true, Source: "app", AutoInit: &autoInit, GlobalsPath: "."},
+		Artifacts: core.ArtifactsConfig{Enabled: true, Source: "app", GlobalsPath: "."},
 	}}
 	conf.AuthLogin.Enabled = true
 	conf.ConfigPath = tmp

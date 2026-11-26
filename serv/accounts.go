@@ -117,15 +117,13 @@ func (s *graphjinService) initAccounts(ctx context.Context) (*accountService, er
 		return nil, nil
 	}
 	schema := s.conf.Core.EffectiveArtifactsConfig().Schema
-	if s.conf.Core.Artifacts.AutoInitEnabled() {
-		for _, stmt := range authStoreDDL(dbType, schema) {
-			if _, err := db.ExecContext(ctx, stmt); err != nil {
-				return nil, fmt.Errorf("create account store: %w", err)
-			}
+	for _, stmt := range authStoreDDL(dbType, schema) {
+		if _, err := db.ExecContext(ctx, stmt); err != nil {
+			return nil, fmt.Errorf("create account store: %w", err)
 		}
-		if err := migrateAuthStoreSchema(ctx, db, dbType, schema); err != nil {
-			return nil, fmt.Errorf("migrate account store: %w", err)
-		}
+	}
+	if err := migrateAuthStoreSchema(ctx, db, dbType, schema); err != nil {
+		return nil, fmt.Errorf("migrate account store: %w", err)
 	}
 	svc := &accountService{
 		store:    newSQLAuthStore(db, dbType, schema),

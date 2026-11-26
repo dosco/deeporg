@@ -836,3 +836,23 @@ func TestLeadEnabledDefaultsAndDependencies(t *testing.T) {
 		t.Fatalf("threads without the lead = %v, want refused", err)
 	}
 }
+
+// DeepORG always creates its own store tables. A config that still says so
+// loads; one that turns it off is told the setting is gone and what to do.
+func TestAutoInitSettingWasRemoved(t *testing.T) {
+	if _, err := NewConfig("artifacts:\n  enabled: true\n  auto_init: true\n", "yaml"); err != nil {
+		t.Fatalf("a config that leaves auto_init on was refused: %v", err)
+	}
+	_, err := NewConfig("artifacts:\n  enabled: true\n  auto_init: false\n", "yaml")
+	if err == nil || !strings.Contains(err.Error(), "artifacts.auto_init") || !strings.Contains(err.Error(), "create tables") {
+		t.Fatalf("auto_init: false gave %v, want an error that says what to do", err)
+	}
+	t.Setenv("GJ_ARTIFACTS_AUTO_INIT", "false")
+	if _, err := NewConfig("artifacts:\n  enabled: true\n", "yaml"); err == nil {
+		t.Fatal("auto_init turned off through the environment was accepted")
+	}
+	t.Setenv("GJ_ARTIFACTS_AUTO_INIT", "true")
+	if _, err := NewConfig("artifacts:\n  enabled: true\n", "yaml"); err != nil {
+		t.Fatalf("auto_init left on through the environment was refused: %v", err)
+	}
+}

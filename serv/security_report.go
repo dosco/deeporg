@@ -1073,7 +1073,6 @@ func securitySourceAccessPolicyEvaluations(conf *Config, mode string) []security
 			"enabled":      cfg.Enabled,
 			"source":       cfg.Source,
 			"schema":       cfg.Schema,
-			"auto_init":    cfg.AutoInitEnabled(),
 			"globals_path": cfg.GlobalsPath,
 			"valid_source": validSource,
 		}

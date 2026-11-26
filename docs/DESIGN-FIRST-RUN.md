@@ -552,6 +552,12 @@ What this does not do:
 - **A config with sources and no mode at all keeps its old locked-down posture**, with generated rules. It is not the API service.
 - **The `mcp.allow_*` switches and the three default columns per capability are still there.**
 
+*Slice 10, no separate store step — done on 2026-11-25.*
+
+- `deeporg serve db store init` and `status` are removed, with the `artifacts.auto_init` setting they went with. DeepORG creates and migrates its own store tables each time it starts.
+- A config that still says `auto_init: true` loads as before. One that says `auto_init: false` is refused with what to do: let the database user create tables in the store schema, and delete the setting.
+- `deeporg serve db setup` no longer creates the store; starting the server does.
+
 *Remaining slices:* hiding the store's tables from data sources.
 
 **Phase 3: Nothing on disk, and setup on a server.**

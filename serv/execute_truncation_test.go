@@ -13,9 +13,8 @@ import (
 // saved-query path: a list that reaches its compiled limit carries the
 // truncation marker; errors and nil results never do.
 func TestAttachExecuteTruncationFlagsLimitClampedLists(t *testing.T) {
-	autoInit := true
 	svc := newArtifactOverlayTestServiceWithOptions(t, nil, core.ArtifactsConfig{
-		Enabled: true, Source: "main", AutoInit: &autoInit, GlobalsPath: ".",
+		Enabled: true, Source: "main", GlobalsPath: ".",
 	}, nil)
 	ctx := artifactUserCtx("user_1")
 	cp := newArtifactControlPlane(svc)

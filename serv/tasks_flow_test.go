@@ -14,9 +14,8 @@ import (
 )
 
 func TestTaskProjectionGraphQLTraversal(t *testing.T) {
-	autoInit := true
 	svc := newArtifactOverlayTestServiceWithOptions(t, nil, core.ArtifactsConfig{
-		Enabled: true, Source: "main", AutoInit: &autoInit, GlobalsPath: ".",
+		Enabled: true, Source: "main", GlobalsPath: ".",
 	}, func(conf *Config) {
 		conf.Core.Tasks = core.TasksConfig{Enabled: true, MaxPerOwner: 20, MaxEntriesPerTask: 500, EntryRetentionHours: 168, SnapshotMaxBytes: 32768}
 	})

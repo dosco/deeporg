@@ -700,9 +700,6 @@ func (c *Config) normalizeArtifactsDefaults() {
 	if strings.TrimSpace(c.Artifacts.GlobalsPath) == "" {
 		c.Artifacts.GlobalsPath = "./config"
 	}
-	if c.Artifacts.AutoInit == nil {
-		c.Artifacts.AutoInit = boolPtr(true)
-	}
 	if c.Artifacts.PollSeconds == 0 {
 		c.Artifacts.PollSeconds = 15
 	}
@@ -983,10 +980,6 @@ func (c IdentityConfig) clone() IdentityConfig {
 
 func (c ArtifactsConfig) clone() ArtifactsConfig {
 	out := c
-	if c.AutoInit != nil {
-		v := *c.AutoInit
-		out.AutoInit = &v
-	}
 	if c.Locked != nil {
 		out.Locked = append([]string(nil), c.Locked...)
 	}
@@ -1004,14 +997,6 @@ func (c WatchesConfig) clone() WatchesConfig {
 func (c TasksConfig) clone() TasksConfig { return c }
 
 func (c ThreadsConfig) clone() ThreadsConfig { return c }
-
-func (c ArtifactsConfig) AutoInitEnabled() bool {
-	return c.AutoInit == nil || *c.AutoInit
-}
-
-func boolPtr(v bool) *bool {
-	return &v
-}
 
 func (c SourceAccessConfig) clone() SourceAccessConfig {
 	out := c
@@ -1751,7 +1736,6 @@ type ArtifactsConfig struct {
 	Enabled                   bool     `mapstructure:"enabled" json:"enabled" yaml:"enabled" jsonschema:"title=Enable Artifacts,description=Enable the GraphJin-managed SQL artifact store for saved queries/fragments/workflows and catalog annotations; parsed dev and agentic configs default to enabled"`
 	Source                    string   `mapstructure:"source" json:"source" yaml:"source" jsonschema:"title=Artifact Source,description=Database source name that hosts the artifact store; omitted dev and agentic configs use private managed SQLite while legacy explicit enablement uses the first writable SQL source"`
 	Schema                    string   `mapstructure:"schema" json:"schema" yaml:"schema" jsonschema:"title=Artifact Schema,default=_graphjin,description=Schema for the artifact store tables"`
-	AutoInit                  *bool    `mapstructure:"auto_init" json:"auto_init" yaml:"auto_init" jsonschema:"title=Auto Initialize Artifact Tables,default=true,description=Create artifact store tables automatically at startup"`
 	GlobalsPath               string   `mapstructure:"globals_path" json:"globals_path" yaml:"globals_path" jsonschema:"title=Global Config Artifact Path,default=./config,description=Directory of read-only global artifacts loaded from config files"`
 	Locked                    []string `mapstructure:"locked" json:"locked" yaml:"locked" jsonschema:"title=Locked Artifact Kinds,description=Artifact kinds that refuse writes through gj_artifacts"`
 	PollSeconds               int      `mapstructure:"poll_seconds" json:"poll_seconds" yaml:"poll_seconds" jsonschema:"title=Artifact Poll Seconds,default=15,description=Fallback and reconnect interval for internal artifact and watch revision subscriptions"`

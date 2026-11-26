@@ -214,11 +214,9 @@ func TestRevisionSignalsInitialPolicyAndChangeDelivery(t *testing.T) {
 }
 
 func TestArtifactProjectionInitialSignalForcesExactlyOneRefresh(t *testing.T) {
-	autoInit := true
 	svc := newArtifactOverlayTestServiceWithOptions(t, nil, core.ArtifactsConfig{
 		Enabled:     true,
 		Source:      "main",
-		AutoInit:    &autoInit,
 		GlobalsPath: ".",
 		PollSeconds: 1,
 	}, func(conf *Config) {
@@ -241,11 +239,9 @@ func TestArtifactProjectionInitialSignalForcesExactlyOneRefresh(t *testing.T) {
 }
 
 func TestArtifactProjectionRecoveryRefreshesWithoutRevisionBump(t *testing.T) {
-	autoInit := true
 	svc := newArtifactOverlayTestServiceWithOptions(t, nil, core.ArtifactsConfig{
 		Enabled:     true,
 		Source:      "main",
-		AutoInit:    &autoInit,
 		GlobalsPath: ".",
 		PollSeconds: 1,
 	}, func(conf *Config) {

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/dosco/graphjin/serv/v3"
 	"github.com/spf13/cobra"
 )
 
@@ -90,8 +89,6 @@ Use 'db diff' first to preview changes.`,
 	setupCmd.Flags().Bool("yes", false, "Skip confirmation prompt for sync")
 	c.AddCommand(setupCmd)
 
-	c.AddCommand(dbStoreCmd())
-
 	return c
 }
 
@@ -104,13 +101,4 @@ func cmdDBSetup(cmd *cobra.Command, args []string) {
 
 	// Then seed the database
 	cmdDBSeed(cmd, []string{})
-
-	// Finally create the control-plane store when it is enabled
-	if conf.Core.Artifacts.Enabled {
-		st, err := serv.InitStore(conf)
-		if err != nil {
-			log.Fatal(err)
-		}
-		printStoreStatus(cmd, st)
-	}
 }
