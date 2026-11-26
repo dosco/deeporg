@@ -1,50 +1,94 @@
 ---
 title: "Quick Start"
-description: "Run the smallest useful DeepORG query against a discovered schema."
+description: "Install DeepORG, run one command, and ask your first question about your own data."
 nav_group: "start"
 doc_kind: "guide"
 weight: 20
 ---
 
-Want seeded data and the built-in agent immediately? Boot a [demo vertical](/start/demos/) first - this page is for pointing DeepORG at your own database.
+This page takes you from nothing to a first answer from your own data. It takes about five minutes, and you do not write a config file.
 
-## Minimal config
+## 1. Install and start
 
-Point DeepORG at your database in `config/dev.yml`. New source-aware projects should use `sources:`:
+[Install the CLI](/start/install/), then run it:
+
+```bash
+curl -fsSL https://deeporg.io/install.sh | bash
+deeporg
+```
+
+DeepORG starts and opens a setup page in your browser. If it cannot open a browser, it prints the link for you to open.
+
+It keeps its own files in `~/.deeporg/`: a small start config and a database for its own data. Nothing is written to the directory you ran it in. If port 8080 is already in use on your computer, DeepORG uses the next free port and tells you which.
+
+## 2. Create your admin account
+
+The first screen asks for an email and a password. This is the account you sign in with, and the one that can change settings later.
+
+## 3. Connect your data
+
+Paste your database's connection URL, such as `postgres://user:password@host:5432/database`, or fill in the host, user and database name separately. DeepORG tests the connection before it saves it, and then tells you how many tables it found. If the connection fails, the page says why and what to change.
+
+If you have no database to hand, choose **Use sample data**. It connects a small sample company: accounts, users, subscriptions, invoices, payments, support tickets and usage events.
+
+By default everyone who signs in can read every table in the databases you connect, and nobody can write to them. You limit this later with [roles and filters](/configure/auth-rbac/).
+
+## 4. Choose a model
+
+The built-in agent uses a model from a provider you have an account with: OpenAI, Anthropic or Google Gemini. Paste an API key. DeepORG checks it with one small request and keeps it encrypted.
+
+You can leave this for later. Until you choose a model, the built-in agent is off.
+
+## 5. Ask your first question
+
+Setup ends on the agent page, with a few questions suggested from your own tables, such as "How many accounts are there?". Pick one, or type your own.
+
+## Connect Claude Code
+
+You can also ask from Claude Code. Open **Connect** in the console and copy the command it shows:
+
+```bash
+claude mcp add --transport http --scope user deeporg http://127.0.0.1:8080/api/v1/mcp
+```
+
+Then start Claude Code, type `/mcp`, choose `deeporg` and then Authenticate. Your browser opens on DeepORG, where you choose **Allow**. Claude Code signs in as you, so there is no token to copy.
+
+Claude Code gets its answers by asking DeepORG's built-in agent, so choose a model first.
+
+## Invite your team
+
+Open **Admin → Setup**, enter a teammate's email, and send them the link it makes. They choose their own password. The same page is where you connect another database or change the model.
+
+## Run it on a server
+
+Set the address to listen on, then open the setup link DeepORG prints. The link is written for the server itself, so replace the host with the server's address if you open it from another computer.
+
+```bash
+DEEPORG_LISTEN=0.0.0.0:8080 deeporg
+```
+
+There is one limit to know about: DeepORG keeps its own data in a local file for now, so the server needs a disk that survives restarts.
+
+## Using config files instead
+
+Before this setup flow, DeepORG was configured with YAML files, and that still works. If the directory you start it in has a `config/` folder, DeepORG uses those files and shows no setup page. This is the path to use when you run DeepORG as an API service for an application, with [saved queries](/start/saved-queries/) and no agent.
 
 ```yaml
+# config/dev.yml
 sources:
   - name: app
     kind: database
     type: postgres
     default: true
-    connection_string: ${DATABASE_URL}
+    connection_string: postgres://user:password@localhost:5432/app
     schema: public
 ```
-
-Then start the service:
 
 ```bash
 deeporg serve
 ```
 
-## Open the Web UI
-
-Open [http://localhost:8080/](http://localhost:8080/) after the service starts. The console opens in the **User** workspace with the built-in Agent. Use the User/Admin switcher at the top to move between using the agent and administering the server.
-
-Open **Admin → Runtime** directly at [http://localhost:8080/admin/runtime](http://localhost:8080/admin/runtime). It is a quick visual check that DeepORG discovered the configured sources and is serving the built-in system roots.
-
-<figure class="doc-screenshot">
-  <img src="/assets/webui-runtime-overview.webp" width="1440" height="900" alt="DeepORG Web UI Runtime view showing ready sources, table count, catalog readiness, and security posture." loading="lazy" decoding="async">
-  <figcaption>The Admin workspace is served by DeepORG itself and reads from the same runtime, catalog, and security GraphQL roots.</figcaption>
-</figure>
-
-Use **Admin → Workbench** at [http://localhost:8080/admin/workbench](http://localhost:8080/admin/workbench) to try queries interactively. It sends requests to the same `/api/v1/graphql` endpoint that applications and command-line smoke tests use.
-
-<figure class="doc-screenshot">
-  <img src="/assets/webui-workbench-query.webp" width="1440" height="900" alt="DeepORG Web UI Workbench running a read-only SourceHealth query and showing JSON results." loading="lazy" decoding="async">
-  <figcaption>Workbench is useful for inspecting source readiness and result shape before you copy the same query into an API call.</figcaption>
-</figure>
+The rest of this page uses that API: the GraphQL endpoint every DeepORG server has.
 
 ## First query
 
