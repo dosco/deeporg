@@ -237,6 +237,10 @@ mcp:
 # GJ_DATABASE_USER
 # GJ_DATABASE_PASSWORD
 
+# A config file must have a sources block. This empty one starts with no
+# database; replace it with one of the examples below.
+sources: []
+
 # --- App database ---
 # sources:
 #   - name: default

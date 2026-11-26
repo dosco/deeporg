@@ -702,3 +702,31 @@ func TestStoredModelChoiceBeatsStrayEnvironmentVariables(t *testing.T) {
 		t.Fatal("an unrelated agent setting was removed")
 	}
 }
+
+// A project made by `deeporg serve new` keeps its config files in its own
+// folder. Started from inside it, those files are used. Before, the default
+// of ./config was not found there, so the new-install flow started instead
+// and the project's own files were ignored.
+func TestProjectConfigInTheCurrentFolderIsUsed(t *testing.T) {
+	inEmptyDir(t)
+	saved := cpath
+	t.Cleanup(func() { cpath = saved })
+	cpath = "./config"
+
+	if err := os.WriteFile("dev.yml", []byte("mode: api\nsources: []\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if file, ok := usesStartConfig(nil); ok || cpath != "." {
+		t.Fatalf("a project's own dev.yml was not used: start config %q (%t), config path %q", file, ok, cpath)
+	}
+
+	// With a ./config folder as well, that folder is the project's config,
+	// as it always was.
+	cpath = "./config"
+	if err := os.Mkdir("config", 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := usesStartConfig(nil); ok || cpath != "./config" {
+		t.Fatalf("./config was not preferred over files beside it: config path %q", cpath)
+	}
+}

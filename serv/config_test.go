@@ -183,17 +183,24 @@ production: true
 	}
 }
 
-func TestLegacyProductionCanEnableMCPExplicitly(t *testing.T) {
-	conf, err := NewConfig(`
-production: true
-mcp:
-  disable: false
-`, "yaml")
-	if err != nil {
-		t.Fatalf("NewConfig: %v", err)
-	}
-	if conf.mcpDisabled() {
-		t.Fatal("explicit mcp.disable=false should enable MCP in legacy production config")
+// The API service is an API and nothing else. There used to be a way to turn
+// the MCP server back on in production by writing mcp.disable: false.
+func TestAPIServiceNeverMountsMCP(t *testing.T) {
+	for _, body := range []string{
+		"production: true\nmcp:\n  disable: false\n",
+		"mode: api\nmcp:\n  disable: false\n",
+		"mode: prod\nproduction: false\nmcp:\n  disable: false\n",
+	} {
+		conf, err := NewConfig(body, "yaml")
+		if err != nil {
+			t.Fatalf("NewConfig: %v", err)
+		}
+		if !conf.mcpDisabled() {
+			t.Fatalf("the MCP server is on in the API service:\n%s", body)
+		}
+		if len(mcpToolList(conf)) != 0 {
+			t.Fatalf("MCP tools are listed in the API service:\n%s", body)
+		}
 	}
 }
 

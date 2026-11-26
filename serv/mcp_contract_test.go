@@ -556,9 +556,7 @@ func TestHandleGetWorkflowGuide_UsesRegisteredToolSurface(t *testing.T) {
 		ms := mockLegacyMcpServerWithConfig(MCPConfig{
 			AllowRawQueries: false,
 			AllowMutations:  true,
-			disableExplicit: true,
 		})
-		ms.service.conf.Serv.Production = true
 		ms.srv = server.NewMCPServer("test", "0.0.0")
 		ms.registerTools()
 

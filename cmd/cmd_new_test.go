@@ -25,7 +25,9 @@ func TestCmdNewWritesAgenticAndSourcesTemplates(t *testing.T) {
 			t.Fatalf("read %s: %v", p, err)
 		}
 		content := string(b)
-		if name != "dev.yml" && !strings.Contains(content, "\nsources:\n") {
+		// Every scaffolded config declares its database under sources. A
+		// config file without them is no longer read.
+		if !strings.Contains(content, "\nsources:\n") {
 			t.Fatalf("%s does not use sources config:\n%s", name, content)
 		}
 		if strings.Contains(content, "kind: graphjin") || strings.Contains(content, "kind: workflow") {
@@ -34,8 +36,21 @@ func TestCmdNewWritesAgenticAndSourcesTemplates(t *testing.T) {
 		if strings.Contains(content, "\ndatabases:\n") || strings.Contains(content, "\ndatabase:\n") {
 			t.Fatalf("%s contains active legacy database config:\n%s", name, content)
 		}
-		if !strings.Contains(content, "\ndiscovery_cache:\n") || !strings.Contains(content, "\ncatalog_search:\n") {
+		// dev.yml and prod.yml are an API service. Settings for the agent,
+		// the catalog and MCP do nothing there, so they are not written.
+		agentSettings := strings.Contains(content, "\ndiscovery_cache:\n") && strings.Contains(content, "\ncatalog_search:\n")
+		if name == "agentic.yml" && !agentSettings {
 			t.Fatalf("%s missing discovery cache or semantic catalog config:\n%s", name, content)
+		}
+		if name != "agentic.yml" {
+			if !strings.Contains(content, "\nmode: api\n") {
+				t.Fatalf("%s is not an API service config:\n%s", name, content)
+			}
+			for _, inert := range []string{"\nmcp:\n", "\ndiscovery_cache:\n", "\ncatalog_search:\n", "\nagent:\n"} {
+				if strings.Contains(content, inert) {
+					t.Fatalf("%s carries %q, which does nothing in an API service:\n%s", name, strings.TrimSpace(inert), content)
+				}
+			}
 		}
 	}
 
@@ -43,16 +58,14 @@ func TestCmdNewWritesAgenticAndSourcesTemplates(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read dev.yml: %v", err)
 	}
-	for _, redundant := range []string{"\nagent:\n", "sampling:", "http_stateful:", "include_tools_with_agent:", "artifacts:\n  enabled:", "watches:\n  enabled:"} {
-		if strings.Contains(string(dev), redundant) {
-			t.Fatalf("dev.yml contains redundant default %q:\n%s", redundant, string(dev))
-		}
-	}
 	resolvedDev, err := serv.NewConfig(string(dev), "yaml")
 	if err != nil {
 		t.Fatalf("resolve generated dev.yml: %v", err)
 	}
-	assertGeneratedRuntimeDefaults(t, "dev", resolvedDev)
+	assertAPIServiceDefaults(t, "dev", resolvedDev)
+	if resolvedDev.Serv.Production {
+		t.Fatal("generated dev.yml is locked to saved queries; it should save them while building")
+	}
 
 	agentic, err := os.ReadFile(filepath.Join("myapp", "agentic.yml"))
 	if err != nil {
@@ -74,6 +87,18 @@ func TestCmdNewWritesAgenticAndSourcesTemplates(t *testing.T) {
 		t.Fatalf("resolve generated agentic.yml: %v", err)
 	}
 	assertGeneratedRuntimeDefaults(t, "agentic", resolved)
+}
+
+// assertAPIServiceDefaults fails if anything agentic is on in an API service
+// config.
+func assertAPIServiceDefaults(t *testing.T, name string, conf *serv.Config) {
+	t.Helper()
+	if !conf.Core.IsAPIService() {
+		t.Fatalf("generated %s config is not an API service: mode %q", name, conf.Core.Mode)
+	}
+	if conf.Agent.Enabled || conf.MCP.IncludeToolsWithAgent || conf.Core.Artifacts.Enabled || conf.Core.Watches.Enabled {
+		t.Fatalf("generated %s config turned on something agentic: agent=%+v mcp=%+v artifacts=%+v watches=%+v", name, conf.Agent, conf.MCP, conf.Core.Artifacts, conf.Core.Watches)
+	}
 }
 
 func assertGeneratedRuntimeDefaults(t *testing.T, mode string, conf *serv.Config) {
@@ -142,11 +167,14 @@ func TestRenderedTemplatesReadWithInheritance(t *testing.T) {
 			}
 			seen[source.Name] = true
 		}
-		if name == "dev.yml" || name == "agentic.yml" {
+		if name == "agentic.yml" {
 			assertGeneratedRuntimeDefaults(t, name, conf)
-		}
-		if name == "prod.yml" && (conf.Agent.Enabled || conf.MCP.IncludeToolsWithAgent || conf.Core.Artifacts.Enabled || conf.Core.Watches.Enabled) {
-			t.Fatalf("generated prod config changed isolation defaults: agent=%+v mcp=%+v artifacts=%+v watches=%+v", conf.Agent, conf.MCP, conf.Core.Artifacts, conf.Core.Watches)
+		} else {
+			assertAPIServiceDefaults(t, name, conf)
+			// dev saves queries as you build; prod serves only the saved ones.
+			if locked := conf.Serv.Production; locked != (name == "prod.yml") {
+				t.Fatalf("generated %s has production=%t", name, locked)
+			}
 		}
 	}
 }
@@ -236,7 +264,8 @@ func TestSetupCreatesTemplateSet(t *testing.T) {
 			t.Fatalf("expected setup to create %s: %v", name, err)
 		}
 	}
-	assertGeneratedRuntimeDefaults(t, "setup dev", conf)
+	// The files it writes are an API service project.
+	assertAPIServiceDefaults(t, "setup dev", conf)
 }
 
 func TestTemplatesRenderSourcesMode(t *testing.T) {
@@ -257,7 +286,7 @@ func TestTemplatesRenderSourcesMode(t *testing.T) {
 			t.Fatalf("render %s: %v", name, err)
 		}
 		content := string(b)
-		if name != "dev.yml" && !strings.Contains(content, "\nsources:\n") {
+		if !strings.Contains(content, "\nsources:\n") {
 			t.Fatalf("%s missing sources:\n%s", name, content)
 		}
 		if strings.Contains(content, "kind: graphjin") || strings.Contains(content, "kind: workflow") {

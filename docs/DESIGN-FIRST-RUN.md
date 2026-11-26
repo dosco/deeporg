@@ -535,6 +535,23 @@ What this does not do:
 - **Suggested questions are built from table names with fixed wording**, so an odd table name gives an odd question. A table one role may not read can still appear in a suggestion to that role.
 - **A database cannot be disconnected from the console**, only added or replaced by name.
 
+*Slice 9, two servers in place of three modes — done on 2026-11-25.*
+
+The user's decisions: sources must be present, the API service has no MCP and no model, and it limits data with its own role rules as it always has.
+
+- **There are two servers.** The agent server, and the API service, written `mode: api` (`prod` still means the same). `mode: dev` remains as the agent server with sign-in off, for demos and tests; it is not something a new user is pointed at.
+- **The API service is an API and nothing else.** No agent, catalog, store or MCP server mounts there. The old setting that turned MCP back on in production is gone. With `production: false` a query is saved under its name and replaced when it changes; with `production: true` only saved queries are served (`TestAPIServiceServesSavedQueriesAndNothingAgentic`, `serv/api_service_test.go`).
+- **The API service keeps its role rules with `sources:`.** Before, any config with sources refused `roles[].tables` and generated its rules from `sources[].access`. Now that is true of the agent server only (`IsAPIService`, `core/config.go`). An `access` block on a database source in the API service is a startup error.
+- **A config file must have `sources:`.** One without is refused with the block to add, filled in from its old `database:` section and without its password (`missingSourcesError`, `serv/config.go`). The Go library still accepts its fields directly.
+- **`deeporg serve new` makes an API service.** `dev.yml` and `prod.yml` set `mode: api` and declare the database under `sources:`. The agent, catalog and MCP settings are gone from them.
+
+What this does not do:
+
+- **The code still has the no-sources path**, for the Go library and for about 110 test files that build a config that way. Removing it means moving those tests to sources first.
+- **A file named `dev.yml` with no `mode:` still means `mode: dev`.** Every demo relies on that.
+- **A config with sources and no mode at all keeps its old locked-down posture**, with generated rules. It is not the API service.
+- **The `mcp.allow_*` switches and the three default columns per capability are still there.**
+
 *Remaining slices:* hiding the store's tables from data sources.
 
 **Phase 3: Nothing on disk, and setup on a server.**

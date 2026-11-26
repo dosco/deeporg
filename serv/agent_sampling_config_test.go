@@ -26,7 +26,7 @@ func TestAgentSamplingConfigDistinguishesUnsetFromZero(t *testing.T) {
 		return path
 	}
 
-	const base = "app_name: test\nhost_port: 0.0.0.0:8080\n"
+	const base = "app_name: test\nhost_port: 0.0.0.0:8080\nsources: []\n"
 
 	absent, err := ReadInConfig(write(t, base))
 	if err != nil {
@@ -66,7 +66,7 @@ func TestAgentSamplingConfigDistinguishesUnsetFromZero(t *testing.T) {
 func TestAgentSamplingReadsTheEnvironment(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "dev.yml")
-	if err := os.WriteFile(path, []byte("app_name: test\nhost_port: 0.0.0.0:8080\n"), 0o600); err != nil {
+	if err := os.WriteFile(path, []byte("app_name: test\nhost_port: 0.0.0.0:8080\nsources: []\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	t.Setenv("GJ_AGENT_TEMPERATURE", "0.8")
@@ -88,7 +88,7 @@ func TestAgentSamplingReadsTheEnvironment(t *testing.T) {
 func TestAgentSamplingIsRangeChecked(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "dev.yml")
-	if err := os.WriteFile(path, []byte("app_name: test\nhost_port: 0.0.0.0:8080\nagent:\n  temperature: 5\n"), 0o600); err != nil {
+	if err := os.WriteFile(path, []byte("app_name: test\nhost_port: 0.0.0.0:8080\nsources: []\nagent:\n  temperature: 5\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := ReadInConfig(path); err == nil {

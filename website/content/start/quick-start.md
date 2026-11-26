@@ -71,10 +71,11 @@ There is one limit to know about: DeepORG keeps its own data in a local file for
 
 ## Using config files instead
 
-Before this setup flow, DeepORG was configured with YAML files, and that still works. If the directory you start it in has a `config/` folder, DeepORG uses those files and shows no setup page. This is the path to use when you run DeepORG as an API service for an application, with [saved queries](/start/saved-queries/) and no agent.
+Before this setup flow, DeepORG was configured with YAML files, and that still works. If the directory you start it in has a `config/` folder, DeepORG uses those files and shows no setup page. This is the path to use when you run DeepORG as an API service for an application, with [saved queries](/start/saved-queries/) and no agent. Every config file needs a `sources:` block; `deeporg serve new my-api` writes a project with one.
 
 ```yaml
 # config/dev.yml
+mode: api
 sources:
   - name: app
     kind: database

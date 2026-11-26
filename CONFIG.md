@@ -72,7 +72,11 @@ GraphJin automatically selects the configuration file based on the `GO_ENV` envi
 | `testing`, `test` | `test.yml` |
 | Other values | `{value}.yml` |
 
-The selected config name also supplies the default `mode`: `dev.yml` defaults to `mode: dev`, `prod.yml` defaults to `mode: prod`, and `agentic.yml` defaults to `mode: agentic`. `agentic.yml` is required for `GO_ENV=agentic`; use `inherits: prod` inside `agentic.yml` when an agentic deployment should reuse production settings.
+There are two servers. `mode: agentic` is the agent server. `mode: api` (also written `prod`) is the API service: GraphQL and REST over saved queries, with no agent, catalog or MCP server. In the API service, `production: false` saves each query you run under its name, replacing the earlier one, and `production: true` serves only the saved queries. `mode: dev` is an agent server with sign-in off, which the demos and tests use.
+
+Every config file must have a `sources:` block; a file without one is refused with the block to add.
+
+The selected config name also supplies the default `mode` when the file sets none: `dev.yml` defaults to `mode: dev`, `prod.yml` defaults to `mode: api`, and `agentic.yml` defaults to `mode: agentic`. A project made by `deeporg serve new` sets `mode: api` in `dev.yml` and `prod.yml`. `agentic.yml` is required for `GO_ENV=agentic`; use `inherits: prod` inside `agentic.yml` when an agentic deployment should reuse production settings.
 
 ### Config Inheritance
 
@@ -82,7 +86,7 @@ Use the `inherits` field to inherit configuration from another file, allowing yo
 # prod.yml - inherits all settings from dev.yml and overrides specific ones
 inherits: dev
 
-mode: prod
+production: true
 log_level: "warn"
 web_ui: false
 ```
@@ -443,7 +447,7 @@ workflows:
 | `host_port` | string | `0.0.0.0:8080` | Host and port the service runs on |
 | `host` | string | - | Host to run the service on (alternative to host_port) |
 | `port` | string | - | Port to run the service on (alternative to host_port) |
-| `production` | boolean | `false` | Legacy production switch; prefer `mode: prod` or `mode: agentic` in new configs |
+| `production` | boolean | `false` | In the API service, serve only saved queries. Ignored by the agent server. |
 | `web_ui` | boolean | `false` | Enable the GraphJin web UI |
 | `log_level` | string | `info` | Logging level: `debug`, `error`, `warn`, `info` |
 | `log_format` | string | `auto` | Log format: `auto`, `json`, `simple` |

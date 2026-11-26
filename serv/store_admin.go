@@ -71,6 +71,11 @@ func newStoreAdminService(conf *Config) (*graphjinService, error) {
 	if err := normalizeConfigMode(conf); err != nil {
 		return nil, err
 	}
+	// Databases are declared as sources. Turn them into connections before
+	// opening any, or a store kept in one of them is never found.
+	if err := normalizeServiceSources(conf); err != nil {
+		return nil, err
+	}
 	zlog := util.NewLogger(conf.ShouldUseJSONLogs())
 	s := &graphjinService{
 		conf:       conf,

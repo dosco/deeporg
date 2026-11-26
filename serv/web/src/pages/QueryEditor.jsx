@@ -5,6 +5,8 @@ import { GraphiQL } from "graphiql";
 
 import { PageHeader } from "../components/ui";
 import { useTheme } from "@/components/theme-provider";
+import { useConsole } from "@/components/Layout/console-context";
+import { isAPIService } from "@/app/workspaces";
 import "graphiql/style.css";
 
 const defaultEndpoint = import.meta.env.VITE_DEFAULT_ENDPOINT || "/api/v1/graphql";
@@ -21,8 +23,25 @@ const defaultQuery = `query SourceHealth {
 }
 `;
 
+// An API service has no runtime root to ask about. Its Workbench starts with
+// a note on what happens to the queries written here.
+const apiServiceQuery = `# Write a query for one of your tables and run it.
+#
+# Give it a name, as in "query listProducts". While production is false the
+# query is saved under that name in the queries folder, and saved again when
+# you change it. In production only those saved queries are served.
+
+query listProducts {
+  products(limit: 5) {
+    id
+  }
+}
+`;
+
 const QueryEditor = () => {
   const { resolvedTheme } = useTheme();
+  const { bootstrap } = useConsole();
+  const initialQuery = isAPIService(bootstrap) ? apiServiceQuery : defaultQuery;
   const fetcher = useMemo(() => {
     let apiPath = defaultEndpoint;
     const urlParams = new URLSearchParams(window.location.search);
@@ -49,7 +68,7 @@ const QueryEditor = () => {
         <PageHeader title="Workbench" />
       </div>
       <div className="graphiql-shell min-h-0">
-        <GraphiQL fetcher={fetcher} forcedTheme={resolvedTheme} initialQuery={defaultQuery} />
+        <GraphiQL fetcher={fetcher} forcedTheme={resolvedTheme} initialQuery={initialQuery} />
       </div>
     </div>
   );

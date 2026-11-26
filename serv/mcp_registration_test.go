@@ -237,18 +237,6 @@ func TestLegacyProductionMCPDisabledByDefault(t *testing.T) {
 	}
 }
 
-func TestLegacyProductionMCPExplicitEnable(t *testing.T) {
-	conf := &Config{
-		Serv: Serv{
-			Production: true,
-			MCP:        MCPConfig{disableExplicit: true},
-		},
-	}
-	if listed := mcpToolList(conf); len(listed) == 0 {
-		t.Fatal("expected explicit mcp.disable=false to enable legacy production MCP tools")
-	}
-}
-
 func TestLegacyAgenticMCPEnabledByDefault(t *testing.T) {
 	conf := &Config{
 		Core: core.Config{Mode: "agentic"},

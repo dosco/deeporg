@@ -44,20 +44,9 @@ func (c *Config) mcpDisabled() bool {
 	if c == nil || c.MCP.Disable {
 		return true
 	}
-	if effectiveMode(c) == modeProd {
-		// Source mode: prod hard-gates the agentic surface (security model); the
-		// MCP server never mounts there, even if explicitly enabled.
-		if c.Core.IsSourcesUsed() {
-			return true
-		}
-		// Legacy (non-sources) prod keeps the long-standing escape hatch: MCP is
-		// off by default but an explicit mcp.disable=false re-enables it.
-		if c.MCP.disableExplicit {
-			return false
-		}
-		return true
-	}
-	return false
+	// The API service is an API and nothing else: the MCP server never
+	// mounts there, whatever the config asks for.
+	return effectiveMode(c) == modeProd
 }
 
 func (c *Config) systemControlPlaneEnabled() bool {

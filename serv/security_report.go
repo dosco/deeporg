@@ -422,7 +422,7 @@ func effectiveMode(conf *Config) string {
 		switch strings.ToLower(strings.TrimSpace(conf.Core.Mode)) {
 		case "dev", "development":
 			return modeDev
-		case "prod", "production":
+		case "api", "prod", "production":
 			return modeProd
 		case "agent", "agentic":
 			return modeAgentic

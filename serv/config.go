@@ -1,6 +1,7 @@
 package serv
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -785,6 +786,10 @@ func readInConfig(configFile string, fs afero.Fs) (*Config, error) {
 	}
 	applyConfigNameMode(viper, selectedMode)
 
+	if !viper.IsSet("sources") {
+		return nil, missingSourcesError(viper)
+	}
+
 	config := &Config{viper: viper}
 	config.ConfigPath = cp
 	config.parsedConfig = true
@@ -815,6 +820,72 @@ func readInConfig(configFile string, fs afero.Fs) (*Config, error) {
 	config.webUIExplicit = webUIExplicit
 
 	return config, nil
+}
+
+// missingSourcesError tells the owner of a config file with no `sources:` what
+// to add. Every database is declared as a source; the older top-level
+// `database:` section is no longer read. The block is filled in from that
+// section where there is one, so it can be pasted and the old section deleted.
+func missingSourcesError(vi *viper.Viper) error {
+	file := vi.ConfigFileUsed()
+	if file == "" {
+		file = "the config file"
+	}
+	var b strings.Builder
+	fmt.Fprintf(&b, "%s has no `sources:` block. A database is declared as a source.\n", file)
+	old := vi.InConfig("database")
+	if old {
+		b.WriteString("Add this in place of the `database:` section:\n\n")
+	} else {
+		b.WriteString("Add one, with your own values:\n\n")
+	}
+	b.WriteString("sources:\n  - name: default\n    kind: database\n    default: true\n")
+	line := func(key, value string) {
+		if strings.TrimSpace(value) != "" {
+			fmt.Fprintf(&b, "    %s: %s\n", key, value)
+		}
+	}
+	// Values are taken from the file's own database section and from nowhere
+	// else, so a file without one gets a plain example.
+	get := func(key string) string {
+		if !old {
+			return ""
+		}
+		return vi.GetString("database." + key)
+	}
+	dbType := get("type")
+	if dbType == "" {
+		dbType = "postgres"
+	}
+	line("type", dbType)
+	switch {
+	case get("connection_string") != "":
+		// A connection string usually holds a password, so it is not repeated.
+		line("connection_string", "<your connection string>")
+	case get("path") != "":
+		line("path", get("path"))
+	default:
+		host := get("host")
+		if host == "" {
+			host = "localhost"
+		}
+		line("host", host)
+		line("port", get("port"))
+		dbname := get("dbname")
+		if dbname == "" {
+			dbname = "<your database>"
+		}
+		line("dbname", dbname)
+		line("user", get("user"))
+		if get("password") != "" {
+			line("password", "<your password>")
+		}
+	}
+	line("schema", get("schema"))
+	if vi.InConfig("databases") {
+		b.WriteString("\nEach entry under `databases:` becomes a source of its own in the same way.\n")
+	}
+	return errors.New(b.String())
 }
 
 // NewConfig function creates a new GraphJin configuration from the provided config string

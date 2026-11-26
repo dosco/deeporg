@@ -1,11 +1,11 @@
 # yaml-language-server: $schema=./config.schema.json
 app_name: "{{- .AppName }} Development"
-mode: dev
-# Dev mode includes a private managed artifact store, approved-watch runner,
-# built-in agent, stateful MCP HTTP, and the primitive MCP tools. No feature
-# toggles are needed; add explicit settings only to opt out or customize them.
+# This project is an API service: GraphQL and REST over your database, with
+# nothing agentic in it. There is no agent and no MCP server here. For the
+# agent server, run `deeporg` with no config, or use agentic.yml.
+mode: api
 host_port: 0.0.0.0:8080
-# Defaults on in dev and agentic modes. Set false to disable the console.
+# The console's Workbench is where you try queries while you build.
 web_ui: true
 
 # Log levels: debug, error, warn, info
@@ -20,8 +20,9 @@ http_compress: true
 # enable or disable the server-timing http header
 server_timing: true
 
-# When production mode is 'true' only queries from the queries 
-# folder can be used. 
+# While this is false, a query you run is saved under its name in the queries
+# folder, and saved again when you change it. prod.yml sets it to true: then
+# only the saved queries are served, and a client cannot change one.
 production: false
 
 # Throw a 401 on auth failure for queries that need auth
@@ -152,75 +153,11 @@ auth:
   #   exists: true
   #   value: localhost:8080
 
-# Discovery generations speed warm startup by loading full schema metadata from
-# disk before a background refresh. Redis is optional for this single-process
-# development config.
-discovery_cache:
-  enabled: true
-  path: .graphjin/discovery
-  refresh_interval: 5m
-  startup_wait: 2m
-  retain_generations: 2
-
-# Optional Ax-backed semantic recall for catalog search. It remains lexical-only
-# while disabled and falls back to lexical results on provider errors.
-catalog_search:
-  semantic:
-    enabled: false
-    provider: openai
-    embedding_model: text-embedding-3-small
-    api_key_env: OPENAI_API_KEY
-    base_url: ""
-    dimensions: tiny
-
-# ============================================================================
-# MCP (Model Context Protocol) CONFIGURATION
-# ============================================================================
-# MCP enables AI assistants to interact with GraphJin for schema exploration,
-# query building, and configuration management.
-#
-# In development mode, GraphJin can start without a database configured.
-# Use the MCP config API to add databases dynamically:
-#   - get_current_config: View current configuration
-#   - update_current_config: Add/modify databases, tables, roles, etc.
-# ============================================================================
-
-mcp:
-  # Disable MCP endpoints entirely
-  disable: false
-
-  # Standards-compatible OAuth for hosted MCP clients.
-  # Local development can keep this disabled and use:
-  #   deeporg mcp add codex http://localhost:8080
-  oauth:
-    enabled: false
-    mode: builtin # builtin reuses auth_login; external advertises auth servers
-    scopes: ["mcp"]
-    dynamic_client_registration: true
-    client_id_metadata_documents: true
-
-  # Allow configuration updates via MCP (databases, tables, roles, blocklist, functions)
-  # This enables dynamic database configuration without editing config files
-  allow_config_updates: true
-
-  # Allow mutations (insert/update/delete) through MCP
-  allow_mutations: true
-
-  # Allow raw GraphQL queries (not just saved queries)
-  allow_raw_queries: true
-
-  # Allow the legacy execute_workflow MCP compatibility tool in legacy mode.
-  # In sources mode, use gj_workflow_execution(insert) through GraphQL instead.
-  allow_workflow_execution: true
-
 # ============================================================================
 # SOURCES CONFIGURATION
 # ============================================================================
-# In development mode, application database sources are optional. GraphJin's
-# built-in system roots and workflows use development-mode defaults and do not
-# need source entries.
-#
-# Uncomment and modify one database source below for your database type.
+# Every database is declared as a source. These values come from
+# `deeporg serve new --db-url`; change them to match your development database.
 # You can use either individual fields OR a connection_string (not both).
 # Supported types: postgres, mysql, sqlite, oracle, mssql, mongodb, snowflake
 # ============================================================================
@@ -231,7 +168,26 @@ mcp:
 # GJ_DATABASE_USER
 # GJ_DATABASE_PASSWORD
 
-# --- App database ---
+sources:
+  - name: default
+    kind: database
+    default: true
+    type: {{ printf "%q" .DBType }}
+    host: {{ printf "%q" .DBHost }}
+    port: {{ .DBPort }}
+{{ if eq .DBName "" }}    dbname: "{{ .AppNameSlug }}_development"
+{{ else }}    dbname: {{ printf "%q" .DBName }}
+{{ end }}    user: {{ printf "%q" .DBUser }}
+    password: {{ printf "%q" .DBPass }}
+    #schema: "public"
+
+    # Alternatively, replace the fields above with a connection string.
+    # connection_string: "postgres://user:password@host:5432/database"
+
+# Examples for other database types follow. To use one, replace the source
+# above with it.
+
+# --- PostgreSQL ---
 # sources:
 #   - name: default
 #     kind: database
@@ -410,8 +366,8 @@ blocklist:
 #       # - name: Authorization
 #       #   value: Bearer <stripe_api_key>
 
-# App tables and roles stay inactive until you add an application database
-# source above. Uncomment them together after selecting that source.
+# Tables and roles. The rules under a role are how this API limits what that
+# role can read and write. Uncomment and change them for your own tables.
 # tables:
 #   - # You can create new fields that have a
 #     # real db table backing them

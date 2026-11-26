@@ -14,10 +14,10 @@ func TestServe(t *testing.T) {
 
 // nolint:errcheck
 func readInConfigWithEnvVars(t *testing.T) {
-	devConfig := "app_name: \"App Name\"\n"
+	devConfig := "app_name: \"App Name\"\nsources: []\n"
 	prodConfig := "inherits: dev\n"
 	stageConfig := "inherits: dev\n"
-	agenticConfig := "app_name: \"Agentic App\"\n"
+	agenticConfig := "app_name: \"Agentic App\"\nsources: []\n"
 
 	fs := afero.NewMemMapFs()
 	afero.WriteFile(fs, "/dev.yml", []byte(devConfig), 0o666)
@@ -57,6 +57,7 @@ func TestReadInConfigAgenticCanInheritProd(t *testing.T) {
 	fs := afero.NewMemMapFs()
 	assert.NoError(t, afero.WriteFile(fs, "/prod.yml", []byte(`app_name: "Prod Config"
 mode: prod
+sources: []
 `), 0o666))
 	assert.NoError(t, afero.WriteFile(fs, "/agentic.yml", []byte(`inherits: prod
 `), 0o666))

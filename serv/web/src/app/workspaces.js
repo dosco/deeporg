@@ -26,13 +26,15 @@ export const workspaceDefinitions = {
       { path: "/admin/runtime", label: "Runtime", layout: "collection" },
       // Shown only to an admin on a server that holds accounts.
       { path: "/admin/setup", label: "Setup", layout: "collection", requiresManage: true },
-      { path: "/admin/workbench", label: "Workbench", layout: "canvas" },
+      // The two views an API service has: a place to try queries, and the
+      // reference for the endpoints it serves.
+      { path: "/admin/workbench", label: "Workbench", layout: "canvas", apiService: true },
       { path: "/admin/catalog", label: "Catalog", layout: "collection" },
       { path: "/admin/workflows", label: "Workflows", layout: "collection" },
       { path: "/admin/security", label: "Security", layout: "collection" },
       { path: "/admin/code", label: "Code", layout: "document" },
       { path: "/admin/config", label: "Config", layout: "document" },
-      { path: "/admin/api", label: "API", layout: "document" },
+      { path: "/admin/api", label: "API", layout: "document", apiService: true },
     ],
   },
   trainer: {
@@ -47,6 +49,18 @@ export const workspaceDefinitions = {
 };
 
 export const defaultWorkspaceAvailability = ["user", "admin"];
+
+// isAPIService reports whether the server is an API service and not an agent
+// server.
+export function isAPIService(bootstrap) {
+  return bootstrap?.service === "api";
+}
+
+// homePath is where the console opens: the agent, or on an API service the
+// Workbench.
+export function homePath(bootstrap) {
+  return isAPIService(bootstrap) ? "/admin/workbench" : "/user/agent";
+}
 
 export function workspaceIDFromPath(pathname) {
   const candidate = String(pathname || "").split("/").filter(Boolean)[0];
@@ -68,7 +82,11 @@ export function routeDefinition(pathname) {
 export function visibleItems(workspace, bootstrap) {
   const served = (bootstrap?.workspaces || []).find((candidate) => candidate?.id === workspace?.id);
   const capabilities = new Set(served?.capabilities || []);
+  // An API service has no agent, catalog or control plane, so only the views
+  // that work without them are shown.
+  const apiService = isAPIService(bootstrap);
   return (workspace?.items || []).filter((item) =>
+    (!apiService || item.apiService) &&
     (!item.requiresCapability || capabilities.has(item.requiresCapability)) &&
     (!item.requiresConnect || Boolean(bootstrap?.connect?.mcp_url)) &&
     (!item.requiresManage || Boolean(bootstrap?.manage))

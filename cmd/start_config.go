@@ -69,6 +69,14 @@ func usesStartConfig(cmd *cobra.Command) (file string, ok bool) {
 		}
 		return "", false
 	}
+	// A project made by `deeporg serve new` keeps its config files in its own
+	// folder. Started from inside it, those are the files to use. Before
+	// this, the default of ./config was looked for, not found, and a second
+	// set of files was written there.
+	if info, err := os.Stat("config"); (err != nil || !info.IsDir()) && projectConfigHere() {
+		cpath = "."
+		return "", false
+	}
 	if os.Getenv("GO_ENV") != "" {
 		return "", false
 	}
@@ -95,6 +103,17 @@ func startConfigHome() (string, error) {
 		return "", err
 	}
 	return filepath.Join(home, ".deeporg"), nil
+}
+
+// projectConfigHere reports whether the current directory holds config files
+// of its own, as a project made by `deeporg serve new` does.
+func projectConfigHere() bool {
+	for _, name := range []string{"dev.yml", "prod.yml", "agentic.yml"} {
+		if info, err := os.Stat(name); err == nil && !info.IsDir() {
+			return true
+		}
+	}
+	return false
 }
 
 // loadStartConfig reads the start config at file, creating it with a new

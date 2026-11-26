@@ -1,6 +1,6 @@
 ---
 title: "Install"
-description: "Install the DeepORG CLI and scaffold a local project."
+description: "Install the DeepORG CLI, and scaffold an API service project if you need one."
 nav_group: "start"
 doc_kind: "guide"
 weight: 10
@@ -36,18 +36,15 @@ cd my-api
 deeporg serve
 ```
 
-The generated `dev.yml` and `agentic.yml` deliberately omit feature toggles:
-their mode defaults provide managed artifacts, watches, the built-in agent,
-stateful MCP HTTP, and the primitive MCP tools. `prod.yml` remains opt-in.
-The scaffold also includes a database connection section, saved-query
-directories, and source-mode templates.
+This makes an API service project: GraphQL and REST over your database, with no agent and no MCP server. `dev.yml` and `prod.yml` both set `mode: api` and declare the database under `sources:`.
+
+- With `dev.yml`, a query you run is saved under its name in the `queries` folder, and saved again when you change it.
+- With `prod.yml`, only those saved queries are served, exactly as they were saved.
+
+The scaffold also writes `agentic.yml`, a config-file version of the agent server. Most people do not need it: running `deeporg` with no config starts the agent server and sets it up in the browser, as the [quick start](/start/quick-start/) shows.
 
 {{< verified by="TestCmdNewWritesAgenticAndSourcesTemplates" file="cmd/cmd_new_test.go" line="14" >}}
-{{< verified by="TestTemplatesDecodeAsConfig" file="cmd/cmd_new_test.go" line="83" >}}
-
-The scaffold includes environment-specific config files. Use `dev.yml` for local work, `prod.yml` for locked-down deployments, and `agentic.yml` when MCP/catalog/security surfaces are the main interface.
-
-The generated `dev.yml` sets `mcp.allow_config_updates: true`, so a scaffolded project is configurable from your AI IDE on day one — ask for a database connection or a new role and DeepORG writes it back to `dev.yml`. See [Configure DeepORG from your AI IDE](/agentic/mcp/#configure-deeporg-from-your-ai-ide).
+{{< verified by="TestTemplatesDecodeAsConfig" file="cmd/cmd_new_test.go" line="111" >}}
 
 ## Connect an AI client
 

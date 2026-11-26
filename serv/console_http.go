@@ -52,11 +52,14 @@ type consoleBootstrapWorkspace struct {
 }
 
 type consoleBootstrapResponse struct {
-	SchemaVersion string                      `json:"schema_version"`
-	Identity      consoleBootstrapIdentity    `json:"identity"`
-	Scope         consoleBootstrapScope       `json:"scope"`
-	Workspaces    []consoleBootstrapWorkspace `json:"workspaces"`
-	Features      []string                    `json:"features"`
+	SchemaVersion string `json:"schema_version"`
+	// Service is "api" on an API service, where the console is a place to
+	// try queries and nothing else. It is empty on an agent server.
+	Service    string                      `json:"service,omitempty"`
+	Identity   consoleBootstrapIdentity    `json:"identity"`
+	Scope      consoleBootstrapScope       `json:"scope"`
+	Workspaces []consoleBootstrapWorkspace `json:"workspaces"`
+	Features   []string                    `json:"features"`
 	// Setup is present while a first-run step is still to be done, so the
 	// console can open on it.
 	Setup *consoleBootstrapSetup `json:"setup,omitempty"`
@@ -137,6 +140,18 @@ func (s1 *HttpService) apiV1ConsoleBootstrap(ns *string) http.Handler {
 			})
 		}
 
+		service := ""
+		if s.conf.Core.IsAPIService() {
+			// No agent, catalog or control plane here: the console offers
+			// the Workbench and the API reference.
+			service = "api"
+			workspaces = []consoleBootstrapWorkspace{{
+				ID:           "admin",
+				DefaultPath:  "/admin/workbench",
+				Capabilities: []string{},
+			}}
+		}
+
 		identity := consoleBootstrapIdentity{
 			Role:          role,
 			Authenticated: ctx.Value(core.UserIDKey) != nil,
@@ -181,6 +196,7 @@ func (s1 *HttpService) apiV1ConsoleBootstrap(ns *string) http.Handler {
 		w.Header().Set("Cache-Control", "private, no-store")
 		_ = json.NewEncoder(w).Encode(consoleBootstrapResponse{
 			SchemaVersion: consoleBootstrapSchemaVersion,
+			Service:       service,
 			Identity:      identity,
 			Scope:         scope,
 			Workspaces:    workspaces,

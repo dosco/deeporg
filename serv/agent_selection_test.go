@@ -12,7 +12,7 @@ import (
 
 func TestAgentSelectionEnvironmentAndValidation(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "dev.yml")
-	if err := os.WriteFile(path, []byte("app_name: selection-test\nhost_port: 0.0.0.0:8080\n"), 0600); err != nil {
+	if err := os.WriteFile(path, []byte("app_name: selection-test\nhost_port: 0.0.0.0:8080\nsources: []\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
 	t.Setenv("GJ_AGENT_SELECTION_ENABLED", "true")

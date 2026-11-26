@@ -3,7 +3,11 @@ import { describe, expect, it } from "vitest";
 import {
   availableWorkspaces,
   commandItems,
+  homePath,
+  isAPIService,
   routeDefinition,
+  visibleItems,
+  workspaceDefinitions,
   workspaceIDFromPath,
 } from "./workspaces";
 
@@ -33,5 +37,25 @@ describe("console workspace registry", () => {
       layout: "document",
     });
     expect(routeDefinition("/trainer/reports").workspace.id).toBe("trainer");
+  });
+});
+
+
+describe("an API service", () => {
+  const api = { service: "api", workspaces: [{ id: "admin", default_path: "/admin/workbench", capabilities: [] }] };
+
+  it("opens on the Workbench and shows only what works without an agent", () => {
+    expect(isAPIService(api)).toBe(true);
+    expect(homePath(api)).toBe("/admin/workbench");
+    expect(availableWorkspaces(api).map((workspace) => workspace.id)).toEqual(["admin"]);
+    expect(visibleItems(workspaceDefinitions.admin, api).map((item) => item.label)).toEqual(["Workbench", "API"]);
+    expect(commandItems(api).map((item) => item.path)).toEqual(["/admin/workbench", "/admin/api"]);
+  });
+
+  it("leaves an agent server as it was", () => {
+    const agent = { workspaces: [{ id: "user", capabilities: [] }, { id: "admin", capabilities: [] }] };
+    expect(isAPIService(agent)).toBe(false);
+    expect(homePath(agent)).toBe("/user/agent");
+    expect(visibleItems(workspaceDefinitions.admin, agent).map((item) => item.label)).toContain("Runtime");
   });
 });

@@ -9,7 +9,7 @@ import (
 )
 
 func (gj *graphjinEngine) applySourceAccessRules(dbinfo *sdata.DBInfo, database string) error {
-	if gj == nil || gj.conf == nil || dbinfo == nil || !gj.conf.IsSourcesUsed() {
+	if gj == nil || gj.conf == nil || dbinfo == nil || !gj.conf.generatesSourceAccess() {
 		return nil
 	}
 	source, ok := gj.conf.SourceByName(database)

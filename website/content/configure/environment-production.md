@@ -37,7 +37,8 @@ system:
 
 | Setting | Development | Production |
 | --- | --- | --- |
-| `mode` | `dev` | `prod` |
+| `mode` | `api` | `api` |
+| `production` | `false` | `true` |
 | `web_ui` | `true` | `false` |
 | `auth_fail_block` | `false` | `true` |
 | `disable_allow_list` | `true` | `false` |
@@ -48,16 +49,14 @@ system:
 
 ## Production query model
 
-Production should run reviewed saved queries and disable raw ad hoc operations unless a deployment deliberately opts out for a trusted environment.
+These settings are for the API service. While you build, with `production: false`, a query you run is saved under its name and saved again when you change it. In production only the saved queries are served, and a client cannot change one.
 
 ```yaml
-mode: prod
-disable_production_security: false
-
-mcp:
-  allow_raw_queries: false
-  allow_mutations: false
+mode: api
+production: true
 ```
+
+The API service has no agent and no MCP server, in development or in production.
 
 ## Environment variables
 

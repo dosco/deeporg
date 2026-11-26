@@ -1,4 +1,8 @@
 app_name: "Webshop Development"
+
+# An API service: GraphQL and REST over the database, limited by the role
+# rules below, with nothing agentic in it.
+mode: api
 host_port: 0.0.0.0:8080
 web_ui: true
 
@@ -168,37 +172,40 @@ auth:
 # GJ_DATABASE_USER
 # GJ_DATABASE_PASSWORD
 
-database:
-  type: postgres
-  host: localhost
-  port: 5432
-  dbname: webshop_development
-  user: vr
-  password: postgres
+sources:
+  - name: default
+    kind: database
+    default: true
+    type: postgres
+    host: localhost
+    port: 5432
+    dbname: webshop_development
+    user: vr
+    password: postgres
 
-  # alternatively you can use a connection string
-  #connection_string: postgres://jack:secret@pg.example.com:5432/mydb?sslmode=verify-ca&pool_max_conns=10
+    # alternatively you can use a connection string
+    #connection_string: postgres://jack:secret@pg.example.com:5432/mydb?sslmode=verify-ca&pool_max_conns=10
 
-  #schema: "public"
-  #pool_size: 10
-  #max_retries: 0
-  #log_level: "debug"
+    #schema: "public"
+    #pool_size: 10
+    #max_retries: 0
+    #log_level: "debug"
 
-  # database ping timeout is used for db health checking
-  ping_timeout: 1m
+    # database ping timeout is used for db health checking
+    ping_timeout: 1m
 
-  # Set up an secure tls encrypted db connection
-  enable_tls: false
+    # Set up an secure tls encrypted db connection
+    enable_tls: false
 
-  # Required for tls. For example with Google Cloud SQL it's
-  # <gcp-project-id>:<cloud-sql-instance>"
-  # server_name: blah
-  # Required for tls. Can be a file path or the contents of the pem file
-  # server_cert: ./server-ca.pem
-  # Required for tls. Can be a file path or the contents of the pem file
-  # client_cert: ./client-cert.pem
-  # Required for tls. Can be a file path or the contents of the pem file
-  # client_key: ./client-key.pem
+    # Required for tls. For example with Google Cloud SQL it's
+    # <gcp-project-id>:<cloud-sql-instance>"
+    # server_name: blah
+    # Required for tls. Can be a file path or the contents of the pem file
+    # server_cert: ./server-ca.pem
+    # Required for tls. Can be a file path or the contents of the pem file
+    # client_cert: ./client-cert.pem
+    # Required for tls. Can be a file path or the contents of the pem file
+    # client_key: ./client-key.pem
 
 # Define additional variables here to be used with filters
 variables:

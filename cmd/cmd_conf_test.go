@@ -31,6 +31,11 @@ func writeConfig(t *testing.T, body string) string {
 	t.Helper()
 	dir := t.TempDir()
 	p := filepath.Join(dir, "dev.yml")
+	// A config file declares its databases under sources; one without the
+	// block is no longer read.
+	if !strings.Contains(body, "sources:") {
+		body += "\nsources: []\n"
+	}
 	if err := os.WriteFile(p, []byte(body), 0o600); err != nil {
 		t.Fatalf("write config: %v", err)
 	}

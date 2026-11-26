@@ -28,8 +28,10 @@ func TestStoreAdminInitCreatesTablesIgnoringAutoInit(t *testing.T) {
 	read := func() *Config {
 		return writeStoreAdminConfig(t, `
 app_name: store-admin
-databases:
-  main:
+sources:
+  - name: main
+    kind: database
+    default: true
     type: sqlite
     path: DBPATH
 artifacts:
@@ -78,8 +80,10 @@ threads:
 func TestStoreAdminManagedStore(t *testing.T) {
 	conf := writeStoreAdminConfig(t, `
 app_name: store-admin
-databases:
-  main:
+sources:
+  - name: main
+    kind: database
+    default: true
     type: sqlite
     path: DBPATH
 `)

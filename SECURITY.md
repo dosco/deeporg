@@ -80,7 +80,7 @@ the agent.
 | Mode | Purpose | Agentic surface | Auth posture |
 | ---- | ------- | --------------- | ------------ |
 | `dev` | Local development of the new stack. Not a compatibility mode. | On, wide-open (`public`). | None. No auth. |
-| `prod` | The only pre-agentic backward-compatibility mode. | Off — hard-gated, never mounts, startup warning if explicitly enabled. | Classic public REST/GraphQL over compiled/allow-listed queries with roles/RLS on app data. |
+| `api` (also written `prod`) | The API service: GraphQL and REST over saved queries, as DeepORG worked before agents. | Off — hard-gated, never mounts, startup warning if explicitly enabled. | Roles and the rules written under `roles[].tables`. With `production: true` only saved queries are served. |
 | `agentic` | The new mode for trusted agents (MCP + REST). | On, role-gated. | Verified roles plus `user_id`/`account_id` row filters. |
 
 **dev** is for local development of the new stack, not a backward-compatibility
@@ -106,8 +106,8 @@ Mode selection and safe defaults:
 
 - The mode is selected by `GO_ENV`, by the config filename (`dev.yml`,
   `prod.yml`, `agentic.yml`), or by an explicit `mode:` key in configuration.
-- In source mode, a missing or ambiguous mode fails **closed to `prod`**, never
-  to `dev`. The agentic surface mounts only on an explicit `agentic` mode. This
+- A missing or ambiguous mode fails **closed**, never to `dev`: nothing
+  agentic mounts. The agentic surface mounts only on an explicit `agentic` mode. This
   is the fail-safe for audit finding F1.
 - In agentic mode, `auth.development: true` (header-trust auth, e.g.
   `X-User-Role: admin`) is refused at startup with a fatal config error.
@@ -123,21 +123,35 @@ Mode selection and safe defaults:
   `agent.read_only` (default false), forces the agent to read/discovery-only
   regardless of role for incident response.
 
-## Source Mode And Legacy Mode
+## Sources And Access Rules
 
-`sources:` changes DeepORG into source mode. In that mode, old top-level
-database, filesystem, OpenAPI, metadata, catalog, and table-access sections are
-treated as legacy configuration and should be moved under `sources`.
+Every config file declares its databases under `sources:`. A config file with
+no `sources:` block is refused at startup, with the block to add. The older
+top-level `database:` section is no longer read. (A program that embeds the Go
+library can still pass its connection settings directly; that form is treated
+as the API service.)
 
-Most importantly, source mode rejects user-supplied `roles[].tables` access
-rules. Those rules are the old escape hatch for table-specific query filters,
-mutation presets, column allow lists, and operation blocks. In source mode they
-are generated internally from `sources[].access`.
+How a database source is protected depends on which of the two servers runs:
 
-Legacy mode remains supported for existing applications that do not configure
-`sources:`. Those applications can continue to use `roles_query`, role `match`
-predicates, and `roles[].tables` as before. New multi-user and agentic
-deployments should use source mode.
+- **The agent server** (`mode: agentic`, and `mode: dev` for demos and tests)
+  generates its access rules from each source's `access` block. It refuses
+  hand-written `roles[].tables` rules, so there is one place that says who
+  reads what.
+- **The API service** (`mode: api`) uses the rules written under
+  `roles[].tables`: row filters, mutation presets, column lists and blocked
+  operations. Nothing is generated. A table with no rule is readable by an
+  authenticated role, as it always has been. A source `access` block has no
+  meaning there, and writing one on a database source is a startup error, so
+  a rule is never quietly left unapplied.
+
+A config with sources that names no mode, by `mode:`, by `production: true`,
+by its file name or by `GO_ENV`, is held to a locked-down posture: nothing
+agentic is mounted and access rules are generated.
+
+If you ran a config with sources in `mode: prod` before this change and relied
+on the generated default (rows scoped by `account_id`, tables without it
+blocked), write those limits as `roles[].tables` rules before upgrading.
+Nothing is generated for the API service any more.
 
 ## OpenAPI Outbound Mutations
 

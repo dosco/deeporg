@@ -7,6 +7,7 @@ import { ThemeProvider } from "./components/theme-provider";
 import ErrorBoundary from "./ErrorBoundary";
 import { LoadingState } from "./components/ui";
 import { useConsole } from "./components/Layout/console-context";
+import { homePath } from "./app/workspaces";
 
 import Dashboard from "./pages/Dashboard";
 import CatalogExplorer from "./pages/CatalogExplorer";
@@ -43,7 +44,7 @@ const App = () => {
             <Layout>
               <Suspense fallback={<LoadingState />}>
                 <Routes>
-                  <Route path="/" element={<Navigate to="/user/agent" replace />} />
+                  <Route path="/" element={<Home />} />
                   <Route path="/setup" element={<SetupLanding />} />
                   {/* Layout shows the approval screen at /connect. This keeps the
                       address, with the agent's request, while the console loads. */}
@@ -80,7 +81,7 @@ const App = () => {
                   <Route path="/config" element={<NavigateWithSearch to="/admin/config" />} />
                   <Route path="/databases" element={<NavigateWithSearch to="/admin/runtime" />} />
                   <Route path="/api-docs" element={<NavigateWithSearch to="/admin/api" />} />
-                  <Route path="*" element={<Navigate to="/user/agent" replace />} />
+                  <Route path="*" element={<Home />} />
                 </Routes>
               </Suspense>
             </Layout>
@@ -90,6 +91,16 @@ const App = () => {
     </ErrorBoundary>
   );
 };
+
+// Home sends the browser to where this server's console opens. It waits for
+// the console to know which kind of server it is talking to.
+function Home() {
+  const { bootstrap, isLoading } = useConsole();
+  if (isLoading) {
+    return <LoadingState />;
+  }
+  return <Navigate to={homePath(bootstrap)} replace />;
+}
 
 // SetupLanding holds the setup link's address until the console knows whether
 // setup is still needed. While it is, Layout shows the setup screen in place

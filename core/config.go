@@ -33,13 +33,43 @@ func CanonicalMode(mode string) (string, error) {
 		return "", nil
 	case "dev", "development":
 		return sourcecap.ModeDev, nil
-	case "prod", "production":
+	case "api", "prod", "production":
+		// The API service. "api" is the name to write; "prod" is the older
+		// one and means the same thing.
 		return sourcecap.ModeProd, nil
 	case "agent", "agentic":
 		return sourcecap.ModeAgentic, nil
 	default:
-		return "", fmt.Errorf("unsupported mode %q: supported modes are dev, prod, agentic", mode)
+		return "", fmt.Errorf("unsupported mode %q: supported modes are agentic, api (also written prod) and dev", mode)
 	}
+}
+
+// IsAPIService reports whether DeepORG runs as an API service: GraphQL and
+// REST over saved queries, with nothing agentic mounted. It is the mode
+// written `api` or `prod`, or chosen with `production: true`.
+//
+// A config with sources that names no mode at all is not one: it is held to
+// the locked-down posture it has always had, with nothing agentic mounted and
+// access rules generated from its sources.
+//
+// The API service limits data the way it always has, with the rules written
+// under roles[].tables. The agent server generates its rules from each
+// source's `access` block instead. That is the one difference between the
+// two in how a database source is read.
+func (c *Config) IsAPIService() bool {
+	if c == nil || c.modeUnchosen {
+		return false
+	}
+	if mode, err := CanonicalMode(c.Mode); err == nil && mode != "" {
+		return mode == sourcecap.ModeProd
+	}
+	return c.Production
+}
+
+// generatesSourceAccess reports whether access rules for database sources
+// are generated from sources[].access.
+func (c *Config) generatesSourceAccess() bool {
+	return c != nil && c.IsSourcesUsed() && !c.IsAPIService()
 }
 
 func isAgenticMode(c *Config) bool {
@@ -80,6 +110,7 @@ func (c *Config) NormalizeMode() error {
 			// dev/agentic selection (GO_ENV, dev.yml/agentic.yml, or `mode:`);
 			// anything ambiguous resolves to the locked-down prod posture.
 			mode = sourcecap.ModeProd
+			c.modeUnchosen = true
 		default:
 			// Legacy (non-source) configs keep the long-standing dev default so
 			// existing local development without `sources:` is unaffected.
@@ -271,6 +302,9 @@ func (c *Config) validateIsSourcesUsed() error {
 					name, key, kind, sourcecap.ValidKeyList(kind))
 			}
 		}
+		if kind == sourcecap.KindDatabase && c.IsAPIService() && !source.Access.isUnset() {
+			return fmt.Errorf("sources[%q].access: the API service limits data with the rules under roles[].tables, not with a source's access block. Move these rules there, or set mode: agentic to run the agent server", name)
+		}
 		if err := validateSourceAccessConfig(name, kind, source.Access); err != nil {
 			return err
 		}
@@ -290,14 +324,24 @@ func (c *Config) validateIsSourcesUsed() error {
 			}
 		}
 	}
-	for _, table := range c.Tables {
+	for i, table := range c.Tables {
 		if table.Generated {
 			continue
+		}
+		if c.IsAPIService() && strings.TrimSpace(table.Source) == "" {
+			// An API service's table entries were written before sources
+			// existed. One that names no source belongs to the database it
+			// names, or to the default one.
+			if table.Database == "" {
+				continue
+			}
+			c.Tables[i].Source = table.Database
+			table = c.Tables[i]
 		}
 		if strings.TrimSpace(table.Source) == "" {
 			return fmt.Errorf("tables[%q]: source is required when sources is configured", table.Name)
 		}
-		if table.Database != "" && !c.sourcesNormalized {
+		if table.Database != "" && !c.sourcesNormalized && !c.IsAPIService() {
 			return fmt.Errorf("tables[%q]: database is legacy config; use source instead", table.Name)
 		}
 		if _, ok := seen[table.Source]; !ok {
@@ -305,6 +349,11 @@ func (c *Config) validateIsSourcesUsed() error {
 		}
 	}
 	for _, role := range c.Roles {
+		if c.IsAPIService() {
+			// The API service's own rules. They are how it has always
+			// limited what a role can read and write.
+			break
+		}
 		for _, table := range role.Tables {
 			if !table.Generated {
 				return fmt.Errorf("roles[%q].tables is legacy table access config and is not supported when sources is configured; use sources[].access; next_action: query_catalog(search: \"migrate legacy roles tables to source access\")", role.Name)
@@ -739,6 +788,10 @@ func (c *Config) normalizeSourceAccessDefaults() {
 	}
 	for i := range c.Sources {
 		kind := c.Sources[i].CanonicalKind()
+		if kind == sourcecap.KindDatabase && c.IsAPIService() {
+			// Left unset: roles[].tables decides, and nothing is generated.
+			continue
+		}
 		switch kind {
 		case sourcecap.KindDatabase:
 			c.Sources[i].Access = effectiveDatabaseAccess(c.Sources[i].Access, c.modeForSourceDefaults())
@@ -1672,6 +1725,9 @@ type Config struct {
 	Catalog CatalogConfig `mapstructure:"catalog" json:"catalog" yaml:"catalog" jsonschema:"title=Catalog Graph"`
 
 	sourcesNormalized bool
+	// modeUnchosen is true when the config named no mode and was given the
+	// locked-down one because it has sources. See IsAPIService.
+	modeUnchosen bool
 }
 
 // IdentityConfig declares how request-wide identity is extracted in source mode.
@@ -1751,6 +1807,13 @@ type SourceAccessConfig struct {
 	AdminTables            []string            `mapstructure:"admin_tables" json:"admin_tables" yaml:"admin_tables" jsonschema:"title=Admin Tables"`
 	BlockedTables          []string            `mapstructure:"blocked_tables" json:"blocked_tables" yaml:"blocked_tables" jsonschema:"title=Blocked Tables"`
 	Grants                 []SourceAccessGrant `mapstructure:"grants" json:"grants,omitempty" yaml:"grants,omitempty" jsonschema:"title=Role Grants"`
+}
+
+// isUnset reports whether the config says nothing about access.
+func (a SourceAccessConfig) isUnset() bool {
+	return a.Read == "" && a.Write == "" && a.Delete == "" && a.NamespaceColumn == "" && a.OwnerColumn == "" &&
+		a.MissingNamespaceColumn == "" && len(a.PublicTables) == 0 && len(a.AdminTables) == 0 &&
+		len(a.BlockedTables) == 0 && len(a.Grants) == 0
 }
 
 // SourceAccessGrant gives one role read access to tables of a database
