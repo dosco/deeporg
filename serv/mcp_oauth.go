@@ -77,11 +77,19 @@ type mcpOAuthRefreshToken struct {
 	ExpiresAt time.Time
 }
 
+// mcpOAuthModeAccounts is how a server with local accounts signs MCP clients
+// in when no other MCP sign-in is configured: this server is the
+// authorization server and people approve with their own account.
+const mcpOAuthModeAccounts = "accounts"
+
 func (c *Config) mcpOAuthEnabled() bool {
-	return c != nil && c.MCP.OAuth.Enabled
+	return c != nil && (c.MCP.OAuth.Enabled || c.accountOAuth)
 }
 
 func (c *Config) mcpOAuthMode() string {
+	if !c.MCP.OAuth.Enabled && c.accountOAuth {
+		return mcpOAuthModeAccounts
+	}
 	mode := strings.ToLower(strings.TrimSpace(c.MCP.OAuth.Mode))
 	if mode == "" {
 		return "external"
@@ -90,7 +98,7 @@ func (c *Config) mcpOAuthMode() string {
 }
 
 func validateMCPOAuthConfig(c *Config) error {
-	if c == nil || !c.mcpOAuthEnabled() {
+	if c == nil || !c.MCP.OAuth.Enabled {
 		return nil
 	}
 	switch c.mcpOAuthMode() {
@@ -167,7 +175,7 @@ func (s *graphjinService) registerMCPOAuthMetadataRoutes(mux Mux) {
 	}
 	mux.Handle(oauthProtectedResourceWellKnown, http.HandlerFunc(s.handleMCPOAuthProtectedResourceMetadata))
 	mux.Handle(oauthProtectedResourceWellKnown+"/", http.HandlerFunc(s.handleMCPOAuthProtectedResourceMetadata))
-	if s.conf.mcpOAuthMode() == "builtin" {
+	if mode := s.conf.mcpOAuthMode(); mode == "builtin" || mode == mcpOAuthModeAccounts {
 		mux.Handle(oauthAuthorizationServerWellKnown, http.HandlerFunc(s.handleMCPOAuthAuthorizationServerMetadata))
 		mux.Handle(oidcConfigurationWellKnown, http.HandlerFunc(s.handleMCPOAuthAuthorizationServerMetadata))
 	}
@@ -196,7 +204,7 @@ func (s *graphjinService) handleMCPOAuthAuthorizationServerMetadata(w http.Respo
 		"token_endpoint_auth_methods_supported": []string{"none"},
 		"client_id_metadata_document_supported": s.conf.MCP.OAuth.ClientIDMetadataDocuments,
 	}
-	if s.conf.MCP.OAuth.DynamicClientRegistration {
+	if s.conf.MCP.OAuth.DynamicClientRegistration || s.conf.mcpOAuthMode() == mcpOAuthModeAccounts {
 		body["registration_endpoint"] = issuer + routeMCPOAuthRegister
 	}
 	writeJSONStatus(w, http.StatusOK, body)
@@ -208,6 +216,13 @@ func (s *graphjinService) newMCPAuthHandler() (auth.HandlerFunc, error) {
 	}
 	ac := s.conf.Auth
 	oauthOn := s.conf.mcpOAuthEnabled()
+	if oauthOn && s.conf.mcpOAuthMode() == mcpOAuthModeAccounts {
+		// Tokens are signed by this server for its own accounts, so the
+		// ordinary handler already accepts exactly the right ones. The
+		// challenge that tells a client where to sign in is added by
+		// withAccountOAuthChallenge.
+		return auth.NewAuthHandlerFunc(ac)
+	}
 	if oauthOn && strings.EqualFold(ac.Type, "jwt") {
 		ac.JWT.Audience = ""
 	}
@@ -309,7 +324,20 @@ func (a *authLoginService) handleMCPOAuthRegister(w http.ResponseWriter, r *http
 	if req.TokenEndpointAuthMethod == "" {
 		req.TokenEndpointAuthMethod = "none"
 	}
-	if err := a.state().putOAuthClient(r.Context(), &req, time.Time{}); err != nil {
+	var expires time.Time
+	if a.accounts != nil {
+		// Registration is open to anyone who can reach the server, so it is
+		// rate limited and a client nobody allows is forgotten.
+		who := "register:" + clientAddress(r)
+		if !a.registered.allow(who) {
+			writeOAuthError(w, http.StatusTooManyRequests, "temporarily_unavailable", "too many registrations; wait a minute and try again")
+			return
+		}
+		a.registered.fail(who)
+		expires = now.Add(unusedOAuthClientTTL)
+		_ = a.state().sweep(r.Context(), now)
+	}
+	if err := a.state().putOAuthClient(r.Context(), &req, expires); err != nil {
 		http.Error(w, "failed to store client registration", http.StatusInternalServerError)
 		return
 	}
@@ -380,6 +408,17 @@ func (a *authLoginService) handleMCPOAuthAuthorize(w http.ResponseWriter, r *htt
 		return
 	}
 	now := time.Now()
+	if a.accounts != nil {
+		// Each request is kept until someone answers it, so they are rate
+		// limited and expired ones are cleared as new ones arrive.
+		who := "authorize:" + clientAddress(r)
+		if !a.registered.allow(who) {
+			writeOAuthError(w, http.StatusTooManyRequests, "temporarily_unavailable", "too many sign-in requests; wait a minute and try again")
+			return
+		}
+		a.registered.fail(who)
+		_ = a.state().sweep(r.Context(), now)
+	}
 	err = a.state().putOAuthRequest(r.Context(), oidcState, &mcpOAuthAuthRequest{
 		ClientID:            clientID,
 		RedirectURI:         redirectURI,
@@ -396,6 +435,13 @@ func (a *authLoginService) handleMCPOAuthAuthorize(w http.ResponseWriter, r *htt
 		return
 	}
 
+	if a.accounts != nil {
+		// There is no outside identity provider: the person approves in the
+		// console, signed in with their own account.
+		// The address is relative so it cannot be pointed anywhere else.
+		http.Redirect(w, r, consoleConnectPath+"?request="+url.QueryEscape(oidcState), http.StatusFound)
+		return
+	}
 	redirectTo := a.provider.AuthCodeURL(oidcState, publicBaseURL(r)+routeAuthCallback)
 	http.Redirect(w, r, redirectTo, http.StatusFound)
 }
@@ -514,7 +560,7 @@ func (a *authLoginService) handleMCPOAuthAuthorizationCodeToken(w http.ResponseW
 		writeOAuthError(w, http.StatusBadRequest, "invalid_grant", "code_verifier does not match code_challenge")
 		return
 	}
-	a.writeMCPOAuthTokenResponse(r.Context(), w, authCode.ClientID, authCode.Scope, authCode.Resource, authCode.Identity)
+	a.writeMCPOAuthTokenResponse(r.Context(), w, authCode.ClientID, authCode.Scope, authCode.Resource, authCode.Identity, "")
 }
 
 func (a *authLoginService) handleMCPOAuthRefreshToken(w http.ResponseWriter, r *http.Request) {
@@ -538,10 +584,20 @@ func (a *authLoginService) handleMCPOAuthRefreshToken(w http.ResponseWriter, r *
 		writeOAuthError(w, http.StatusBadRequest, "invalid_target", "resource does not match refresh token")
 		return
 	}
-	a.writeMCPOAuthTokenResponse(r.Context(), w, rt.ClientID, rt.Scope, rt.Resource, rt.Identity)
+	keep := ""
+	if a.accounts != nil {
+		// The same renewal token is used until it expires, when the person
+		// is asked again. Issuing a new one each hour would leave a trail of
+		// live tokens behind every connected agent.
+		keep = refresh
+	}
+	a.writeMCPOAuthTokenResponse(r.Context(), w, rt.ClientID, rt.Scope, rt.Resource, rt.Identity, keep)
 }
 
-func (a *authLoginService) writeMCPOAuthTokenResponse(ctx context.Context, w http.ResponseWriter, clientID, scope, resource string, ident *oidc.Identity) {
+// writeMCPOAuthTokenResponse answers with a new access token. keepRefresh, when
+// set, is the renewal token the client already holds and goes on using;
+// otherwise a new one is issued.
+func (a *authLoginService) writeMCPOAuthTokenResponse(ctx context.Context, w http.ResponseWriter, clientID, scope, resource string, ident *oidc.Identity, keepRefresh string) {
 	if ident == nil {
 		writeOAuthError(w, http.StatusInternalServerError, "server_error", "missing identity")
 		return
@@ -554,34 +610,56 @@ func (a *authLoginService) writeMCPOAuthTokenResponse(ctx context.Context, w htt
 		"sub":   ident.NamespacedSubject(),
 		"email": ident.Email,
 		"name":  ident.Name,
-		"aud":   resource,
-		"scope": scope,
-		"exp":   time.Now().Add(ttl).Unix(),
 	}
+	if a.accounts != nil {
+		// The token names the account and nothing else. Its role is read
+		// from the account store each time it is used, and an account that
+		// has been removed gets no new token.
+		account, err := a.accounts.get(ctx, ident.Subject)
+		if err != nil {
+			writeOAuthError(w, http.StatusInternalServerError, "server_error", "failed to read the account")
+			return
+		}
+		if account == nil || account.Disabled {
+			writeOAuthError(w, http.StatusBadRequest, "invalid_grant", "the account is no longer active")
+			return
+		}
+		claims = localAccountClaims(account, a.userIDClaim)
+		claims[agentTokenClaim] = clientID
+	}
+	claims["aud"] = resource
+	if a.accounts != nil && a.jwtAudience != "" && a.jwtAudience != resource {
+		claims["aud"] = []string{resource, a.jwtAudience}
+	}
+	claims["scope"] = scope
+	claims["exp"] = time.Now().Add(ttl).Unix()
 	tok, err := a.issuer.Mint(claims)
 	if err != nil {
 		writeOAuthError(w, http.StatusInternalServerError, "server_error", "failed to mint token")
 		return
 	}
-	refreshTTL := a.mcpOAuth.RefreshTokenTTL
-	if refreshTTL <= 0 {
-		refreshTTL = 720 * time.Hour
-	}
-	refresh, err := randomURLToken(32)
-	if err != nil {
-		writeOAuthError(w, http.StatusInternalServerError, "server_error", "failed to mint refresh token")
-		return
-	}
-	err = a.state().putRefreshToken(ctx, refresh, &mcpOAuthRefreshToken{
-		ClientID:  clientID,
-		Scope:     scope,
-		Resource:  resource,
-		Identity:  ident,
-		ExpiresAt: time.Now().Add(refreshTTL),
-	})
-	if err != nil {
-		writeOAuthError(w, http.StatusInternalServerError, "server_error", "failed to store refresh token")
-		return
+	refresh := keepRefresh
+	if refresh == "" {
+		refreshTTL := a.mcpOAuth.RefreshTokenTTL
+		if refreshTTL <= 0 {
+			refreshTTL = 720 * time.Hour
+		}
+		refresh, err = randomURLToken(32)
+		if err != nil {
+			writeOAuthError(w, http.StatusInternalServerError, "server_error", "failed to mint refresh token")
+			return
+		}
+		err = a.state().putRefreshToken(ctx, refresh, &mcpOAuthRefreshToken{
+			ClientID:  clientID,
+			Scope:     scope,
+			Resource:  resource,
+			Identity:  ident,
+			ExpiresAt: time.Now().Add(refreshTTL),
+		})
+		if err != nil {
+			writeOAuthError(w, http.StatusInternalServerError, "server_error", "failed to store refresh token")
+			return
+		}
 	}
 	writeJSONStatus(w, http.StatusOK, map[string]any{
 		"access_token":  tok,

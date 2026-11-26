@@ -42,6 +42,9 @@ const (
 	// localAccountClaim holds the account id in a session this server signed
 	// for a local account.
 	localAccountClaim = "gj_account"
+	// agentTokenClaim marks a token given to an agent that signed in through
+	// MCP, and names the client it was given to.
+	agentTokenClaim = "gj_agent"
 
 	accountRoleAdmin = "admin"
 	accountRoleUser  = "user"
@@ -309,18 +312,9 @@ func (s *graphjinService) mintAccountSession(account *localAccount) (string, tim
 	if err != nil {
 		return "", time.Time{}, err
 	}
-	id := s.conf.Core.EffectiveIdentityConfig()
 	exp := time.Now().Add(consoleSessionTTL)
-	claims := jwt.MapClaims{
-		"sub":             account.ID,
-		"email":           account.Email,
-		"name":            account.Email,
-		"exp":             exp.Unix(),
-		localAccountClaim: account.ID,
-	}
-	if id.UserIDClaim != "" {
-		claims[id.UserIDClaim] = account.ID
-	}
+	claims := localAccountClaims(account, s.conf.Core.EffectiveIdentityConfig().UserIDClaim)
+	claims["exp"] = exp.Unix()
 	tok, err := iss.Mint(claims)
 	if err != nil {
 		return "", time.Time{}, err
@@ -328,10 +322,39 @@ func (s *graphjinService) mintAccountSession(account *localAccount) (string, tim
 	return tok, exp, nil
 }
 
+// localAccountClaims are what a token signed for a local account says: who it
+// is, and never what it may do.
+func localAccountClaims(account *localAccount, userIDClaim string) jwt.MapClaims {
+	claims := jwt.MapClaims{
+		"sub":             account.ID,
+		"email":           account.Email,
+		"name":            account.Email,
+		localAccountClaim: account.ID,
+	}
+	if userIDClaim != "" {
+		claims[userIDClaim] = account.ID
+	}
+	return claims
+}
+
 // withLocalAccounts resolves a session signed for a local account against the
 // store. A removed or disabled account is refused, and the role comes from
 // the store, never from the token.
+//
+// A token handed to an agent through MCP sign-in is good at the MCP endpoint
+// only. Everywhere else it is refused, so what a connected agent can do is
+// what the MCP tools let it do and no more.
 func (s *graphjinService) withLocalAccounts(ah auth.HandlerFunc) auth.HandlerFunc {
+	return s.resolveLocalAccounts(ah, false)
+}
+
+// withLocalAccountsForMCP is withLocalAccounts for the MCP endpoint, the one
+// place an agent's token is accepted.
+func (s *graphjinService) withLocalAccountsForMCP(ah auth.HandlerFunc) auth.HandlerFunc {
+	return s.resolveLocalAccounts(ah, true)
+}
+
+func (s *graphjinService) resolveLocalAccounts(ah auth.HandlerFunc, mcpEndpoint bool) auth.HandlerFunc {
 	if ah == nil || s == nil || s.accounts == nil {
 		return ah
 	}
@@ -341,9 +364,13 @@ func (s *graphjinService) withLocalAccounts(ah auth.HandlerFunc) auth.HandlerFun
 		if err != nil || ctx == nil {
 			return ctx, err
 		}
-		id, ok := auth.UserClaims(ctx)[localAccountClaim].(string)
+		claims := auth.UserClaims(ctx)
+		id, ok := claims[localAccountClaim].(string)
 		if !ok || id == "" {
 			return ctx, nil
+		}
+		if _, agent := claims[agentTokenClaim]; agent && !mcpEndpoint {
+			return nil, auth.Err401
 		}
 		account, err := accounts.get(ctx, id)
 		if err != nil {
@@ -401,18 +428,31 @@ func (s1 *HttpService) Setup(ah auth.HandlerFunc) http.Handler {
 		}
 		switch {
 		case r.URL.Path == routeSetup && r.Method == http.MethodGet:
-			writeJSONStatus(w, http.StatusOK, map[string]any{
+			state := map[string]any{
+				"boot":           setupBootID,
 				"needs_admin":    s.setupNeedsAdmin(r.Context()),
 				"needs_database": s.setupNeedsDatabase(),
 				"needs_model":    s.setupNeedsModel(),
 				"sample_data":    s.storeBacked() && s.sampleData != nil,
-			})
+			}
+			// Someone signed in is also told how many tables the connected
+			// databases have, so the database step can say what it found.
+			if ctx, err := withConsoleSession(ah)(w, r); err == nil && auth.IsAuth(ctx) {
+				state["tables"] = len(s.connectedTables())
+			}
+			writeJSONStatus(w, http.StatusOK, state)
 		case r.URL.Path == routeSetupAdmin && r.Method == http.MethodPost:
 			s.setupCreateAdmin(w, r, ah)
 		case r.URL.Path == routeSetupDatabase && r.Method == http.MethodPost:
 			s.setupConnectDatabase(w, r, ah)
 		case r.URL.Path == routeSetupModel && r.Method == http.MethodPost:
 			s.setupChooseModel(w, r, ah)
+		case r.URL.Path == routeSetupDetails && r.Method == http.MethodGet:
+			s.setupDetails(w, r, ah)
+		case r.URL.Path == routeSetupInvites:
+			s.setupInvites(w, r, ah)
+		case r.URL.Path == routeSetupInvite:
+			s.setupInvite(w, r)
 		default:
 			http.Error(w, "not found", http.StatusNotFound)
 		}

@@ -9,7 +9,9 @@ import { consoleLoginURL, signInAsDemo, signInWithPassword, signInWithToken, sig
 // SignInPanel is the identity sheet on a server that only trusts JWTs. The
 // development identity headers do nothing there, so the console signs in to a
 // server-held session instead. onChange runs after the session starts or ends.
-const SignInPanel = ({ state, onChange }) => {
+// intro is the line above the form; a page that has already said why the
+// person is signing in passes an empty one.
+const SignInPanel = ({ state, onChange, intro = "Sign in to see your agents, threads and watches." }) => {
   const [token, setToken] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -51,7 +53,7 @@ const SignInPanel = ({ state, onChange }) => {
   const has = (method) => state.methods.includes(method);
   return (
     <div className="grid content-start gap-4 overflow-y-auto py-5">
-      <p className="text-sm text-muted-foreground">Sign in to see your agents, threads and watches.</p>
+      {intro && <p className="text-sm text-muted-foreground">{intro}</p>}
       {has("oidc") && state.loginURL && (
         <Button asChild>
           <a href={consoleLoginURL(state.loginURL)}>Sign in with single sign-on</a>

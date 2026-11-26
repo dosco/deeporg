@@ -3,7 +3,8 @@ import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { AgentInspector, AnswerFeedback, ApprovalCard, groupActionsByDelegate, groupThreadsByAgent, ResponseSummaryBadges, ThinkingMessage, ThreadList } from "./AgentChat";
+import { AgentDisabledAlert, AgentInspector, AnswerFeedback, ApprovalCard, groupActionsByDelegate, groupThreadsByAgent, ResponseSummaryBadges, starterPrompts, ThinkingMessage, ThreadList } from "./AgentChat";
+import { ConsoleProvider } from "@/components/Layout/console-context";
 
 afterEach(() => {
   cleanup();
@@ -245,5 +246,47 @@ describe("streaming reply", () => {
     render(<ThinkingMessage actions={[]} text="There are 2 open" />);
     expect(screen.getByLabelText("Reply so far")).toHaveTextContent("There are 2 open");
     expect(screen.getByText("writing")).toBeInTheDocument();
+  });
+});
+
+describe("first questions", () => {
+  it("asks about the connected tables when the server suggests questions", () => {
+    const prompts = starterPrompts(["How many accounts are there?", "", "What data can I ask about?"]);
+    expect(prompts.map((prompt) => prompt.text)).toEqual(["How many accounts are there?", "What data can I ask about?"]);
+  });
+
+  it("falls back to general questions when there are no tables to ask about", () => {
+    expect(starterPrompts(undefined).map((prompt) => prompt.text)).toContain("What data can I ask about?");
+    expect(starterPrompts([]).length).toBeGreaterThan(0);
+  });
+});
+
+describe("the agent is off", () => {
+  const status = { enabled: true, api_key_configured: false, api_key_env: "DEEPORG_MODEL_KEY" };
+  const renderAlert = (bootstrap) => render(
+    <ConsoleProvider value={{ bootstrap, isLoading: false, error: null }}>
+      <AgentDisabledAlert status={status} />
+    </ConsoleProvider>
+  );
+
+  it("offers the model step to an admin on a server set up from the setup page", () => {
+    renderAlert({ identity: { role: "admin" }, setup: { needs_model: true } });
+    expect(screen.getByText("The agent has no model yet")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Choose a model" })).toBeInTheDocument();
+    // A newcomer is never told to set an environment variable.
+    expect(screen.queryByText(/environment/)).not.toBeInTheDocument();
+    expect(screen.queryByText("DEEPORG_MODEL_KEY")).not.toBeInTheDocument();
+  });
+
+  it("sends anyone else to their admin", () => {
+    renderAlert({ identity: { role: "user" }, setup: { needs_model: true } });
+    expect(screen.getByText("Ask your admin to choose one.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Choose a model" })).not.toBeInTheDocument();
+  });
+
+  it("names the variable on a server run from config files", () => {
+    renderAlert({ identity: { role: "admin" } });
+    expect(screen.getByText("Agent key is missing")).toBeInTheDocument();
+    expect(screen.getByText("DEEPORG_MODEL_KEY")).toBeInTheDocument();
   });
 });

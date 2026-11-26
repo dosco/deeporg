@@ -42,7 +42,11 @@ func validateConf(s *graphjinService) error {
 	}
 
 	if !anonFound && s.conf.DefaultBlock {
-		s.log.Warn("unauthenticated requests will be blocked. no role 'anon' defined")
+		// An agentic server requires sign-in, so having nothing for people
+		// who have not signed in is what was asked for, not a warning.
+		if effectiveMode(s.conf) != modeAgentic {
+			s.log.Warn("unauthenticated requests will be blocked. no role 'anon' defined")
+		}
 		s.conf.AuthFailBlock = false
 	}
 
@@ -205,7 +209,11 @@ func (s *graphjinService) initDB() error {
 
 	// In dev mode, allow starting without a database configured
 	if !s.conf.Serv.Production && !s.isDatabaseConfigured() {
-		s.log.Warn("No databases configured. Use MCP to add a database configuration.")
+		// An install set up from the setup page connects its database
+		// there, and the page says so.
+		if s.conf.storePath == "" {
+			s.log.Warn("No databases configured. Use MCP to add a database configuration.")
+		}
 		return nil
 	}
 

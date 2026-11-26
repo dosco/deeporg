@@ -114,7 +114,7 @@ func startHTTP(s1 *HttpService) {
 	// 	fields = append(fields, zap.String("deployment-name", dep))
 	// }
 
-	s.zlog.Info("GraphJin started", fields...)
+	s.zlog.Info("DeepORG started", fields...)
 	printDevModeInfo(s)
 	printMCPInfo(s)
 	logSetupLink(s)
@@ -148,7 +148,9 @@ func setServerHeader(h http.Handler) http.Handler {
 
 // printDevModeInfo prints useful development information on startup
 func printDevModeInfo(s *graphjinService) {
-	if s.conf.Serv.Production {
+	// An install set up from the setup page is told one thing when it starts:
+	// where to go in a browser. The CLI prints that.
+	if s.conf.Serv.Production || s.conf.storePath != "" {
 		return
 	}
 
@@ -195,6 +197,10 @@ func printDevModeInfo(s *graphjinService) {
 // It is logged as a warning so it shows at the generated config's log level,
 // and in JSON logs on a server where nobody is watching a terminal.
 func logSetupLink(s *graphjinService) {
+	// A start-config install is told the link by the CLI, once.
+	if s.conf.storePath != "" {
+		return
+	}
 	if link := setupLink(s); link != "" {
 		s.log.Warnf("No admin account exists yet. Finish setup at %s", link)
 	}

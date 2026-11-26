@@ -29,39 +29,41 @@ const (
 )
 
 type agentStatusResponse struct {
-	Status               string                   `json:"status"`
-	Enabled              bool                     `json:"enabled"`
-	Ready                bool                     `json:"ready"`
-	RESTReady            bool                     `json:"rest_ready"`
-	ServerModelReady     bool                     `json:"server_model_ready"`
-	Endpoint             string                   `json:"endpoint"`
-	MCPTool              string                   `json:"mcp_tool"`
-	Provider             string                   `json:"provider"`
-	Model                string                   `json:"model,omitempty"`
-	APIKeyEnv            string                   `json:"api_key_env"`
-	APIKeyFile           string                   `json:"api_key_file,omitempty"`
-	APIKeyConfigured     bool                     `json:"api_key_configured"`
-	ResponseFormat       string                   `json:"response_format"`
-	StructuredOutputMode string                   `json:"structured_output_mode"`
-	ServiceTier          string                   `json:"service_tier"`
-	MaxSteps             int                      `json:"max_steps"`
-	Reasoning            string                   `json:"reasoning,omitempty"`
-	ShowThoughts         bool                     `json:"show_thoughts"`
-	Temperature          *float64                 `json:"temperature,omitempty"`
-	TopP                 *float64                 `json:"top_p,omitempty"`
-	RateLimit            gjagent.RateLimitConfig  `json:"rate_limit"`
-	TimeoutSeconds       int                      `json:"timeout_seconds"`
-	ReadOnly             bool                     `json:"read_only"`
-	ReturnTrace          bool                     `json:"return_trace"`
-	Namespace            string                   `json:"namespace,omitempty"`
-	RoleClass            string                   `json:"role_class,omitempty"`
-	AllowedActions       []string                 `json:"allowed_actions,omitempty"`
-	AvailableSystemRoots []string                 `json:"available_system_roots,omitempty"`
-	BlockedSystemRoots   []string                 `json:"blocked_system_roots,omitempty"`
-	EvalFingerprint      string                   `json:"eval_fingerprint,omitempty"`
-	Selection            *gjagent.SelectionConfig `json:"selection,omitempty"`
-	ThreadsEnabled       bool                     `json:"threads_enabled"`
-	MemoryEnabled        bool                     `json:"memory_enabled"`
+	Status               string                  `json:"status"`
+	Enabled              bool                    `json:"enabled"`
+	Ready                bool                    `json:"ready"`
+	RESTReady            bool                    `json:"rest_ready"`
+	ServerModelReady     bool                    `json:"server_model_ready"`
+	Endpoint             string                  `json:"endpoint"`
+	MCPTool              string                  `json:"mcp_tool"`
+	Provider             string                  `json:"provider"`
+	Model                string                  `json:"model,omitempty"`
+	APIKeyEnv            string                  `json:"api_key_env"`
+	APIKeyFile           string                  `json:"api_key_file,omitempty"`
+	APIKeyConfigured     bool                    `json:"api_key_configured"`
+	ResponseFormat       string                  `json:"response_format"`
+	StructuredOutputMode string                  `json:"structured_output_mode"`
+	ServiceTier          string                  `json:"service_tier"`
+	MaxSteps             int                     `json:"max_steps"`
+	Reasoning            string                  `json:"reasoning,omitempty"`
+	ShowThoughts         bool                    `json:"show_thoughts"`
+	Temperature          *float64                `json:"temperature,omitempty"`
+	TopP                 *float64                `json:"top_p,omitempty"`
+	RateLimit            gjagent.RateLimitConfig `json:"rate_limit"`
+	TimeoutSeconds       int                     `json:"timeout_seconds"`
+	ReadOnly             bool                    `json:"read_only"`
+	ReturnTrace          bool                    `json:"return_trace"`
+	Namespace            string                  `json:"namespace,omitempty"`
+	RoleClass            string                  `json:"role_class,omitempty"`
+	AllowedActions       []string                `json:"allowed_actions,omitempty"`
+	AvailableSystemRoots []string                `json:"available_system_roots,omitempty"`
+	BlockedSystemRoots   []string                `json:"blocked_system_roots,omitempty"`
+	// Starters are first questions drawn from the connected tables.
+	Starters        []string                 `json:"starters,omitempty"`
+	EvalFingerprint string                   `json:"eval_fingerprint,omitempty"`
+	Selection       *gjagent.SelectionConfig `json:"selection,omitempty"`
+	ThreadsEnabled  bool                     `json:"threads_enabled"`
+	MemoryEnabled   bool                     `json:"memory_enabled"`
 	// LeadEnabled says whether this endpoint holds a conversation. Without the
 	// lead a request carrying history or a thread is refused, so a client that
 	// means to send either can find out here first.
@@ -114,6 +116,11 @@ func (s1 *HttpService) apiV1AgentStatus(ns *string) http.Handler {
 			status.BlockedSystemRoots = append([]string(nil), profile.BlockedSystemRoots...)
 		}
 		status.EvalFingerprint = agentEvalFingerprint(status)
+		// Suggestions are for the page and say nothing about how the agent
+		// is set up, so they stay out of the fingerprint.
+		if auth.IsAuth(r.Context()) || effectiveMode(s.conf) != modeAgentic {
+			status.Starters = s.agentStarters()
+		}
 		_ = json.NewEncoder(w).Encode(status)
 	}
 	return http.HandlerFunc(h)

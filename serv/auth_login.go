@@ -66,6 +66,16 @@ type authLoginService struct {
 	provider *oidc.Provider
 	issuer   *issuer.Issuer
 
+	// accounts is set when people sign in with a local account and there is
+	// no outside identity provider; provider is then nil. userIDClaim is the
+	// claim the server reads the user id from.
+	accounts    *accountService
+	userIDClaim string
+	// jwtAudience is the audience this server requires of every token, if it
+	// requires one. registered limits how fast clients can register.
+	jwtAudience string
+	registered  *signInLimiter
+
 	// store holds login state shared across replicas. When nil the maps
 	// below are used instead (single-process fallback).
 	store authStateStore
@@ -194,11 +204,13 @@ func (a *authLoginService) gc(ctx context.Context) {
 // ---- handlers ----
 
 func (a *authLoginService) routes(mux Mux) {
-	mux.Handle(routeAuthDevice, http.HandlerFunc(a.handleDevice))
-	mux.Handle(routeAuthDeviceToken, http.HandlerFunc(a.handleDeviceToken))
-	mux.Handle(routeAuthLogin, http.HandlerFunc(a.handleLogin))
-	mux.Handle(routeAuthCallback, http.HandlerFunc(a.handleCallback))
-	mux.Handle(routeAuthConsoleLogin, http.HandlerFunc(a.handleConsoleLogin))
+	if a.provider != nil {
+		mux.Handle(routeAuthDevice, http.HandlerFunc(a.handleDevice))
+		mux.Handle(routeAuthDeviceToken, http.HandlerFunc(a.handleDeviceToken))
+		mux.Handle(routeAuthLogin, http.HandlerFunc(a.handleLogin))
+		mux.Handle(routeAuthCallback, http.HandlerFunc(a.handleCallback))
+		mux.Handle(routeAuthConsoleLogin, http.HandlerFunc(a.handleConsoleLogin))
+	}
 	if a.mcpOAuthEnabledBuiltin() {
 		mux.Handle(routeMCPOAuthAuthorize, http.HandlerFunc(a.handleMCPOAuthAuthorize))
 		mux.Handle(routeMCPOAuthToken, http.HandlerFunc(a.handleMCPOAuthToken))

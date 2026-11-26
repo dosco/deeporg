@@ -31,7 +31,7 @@ describe("setup: connect your data", () => {
       { status: 200, body: { name: "main", type: "postgres", restarting: true } },
       "down",
       { status: 200, body: { needs_admin: false, needs_database: true } },
-      { status: 200, body: { needs_admin: false, needs_database: false } },
+      { status: 200, body: { needs_admin: false, needs_database: false, tables: 7 } },
     ]);
     const onDone = vi.fn();
     render(<SetupDatabase onDone={onDone} />);
@@ -43,7 +43,12 @@ describe("setup: connect your data", () => {
     fireEvent.click(connect);
 
     expect(await screen.findByRole("status")).toHaveTextContent("Connected. Starting up with your database");
-    await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1), { timeout: 5000 });
+    // The person is told what was found before moving on.
+    expect(await screen.findByRole("heading", { name: "Your data is connected" }, { timeout: 5000 })).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("We found 7 tables.");
+    expect(onDone).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    expect(onDone).toHaveBeenCalledTimes(1);
     const [url, options] = fetchMock.mock.calls[0];
     expect(url).toBe("/api/v1/setup/database");
     expect(JSON.parse(options.body)).toEqual({ url: "postgres://u:p@db.example.com:5432/shop" });
@@ -78,7 +83,11 @@ describe("setup: connect your data", () => {
     fireEvent.change(screen.getByLabelText("Database password"), { target: { value: "s3cret" } });
     fireEvent.click(screen.getByRole("button", { name: "Connect" }));
 
-    await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1), { timeout: 5000 });
+    expect(await screen.findByRole("heading", { name: "Your data is connected" }, { timeout: 5000 })).toBeInTheDocument();
+    // An older server does not say how many tables it found.
+    expect(screen.getByRole("status")).toHaveTextContent("The connection works.");
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    expect(onDone).toHaveBeenCalledTimes(1);
     expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ type: "postgres", host: "db.internal", port: 0, database: "shop", user: "reader", password: "s3cret" });
   });
 
@@ -93,7 +102,8 @@ describe("setup: connect your data", () => {
 
     rerender(<SetupDatabase onDone={onDone} sampleData />);
     fireEvent.click(screen.getByRole("button", { name: "Use sample data" }));
-    await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1), { timeout: 5000 });
+    fireEvent.click(await screen.findByRole("button", { name: "Continue" }, { timeout: 5000 }));
+    expect(onDone).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0][0]).toBe("/api/v1/setup/database");
     expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ sample: true });
   });

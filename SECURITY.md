@@ -215,6 +215,32 @@ and `$user_id`. These values must come from verified auth context. Client
 provided GraphQL variables with the same names are ignored or rejected for
 generated identity checks.
 
+### Local accounts and connected agents
+
+An agentic server signed with its own JWT secret holds accounts of its own.
+People sign in with an email and a password. The first admin is created through
+a one-time setup link; everyone else joins by an invite link an admin makes,
+which works once, for a week, and is stored as a hash.
+
+A session names the account and carries no role. The role is read from the
+account store on every request, so a change to an account takes effect at once.
+
+An MCP client signs in with the same account, through the standard
+authorization-code flow with PKCE. The person approves it in the console, which
+shows the account the client will act as and where the client sends the browser
+afterwards. The token the client receives:
+
+- names the account and the client, and carries no role;
+- is accepted at the MCP endpoint only, so GraphQL, REST and the console's own
+  endpoints refuse it;
+- lasts one hour, and is renewed for up to 30 days before the person is asked
+  again.
+
+Client registration is open to anyone who can reach the server, as the flow
+requires. It is rate limited per address, and a client nobody approves is
+forgotten after a week. Accounts, invites, clients and renewal tokens live in
+the store's keyed table, which no role can read through GraphQL.
+
 ## Source Access Defaults
 
 Database sources get secure defaults:

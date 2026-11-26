@@ -1339,6 +1339,12 @@
           "show_thoughts": {
             "type": "boolean"
           },
+          "starters": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "status": {
             "type": "string"
           },

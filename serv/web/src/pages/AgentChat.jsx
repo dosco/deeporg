@@ -45,6 +45,8 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { useConsole } from "@/components/Layout/console-context";
+import { returnToModelStep, setupState } from "@/services/session";
 import { AnswerDisplays } from "./AnswerDisplay";
 
 const initialMessages = [];
@@ -340,7 +342,7 @@ const AgentChat = () => {
           id: messageID(),
           role: "assistant",
           status: "error",
-          content: error.message || "The GraphJin agent request failed.",
+          content: error.message || "The agent request failed.",
           response: {
             status: "error",
             errors: error.errors?.length ? error.errors : [{ message: error.message }],
@@ -406,7 +408,7 @@ const AgentChat = () => {
             <MessageScrollerContent className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6">
               {messages.length === 0 ? (
                 <MessageScrollerItem scrollAnchor>
-                  <EmptyAgentState ready={ready} onSelectPrompt={setInstruction} />
+                  <EmptyAgentState ready={ready} starters={status?.starters} onSelectPrompt={setInstruction} />
                 </MessageScrollerItem>
               ) : (
                 messages.map((message, index) => (
@@ -800,13 +802,20 @@ function useDesktopLayout() {
   return desktop;
 }
 
-function EmptyAgentState({ ready, onSelectPrompt }) {
+// starterPrompts prefers the questions the server drew from the connected
+// tables. A server with no tables to ask about gets the general ones.
+export function starterPrompts(starters) {
+  const fromTables = (starters || []).filter((text) => typeof text === "string" && text.trim() !== "");
+  return fromTables.length > 0 ? fromTables.map((text) => ({ label: text, text })) : promptStarters;
+}
+
+function EmptyAgentState({ ready, starters, onSelectPrompt }) {
   return (
     <div className="flex min-h-[18rem] items-center justify-center p-4 md:min-h-[26rem] md:p-6">
       <div className="grid max-w-2xl justify-items-center gap-4 text-center md:gap-5">
         <p className="text-[2rem] font-extrabold leading-tight tracking-[-0.03em] text-foreground">{ready ? "Ask about your data" : "The agent is off"}</p>
         <div className="grid w-full gap-1 text-left">
-          {promptStarters.map((prompt) => (
+          {starterPrompts(starters).map((prompt) => (
             <button
               type="button"
               key={prompt.label}
@@ -1016,16 +1025,38 @@ function StatusRow({ label, value }) {
   );
 }
 
-function AgentDisabledAlert({ status }) {
+// AgentDisabledAlert says why the agent is off and what to do about it. On a
+// server set up from the setup page the fix is the model step, so it offers
+// that, and never tells a newcomer to go and set an environment variable.
+export function AgentDisabledAlert({ status }) {
+  const { bootstrap } = useConsole();
   const missingKey = status?.enabled && !status?.api_key_configured;
+  if (missingKey && setupState(bootstrap).needsModel) {
+    const isAdmin = bootstrap?.identity?.role === "admin";
+    return (
+      <Alert variant="warning">
+        <AlertTitle>The agent has no model yet</AlertTitle>
+        <AlertDescription>
+          {isAdmin ? (
+            <div className="grid justify-items-start gap-3">
+              <span>It needs a model from a provider you have an account with.</span>
+              <Button type="button" variant="secondary" onClick={() => returnToModelStep()}>Choose a model</Button>
+            </div>
+          ) : (
+            <>Ask your admin to choose one.</>
+          )}
+        </AlertDescription>
+      </Alert>
+    );
+  }
   return (
     <Alert variant="warning">
       <AlertTitle>{missingKey ? "Agent key is missing" : "Agent is not enabled"}</AlertTitle>
       <AlertDescription>
         {missingKey ? (
-          <>Set <code>{status?.api_key_env || "OPENAI_API_KEY"}</code> in the GraphJin service environment.</>
+          <>Set <code>{status?.api_key_env || "OPENAI_API_KEY"}</code> in the environment DeepORG runs in.</>
         ) : (
-          <>Enable <code>agent.enabled: true</code> and configure <code>agent.api_key_env</code> for GraphJin.</>
+          <>Enable <code>agent.enabled: true</code> and configure <code>agent.api_key_env</code> for DeepORG.</>
         )}
       </AlertDescription>
     </Alert>

@@ -21,6 +21,8 @@ const AgentChat = lazy(() => import("./pages/AgentChat"));
 const MissionControl = lazy(() => import("./pages/MissionControl"));
 const Memory = lazy(() => import("./pages/Memory"));
 const Skills = lazy(() => import("./pages/Skills"));
+const Connect = lazy(() => import("./pages/Connect"));
+const AdminSetup = lazy(() => import("./pages/AdminSetup"));
 const EvalReports = lazy(() => import("./pages/EvalReports"));
 
 const queryClient = new QueryClient({
@@ -43,6 +45,10 @@ const App = () => {
                 <Routes>
                   <Route path="/" element={<Navigate to="/user/agent" replace />} />
                   <Route path="/setup" element={<SetupLanding />} />
+                  {/* Layout shows the approval screen at /connect. This keeps the
+                      address, with the agent's request, while the console loads. */}
+                  <Route path="/connect" element={<LoadingState />} />
+                  <Route path="/invite" element={<LoadingState />} />
                   <Route path="/user/agent" element={<AgentChat />} />
                   <Route path="/user/inbox" element={<Inbox />} />
                   <Route path="/user/tasks" element={<MissionControl section="tasks" />} />
@@ -50,7 +56,9 @@ const App = () => {
                   <Route path="/user/artifacts" element={<MissionControl section="annotations" />} />
                   <Route path="/user/memory" element={<Memory />} />
                   <Route path="/user/skills" element={<Skills />} />
+                  <Route path="/user/connect" element={<Connect />} />
 
+                  <Route path="/admin/setup" element={<AdminSetup />} />
                   <Route path="/admin/runtime" element={<Dashboard />} />
                   <Route path="/admin/workbench" element={<QueryEditor />} />
                   <Route path="/admin/catalog" element={<CatalogExplorer />} />

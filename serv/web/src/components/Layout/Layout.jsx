@@ -9,7 +9,9 @@ import { cn } from "@/lib/utils";
 import { fetchConsoleBootstrap } from "@/services/console";
 import { useNotificationStream } from "@/services/notifications";
 import { adoptSuggestedIdentity, operatorIdentityKey, useOperatorIdentity } from "@/services/identity";
-import { setupState } from "@/services/session";
+import { SKIP_MODEL_KEY, setupState, signInState } from "@/services/session";
+import ConnectApprove from "@/pages/ConnectApprove";
+import Invite from "@/pages/Invite";
 import Setup from "@/pages/Setup";
 import SetupDatabase from "@/pages/SetupDatabase";
 import SetupModel from "@/pages/SetupModel";
@@ -17,7 +19,6 @@ import SetupModel from "@/pages/SetupModel";
 // The admin can leave a setup step for later. That choice lasts for this
 // browser tab; the step comes back the next time the console is opened.
 const SKIP_DATABASE_KEY = "deeporg.setup.skipDatabase";
-const SKIP_MODEL_KEY = "deeporg.setup.skipModel";
 
 function stepSkipped(key) {
   try {
@@ -69,6 +70,29 @@ const Layout = ({ children }) => {
     error: bootstrapQuery.error,
   }), [bootstrapQuery.data, bootstrapQuery.error, bootstrapQuery.isLoading]);
 
+  // An agent sends the browser to /connect to be allowed. That address has to
+  // survive setup and sign-in, or the agent is left waiting for an answer.
+  const connecting = location.pathname === "/connect";
+
+  // An invite link is for someone with no account yet. It takes the whole
+  // screen, whoever this browser is or is not signed in as.
+  if (location.pathname === "/invite") {
+    return (
+      <div className="relative min-h-dvh bg-background text-foreground">
+        <div className="horizon" aria-hidden="true" />
+        <div className="starfield" aria-hidden="true" />
+        <Invite
+          search={location.search}
+          onDone={() => {
+            queryClient.clear();
+            navigate("/user/agent", { replace: true });
+            void bootstrapQuery.refetch();
+          }}
+        />
+      </div>
+    );
+  }
+
   // A new server has no admin yet. Nothing else in the console can work until
   // one exists, so setup takes the whole screen whatever the address was.
   if (setupState(bootstrapQuery.data).needsAdmin) {
@@ -82,7 +106,26 @@ const Layout = ({ children }) => {
             // The account exists and this browser holds its session. Drop the
             // one-time token from the address and start again as that admin.
             queryClient.clear();
-            navigate("/user/agent", { replace: true });
+            if (!connecting) {
+              navigate("/user/agent", { replace: true });
+            }
+            void bootstrapQuery.refetch();
+          }}
+        />
+      </div>
+    );
+  }
+
+  if (connecting && !bootstrapQuery.isLoading) {
+    return (
+      <div className="relative min-h-dvh bg-background text-foreground">
+        <div className="horizon" aria-hidden="true" />
+        <div className="starfield" aria-hidden="true" />
+        <ConnectApprove
+          request={new URLSearchParams(location.search).get("request") || ""}
+          session={signInState(bootstrapQuery.data)}
+          onSignedIn={() => {
+            queryClient.clear();
             void bootstrapQuery.refetch();
           }}
         />
@@ -99,6 +142,7 @@ const Layout = ({ children }) => {
         <div className="horizon" aria-hidden="true" />
         <div className="starfield" aria-hidden="true" />
         <SetupDatabase
+          step="Step 2 of 3"
           sampleData={setupState(bootstrapQuery.data).sampleData}
           onDone={() => {
             queryClient.clear();
@@ -121,6 +165,7 @@ const Layout = ({ children }) => {
         <div className="horizon" aria-hidden="true" />
         <div className="starfield" aria-hidden="true" />
         <SetupModel
+          step="Step 3 of 3"
           onDone={() => {
             queryClient.clear();
             navigate("/user/agent", { replace: true });

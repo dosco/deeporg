@@ -77,8 +77,14 @@ func routesHandler(s1 *HttpService, mux Mux, ns *string) (http.Handler, error) {
 				mux.Handle(routeSetupAdmin, s1.Setup(ah))
 				mux.Handle(routeSetupDatabase, s1.Setup(ah))
 				mux.Handle(routeSetupModel, s1.Setup(ah))
+				mux.Handle(routeSetupDetails, s1.Setup(ah))
+				mux.Handle(routeSetupInvites, s1.Setup(ah))
+				mux.Handle(routeSetupInvite, s1.Setup(ah))
 			}
 			ah = withConsoleSession(ah)
+			if s.accountOAuth != nil {
+				mux.Handle(routeMCPOAuthConsent, s1.OAuthConsent(ah))
+			}
 		}
 
 		if s.conf.WebUI {
@@ -206,7 +212,7 @@ func routesHandler(s1 *HttpService, mux Mux, ns *string) (http.Handler, error) {
 		if err != nil {
 			s.log.Fatalf("api: error initializing MCP auth handler: %s", err)
 		}
-		mcpAuth = s.withLocalAccounts(mcpAuth)
+		mcpAuth = s.withAccountOAuthChallenge(s.withLocalAccountsForMCP(mcpAuth))
 		// SSE transport for web-based integrations (with auth)
 		mux.Handle(routeMCP, s1.MCPHandlerWithAuth(mcpAuth))
 		// HTTP transport for stateless API integrations (with auth)
@@ -216,6 +222,9 @@ func routesHandler(s1 *HttpService, mux Mux, ns *string) (http.Handler, error) {
 	// Built-in OIDC login endpoints (only if auth_login.enabled)
 	if s.authLogin != nil {
 		s.authLogin.routes(mux)
+	}
+	if s.accountOAuth != nil {
+		s.accountOAuth.routes(mux)
 	}
 
 	return setServerHeader(mux), nil

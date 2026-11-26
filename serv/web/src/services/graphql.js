@@ -66,7 +66,7 @@ export async function fetchJSON(url, options = {}) {
     try {
       payload = JSON.parse(text);
     } catch (error) {
-      throw new RequestError(`GraphJin returned a non-JSON response: ${error.message}`, {
+      throw new RequestError(`DeepORG returned a non-JSON response: ${error.message}`, {
         status: response.status,
         kind: response.ok ? "invalid" : classifyHTTPStatus(response.status),
         responseText: text.slice(0, 240),

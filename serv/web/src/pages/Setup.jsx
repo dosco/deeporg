@@ -41,7 +41,7 @@ const Setup = ({ onDone, search = window.location.search }) => {
 
   return (
     <main id="main-content" className="relative mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-6 py-12">
-      <p className="hud-label">Setup</p>
+      <p className="hud-label">Setup · Step 1 of 3</p>
       <h1 className="mt-2 text-2xl font-bold tracking-tight">Create your admin account</h1>
       <p className="mt-3 text-sm text-muted-foreground">
         This is the first account on this server. You use it to sign in and to change settings later.

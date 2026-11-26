@@ -236,6 +236,14 @@ mcp:
     scopes: ["mcp"]
 ```
 
+A server that holds its own accounts needs none of this. In agentic mode, with
+`auth.type: jwt`, a secret and the console on, people sign in with an email and
+a password, and MCP clients sign in with the same account: the server refuses
+a client that has not signed in, the client opens a browser on the console, and
+the person chooses Allow. The token a client gets works at the MCP endpoint
+only. This is off when `mcp.oauth` is set, when an `anon` role is defined, or
+when the console is off.
+
 With `auth_login` enabled, the web console also signs in through the same OIDC
 provider: `GET /api/v1/auth/console?next=/user/agent` starts the flow, and the
 callback keeps the minted token in an HttpOnly session cookie instead of handing

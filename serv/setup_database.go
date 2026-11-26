@@ -323,7 +323,7 @@ func (s *graphjinService) setupConnectDatabase(w http.ResponseWriter, r *http.Re
 	}
 	// The connection is saved. It takes effect when the server comes back up
 	// with it, which the console waits for.
-	writeJSONStatus(w, http.StatusOK, map[string]any{"name": source["name"], "type": source["type"], "restarting": s.configApplier != nil})
+	writeJSONStatus(w, http.StatusOK, map[string]any{"name": source["name"], "type": source["type"], "restarting": s.configApplier != nil, "boot": setupBootID})
 	if f, ok := w.(http.Flusher); ok {
 		f.Flush()
 	}

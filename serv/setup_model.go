@@ -111,7 +111,7 @@ func (s *graphjinService) setupChooseModel(w http.ResponseWriter, r *http.Reques
 	if s.log != nil {
 		s.log.Infof("setup: model provider set to %s", provider)
 	}
-	writeJSONStatus(w, http.StatusOK, map[string]any{"provider": provider, "model": model, "restarting": s.configApplier != nil})
+	writeJSONStatus(w, http.StatusOK, map[string]any{"provider": provider, "model": model, "restarting": s.configApplier != nil, "boot": setupBootID})
 	if f, ok := w.(http.Flusher); ok {
 		f.Flush()
 	}

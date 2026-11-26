@@ -50,7 +50,7 @@ export async function askAgentStream({ instruction, max_steps, return_trace, his
       try {
         payload = JSON.parse(text);
       } catch {
-        throw new RequestError("GraphJin returned a non-JSON response.", {
+        throw new RequestError("DeepORG returned a non-JSON response.", {
           status: response.status,
           kind: "invalid",
           responseText: text.slice(0, 240),

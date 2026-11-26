@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -27,41 +28,44 @@ const (
 	colorReset   = "\033[0m"
 )
 
-// printBanner prints the sci-fi ASCII art banner on startup
-func printBanner() {
-	// Respect NO_COLOR environment variable for CI environments
-	noColor := os.Getenv("NO_COLOR") != ""
+// bannerLetters are the letters of the startup banner, six rows each.
+var bannerLetters = map[rune][6]string{
+	'D': {"██████╗ ", "██╔══██╗", "██║  ██║", "██║  ██║", "██████╔╝", "╚═════╝ "},
+	'E': {"███████╗", "██╔════╝", "█████╗  ", "██╔══╝  ", "███████╗", "╚══════╝"},
+	'P': {"██████╗ ", "██╔══██╗", "██████╔╝", "██╔═══╝ ", "██║     ", "╚═╝     "},
+	'O': {" ██████╗ ", "██╔═══██╗", "██║   ██║", "██║   ██║", "╚██████╔╝", " ╚═════╝ "},
+	'R': {"██████╗ ", "██╔══██╗", "██████╔╝", "██╔══██╗", "██║  ██║", "╚═╝  ╚═╝"},
+	'G': {" ██████╗ ", "██╔════╝ ", "██║  ███╗", "██║   ██║", "╚██████╔╝", " ╚═════╝ "},
+}
 
-	cyan := colorCyan
-	magenta := colorMagenta
-	reset := colorReset
-
-	if noColor {
-		cyan = ""
-		magenta = ""
-		reset = ""
+// bannerText draws DeepORG in block letters, DEEP in one color and ORG in
+// another. With color off it is plain text.
+func bannerText(color bool) string {
+	first, second, reset := "", "", ""
+	if color {
+		first, second, reset = colorCyan, colorMagenta, colorReset
 	}
+	var b strings.Builder
+	b.WriteString("\n")
+	for row := 0; row < 6; row++ {
+		b.WriteString(" " + first)
+		for _, letter := range "DEEP" {
+			b.WriteString(bannerLetters[letter][row])
+		}
+		b.WriteString(reset + second)
+		for _, letter := range "ORG" {
+			b.WriteString(bannerLetters[letter][row])
+		}
+		b.WriteString(reset + "\n")
+	}
+	b.WriteString("\n")
+	return b.String()
+}
 
-	// ASCII art with GRAPH in cyan and JIN in magenta
-	banner := fmt.Sprintf(`
-%s  ██████╗ ██████╗  █████╗ ██████╗ ██╗  ██╗%s     %s██╗██╗███╗   ██╗%s
-%s ██╔════╝ ██╔══██╗██╔══██╗██╔══██╗██║  ██║%s     %s██║██║████╗  ██║%s
-%s ██║  ███╗██████╔╝███████║██████╔╝███████║%s     %s██║██║██╔██╗ ██║%s
-%s ██║   ██║██╔══██╗██╔══██║██╔═══╝ ██╔══██║%s%s██   ██║%s%s██║██║╚██╗██║%s
-%s ╚██████╔╝██║  ██║██║  ██║██║     ██║  ██║%s%s╚█████╔╝%s%s██║██║ ╚████║%s
-%s  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝  ╚═╝%s %s╚════╝ %s%s╚═╝╚═╝  ╚═══╝%s
-
-
-`,
-		cyan, reset, magenta, reset,
-		cyan, reset, magenta, reset,
-		cyan, reset, magenta, reset,
-		cyan, reset, magenta, reset, magenta, reset,
-		cyan, reset, magenta, reset, magenta, reset,
-		cyan, reset, magenta, reset, magenta, reset,
-	)
-
-	fmt.Print(banner)
+// printBanner prints the banner on startup. NO_COLOR turns the colors off,
+// for CI and for terminals that do not show them.
+func printBanner() {
+	fmt.Print(bannerText(os.Getenv("NO_COLOR") == ""))
 }
 
 // servCmd is the cobra CLI command for the serve subcommand
@@ -124,7 +128,10 @@ func cmdServ(cmd *cobra.Command, args []string) {
 	if !servDemoMode {
 		if file, ok := usesStartConfig(cmd); ok {
 			var err error
-			if start, err = loadStartConfig(file); err != nil {
+			if start, err = loadStartConfig(file); err == nil {
+				err = start.findListen()
+			}
+			if err != nil {
 				// These messages tell the reader what to do next; print them
 				// as they are, without a log prefix.
 				fmt.Fprintln(os.Stderr, err)
@@ -134,7 +141,7 @@ func cmdServ(cmd *cobra.Command, args []string) {
 				log.Fatalf("%s", err)
 			}
 			if start.created {
-				log.Infof("Created %s", start.path)
+				fmt.Printf("Created %s\n\n", start.path)
 			}
 		}
 	}
@@ -173,6 +180,9 @@ func cmdServ(cmd *cobra.Command, args []string) {
 		// reading it.
 		opt = append(opt, serv.OptionSetConfigApplier(restartInPlace))
 		opt = append(opt, serv.OptionSetSampleData(sampleDataBuilder(start)))
+		// A new install says only what its owner has to act on. The start
+		// config's log_level opens it up for someone who wants the detail.
+		opt = append(opt, serv.OptionSetMinLogLevel(startLogLevel(start)))
 	}
 	// if deployActive {
 	// 	opt = append(opt, serv.OptionDeployActive())

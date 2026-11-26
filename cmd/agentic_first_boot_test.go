@@ -53,10 +53,12 @@ func TestGeneratedAgenticConfigWorksOnFirstBoot(t *testing.T) {
 			admin := signFirstBootToken(t, secret, "ada", "admin")
 			member := signFirstBootToken(t, secret, "sam", "")
 
-			// Sign-in is required: no token, no access.
-			anonCatalog := firstBootMCPCall(t, base, "", "query_catalog", map[string]any{"search": "customers and their orders"})
-			if strings.Contains(anonCatalog, `\"cards\"`) || strings.Contains(anonCatalog, `"cards"`) {
-				t.Fatalf("the catalog was readable without signing in: %s", clip(anonCatalog))
+			// Sign-in is required: with no token an MCP client is refused at
+			// the door, and told where it can sign in.
+			res := firstBootRequest(t, base+"/api/v1/mcp", "", "", firstBootInitialize())
+			res.Body.Close() //nolint:errcheck
+			if res.StatusCode != http.StatusUnauthorized || !strings.Contains(res.Header.Get("WWW-Authenticate"), "resource_metadata=") {
+				t.Fatalf("an MCP client with no token got %d and the challenge %q", res.StatusCode, res.Header.Get("WWW-Authenticate"))
 			}
 			anonGraph := firstBootGraphQL(t, base, "", `query { gj_catalog(limit: 1) { id } }`)
 			if !strings.Contains(anonGraph, "errors") {

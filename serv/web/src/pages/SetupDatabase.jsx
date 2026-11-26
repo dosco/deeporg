@@ -16,19 +16,24 @@ const KINDS = [
 // database the agent answers questions from. The server tests the connection
 // before saving it, then restarts with it; onDone runs once it is back.
 // onSkip leaves the step for later. With sampleData, the screen also offers
-// a sample company's data to someone with no database to hand.
-const SetupDatabase = ({ onDone, onSkip, sampleData = false }) => {
+// a sample company's data to someone with no database to hand. step, such as
+// "Step 2 of 3", is shown while this is part of first-run setup. After
+// setup an admin connects another database with the same screen: askName
+// adds a name for it, and embedded lays it out as part of a console page.
+const SetupDatabase = ({ onDone, onSkip, sampleData = false, step = "", askName = false, embedded = false }) => {
+  const [name, setName] = React.useState("");
   const [byParts, setByParts] = React.useState(false);
   const [url, setURL] = React.useState("");
   const [parts, setParts] = React.useState({ type: "postgres", host: "", port: "", database: "", user: "", password: "", path: "" });
-  const [phase, setPhase] = React.useState("form"); // form | testing | sample | starting
+  const [phase, setPhase] = React.useState("form"); // form | testing | sample | starting | connected
   const [error, setError] = React.useState(null);
+  const [tables, setTables] = React.useState(null);
 
   const setPart = (key) => (event) => setParts((current) => ({ ...current, [key]: event.target.value }));
   const isFile = parts.type === "sqlite";
-  const ready = byParts
+  const ready = (!askName || name.trim() !== "") && (byParts
     ? (isFile ? parts.path.trim() !== "" : parts.host.trim() !== "" && parts.database.trim() !== "")
-    : url.trim() !== "";
+    : url.trim() !== "");
 
   async function submit(event) {
     event.preventDefault();
@@ -42,17 +47,28 @@ const SetupDatabase = ({ onDone, onSkip, sampleData = false }) => {
         ? { type: parts.type, path: parts.path.trim() }
         : { type: parts.type, host: parts.host.trim(), port: Number(parts.port) || 0, database: parts.database.trim(), user: parts.user.trim(), password: parts.password })
       : { url: url.trim() };
+    if (askName) {
+      connection.name = name.trim().toLowerCase();
+    }
+    let reply;
     try {
-      await connectDatabase(connection);
+      reply = await connectDatabase(connection);
     } catch (err) {
       setError({ message: err?.message || "We could not connect to that database." });
       setPhase("form");
       return;
     }
+    await started(reply);
+  }
+
+  // started waits for the server to come back connected, then says what it
+  // found before moving on, so the person knows the connection really works.
+  async function started(reply) {
     setPhase("starting");
     try {
-      await waitForDatabase();
-      onDone?.();
+      const state = await waitForDatabase({ boot: reply?.boot, restarting: reply?.restarting !== false });
+      setTables(typeof state?.tables === "number" ? state.tables : null);
+      setPhase("connected");
     } catch (err) {
       setError({ message: err?.message || "The server has not come back yet." });
       setPhase("form");
@@ -65,32 +81,58 @@ const SetupDatabase = ({ onDone, onSkip, sampleData = false }) => {
     }
     setError(null);
     setPhase("sample");
+    let reply;
     try {
-      await connectDatabase({ sample: true });
+      reply = await connectDatabase({ sample: true });
     } catch (err) {
       setError({ message: err?.message || "The sample data could not be prepared." });
       setPhase("form");
       return;
     }
-    setPhase("starting");
-    try {
-      await waitForDatabase();
-      onDone?.();
-    } catch (err) {
-      setError({ message: err?.message || "The server has not come back yet." });
-      setPhase("form");
-    }
+    await started(reply);
+  }
+
+  const label = step ? `Setup · ${step}` : "Setup";
+  // On its own the screen fills the page. Inside the console it is a section.
+  const Frame = embedded ? "div" : "main";
+  const frame = embedded
+    ? { className: "w-full max-w-md" }
+    : { id: "main-content", className: "relative mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-6 py-12" };
+  if (phase === "connected") {
+    return (
+      <Frame {...frame}>
+        <p className="hud-label">{label}</p>
+        <h1 className="mt-2 text-2xl font-bold tracking-tight">Your data is connected</h1>
+        <p role="status" className="mt-3 text-sm text-muted-foreground">
+          {tables === null
+            ? "The connection works."
+            : tables === 0
+              ? "The connection works, but we found no tables. Check that this database user is allowed to see them."
+              : `We found ${tables} ${tables === 1 ? "table" : "tables"}.`}
+        </p>
+        <div className="mt-8">
+          <Button type="button" autoFocus onClick={() => onDone?.()}>Continue</Button>
+        </div>
+      </Frame>
+    );
   }
 
   const busy = phase !== "form";
   return (
-    <main id="main-content" className="relative mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-6 py-12">
-      <p className="hud-label">Setup</p>
-      <h1 className="mt-2 text-2xl font-bold tracking-tight">Connect your data</h1>
+    <Frame {...frame}>
+      <p className="hud-label">{label}</p>
+      <h1 className="mt-2 text-2xl font-bold tracking-tight">{askName ? "Connect another database" : "Connect your data"}</h1>
       <p className="mt-3 text-sm text-muted-foreground">
         The agent answers questions from your database. Give it a connection and we will check that it works.
       </p>
       <form className="mt-8 grid gap-5" onSubmit={submit}>
+        {askName && (
+          <label className="grid gap-1.5 text-sm">
+            <span className="font-medium">Name</span>
+            <Input value={name} onChange={(event) => setName(event.target.value)} autoComplete="off" spellCheck={false} placeholder="billing" disabled={busy} className="font-mono" />
+            <span className="text-xs text-muted-foreground">A short name for this database, in lowercase letters. Using the name of one that is already connected replaces it.</span>
+          </label>
+        )}
         {!byParts && (
           <label className="grid gap-1.5 text-sm">
             <span className="font-medium">Connection URL</span>
@@ -165,10 +207,10 @@ const SetupDatabase = ({ onDone, onSkip, sampleData = false }) => {
       )}
       {onSkip && (
         <button type="button" className="mt-10 justify-self-start text-left text-sm text-muted-foreground underline underline-offset-4" disabled={busy} onClick={onSkip}>
-          Do this later
+          {embedded ? "Cancel" : "Do this later"}
         </button>
       )}
-    </main>
+    </Frame>
   );
 };
 

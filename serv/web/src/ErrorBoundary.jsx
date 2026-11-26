@@ -11,7 +11,7 @@ class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    console.error("GraphJin Web Error:", error, errorInfo);
+    console.error("DeepORG console error:", error, errorInfo);
   }
 
   handleRetry = () => {

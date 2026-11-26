@@ -15,7 +15,7 @@ function CommandDialog({ open, onOpenChange, children, title = "Command menu" })
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/55 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out" />
         <DialogPrimitive.Content className="fixed left-1/2 top-[15vh] z-50 w-[min(92vw,38rem)] -translate-x-1/2 overflow-hidden rounded-lg border bg-popover shadow-float outline-none">
           <DialogPrimitive.Title className="sr-only">{title}</DialogPrimitive.Title>
-          <DialogPrimitive.Description className="sr-only">Search GraphJin console views and actions</DialogPrimitive.Description>
+          <DialogPrimitive.Description className="sr-only">Search DeepORG console views and actions</DialogPrimitive.Description>
           <Command>{children}</Command>
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>

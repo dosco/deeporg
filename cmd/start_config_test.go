@@ -3,10 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -393,7 +395,7 @@ func TestSetupConnectsADatabaseAndSurvivesARestart(t *testing.T) {
 
 	// The server comes back up connected, for the same admin.
 	base, stop = boot()
-	defer stop()
+	defer func() { stop() }()
 	if state := firstBootGet(t, base+"/api/v1/setup"); !strings.Contains(state, `"needs_database":false`) {
 		t.Fatalf("setup state after connecting: %s", state)
 	}
@@ -412,6 +414,44 @@ func TestSetupConnectsADatabaseAndSurvivesARestart(t *testing.T) {
 	res.Body.Close() //nolint:errcheck
 	if res.StatusCode != http.StatusForbidden {
 		t.Fatalf("a non-admin reached the database step: %d", res.StatusCode)
+	}
+	// Signed in, the state says how many tables were found, which is what
+	// the setup page shows. Nobody else is told.
+	signedIn := accountsGet(t, base+"/api/v1/setup", cookie)
+	if !regexp.MustCompile(`"tables":[1-9]`).MatchString(signedIn) || !strings.Contains(signedIn, `"boot":"`) {
+		t.Fatalf("the setup state for the admin has no table count or restart marker: %s", signedIn)
+	}
+	if state := firstBootGet(t, base+"/api/v1/setup"); strings.Contains(state, `"tables"`) {
+		t.Fatalf("someone who has not signed in was told about the tables: %s", state)
+	}
+	// The agent page is given questions about those tables.
+	if status := accountsGet(t, base+"/api/v1/agent/status", cookie); !strings.Contains(status, `"starters":["How many `) {
+		t.Fatalf("no questions were suggested from the connected tables: %s", clip(status))
+	}
+
+	// After setup the admin connects another database under a name of its
+	// own. Both are there after the restart, and the first is untouched.
+	secondPath := filepath.Join(home, "second.sqlite3")
+	seedFirstBootDatabase(t, secondPath)
+	status, body, _ = accountsPost(t, base+dbURL, cookie, map[string]any{"name": "second", "url": "sqlite:" + secondPath})
+	if status != http.StatusOK || !strings.Contains(body, `"name":"second"`) || !strings.Contains(body, `"boot":"`) {
+		t.Fatalf("connect a second database: %d %s", status, body)
+	}
+	deadline = time.Now().Add(5 * time.Second)
+	for applied.Load() < 2 && time.Now().Before(deadline) {
+		time.Sleep(50 * time.Millisecond)
+	}
+	stop()
+	base, stop = boot()
+	details := accountsGet(t, base+"/api/v1/setup/details", cookie)
+	if !strings.Contains(details, `"name":"main"`) || !strings.Contains(details, `"name":"second"`) || !strings.Contains(details, `"store_backed":true`) {
+		t.Fatalf("the setup details do not list both databases: %s", clip(details))
+	}
+	if strings.Contains(details, "second.sqlite3") || strings.Contains(details, "app.sqlite3") {
+		t.Fatalf("the setup details give away where a database is: %s", clip(details))
+	}
+	if body := accountsGraphQL(t, base, cookie, `query { orders(order_by: { id: asc }) { id total } }`); !strings.Contains(body, `"total"`) {
+		t.Fatalf("the first database stopped answering after a second was connected: %s", clip(body))
 	}
 }
 
@@ -561,5 +601,104 @@ func TestSetupChoosesAModelAndKeepsItsKeyEncrypted(t *testing.T) {
 	}
 	if status := accountsGet(t, base+"/api/v1/agent/status", cookie); !strings.Contains(status, `"provider":"anthropic"`) || !strings.Contains(status, `"api_key_configured":true`) || strings.Contains(status, key) {
 		t.Fatalf("agent status after the model step: %s", clip(status))
+	}
+}
+
+// The banner names the product. It used to spell out the old name.
+func TestBannerSaysDeepORG(t *testing.T) {
+	plain := bannerText(false)
+	rows := strings.Split(strings.Trim(plain, "\n"), "\n")
+	if len(rows) != 6 {
+		t.Fatalf("the banner has %d rows, want 6:\n%s", len(rows), plain)
+	}
+	width := len([]rune(rows[0]))
+	for i, row := range rows {
+		if len([]rune(row)) != width {
+			t.Errorf("row %d is %d wide, the first is %d: the letters are out of line", i, len([]rune(row)), width)
+		}
+	}
+	if strings.Contains(plain, "\033[") {
+		t.Error("the plain banner contains color codes")
+	}
+	// Seven letters: D E E P, then O R G. Each one's top row starts a new
+	// block, so the top row has seven runs of full blocks.
+	if runs := len(strings.Fields(strings.NewReplacer("╗", " ", "╔", " ", "═", " ").Replace(rows[0]))); runs != 7 {
+		t.Errorf("the banner's top row has %d letters, want 7: %q", runs, rows[0])
+	}
+	colored := bannerText(true)
+	if !strings.Contains(colored, colorCyan) || !strings.Contains(colored, colorMagenta) {
+		t.Error("the colored banner is missing its two colors")
+	}
+}
+
+// Something else on the port is nobody's mistake on a laptop: the server
+// moves to the next free one. An address chosen on purpose is never changed.
+func TestStartMovesToAFreePortOnALaptop(t *testing.T) {
+	busy, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer busy.Close() //nolint:errcheck
+	_, port, _ := net.SplitHostPort(busy.Addr().String())
+	t.Setenv(startListenEnv, "")
+
+	sc := &startConfig{path: "/tmp/deeporg.yml", Listen: busy.Addr().String()}
+	if err := sc.findListen(); err != nil {
+		t.Fatalf("a laptop install did not move off a taken port: %v", err)
+	}
+	if sc.Listen == busy.Addr().String() || sc.portTaken != port || !listenFree(sc.Listen) {
+		t.Fatalf("moved to %q (taken port %q), which is not a free port other than %s", sc.Listen, sc.portTaken, port)
+	}
+	// The move is remembered for the in-place restart a setup step causes.
+	if got := os.Getenv(startListenEnv); got != sc.Listen {
+		t.Fatalf("%s is %q after the move, want %q", startListenEnv, got, sc.Listen)
+	}
+
+	// Chosen through the environment: used as given, or not at all.
+	chosen := &startConfig{path: "/tmp/deeporg.yml", Listen: busy.Addr().String(), listenChosen: true}
+	if err := chosen.findListen(); err == nil || !strings.Contains(err.Error(), "Port "+port+" is already in use") || !strings.Contains(err.Error(), startListenEnv) {
+		t.Fatalf("a chosen address that is taken should say what to change, got %v", err)
+	}
+	if chosen.Listen != busy.Addr().String() {
+		t.Fatalf("a chosen address was changed to %q", chosen.Listen)
+	}
+
+	// A free port is left alone.
+	free := &startConfig{path: "/tmp/deeporg.yml", Listen: sc.Listen}
+	if err := free.findListen(); err != nil || free.portTaken != "" || free.Listen != sc.Listen {
+		t.Fatalf("a free port was not used as it is: %q, %q, %v", free.Listen, free.portTaken, err)
+	}
+
+	// An address that is not a host and port is explained, not guessed at.
+	if err := (&startConfig{path: "/tmp/deeporg.yml", Listen: "8080"}).findListen(); err == nil || !strings.Contains(err.Error(), "host and port") {
+		t.Fatalf("a bad listen address gave %v", err)
+	}
+}
+
+// Variables left in a shell from other work must not replace the model the
+// admin chose on the setup page. Before a model is chosen they still apply.
+func TestStoredModelChoiceBeatsStrayEnvironmentVariables(t *testing.T) {
+	t.Setenv("GJ_AGENT_PROVIDER", "anthropic")
+	t.Setenv("SG_AGENT_MODEL", "some-other-model")
+	t.Setenv("GJ_AGENT_TIMEOUT_SECONDS", "90")
+
+	// Nothing chosen yet: the environment is left alone.
+	if dropped := dropAgentChoiceFromEnv("sources: []\n"); dropped != nil {
+		t.Fatalf("variables were removed with no stored choice: %v", dropped)
+	}
+	if os.Getenv("GJ_AGENT_PROVIDER") != "anthropic" {
+		t.Fatal("GJ_AGENT_PROVIDER was removed with no stored choice")
+	}
+
+	dropped := dropAgentChoiceFromEnv("agent:\n  provider: openai\n  api_key_env: DEEPORG_MODEL_KEY\n")
+	if len(dropped) != 2 || dropped[0] != "GJ_AGENT_PROVIDER" || dropped[1] != "SG_AGENT_MODEL" {
+		t.Fatalf("removed %v, want the provider and the model", dropped)
+	}
+	if _, set := os.LookupEnv("GJ_AGENT_PROVIDER"); set {
+		t.Fatal("GJ_AGENT_PROVIDER is still set")
+	}
+	// Settings that do not decide who is called are not touched.
+	if os.Getenv("GJ_AGENT_TIMEOUT_SECONDS") != "90" {
+		t.Fatal("an unrelated agent setting was removed")
 	}
 }

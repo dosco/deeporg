@@ -13,6 +13,8 @@ export const workspaceDefinitions = {
       { path: "/user/artifacts", label: "Artifacts", layout: "collection" },
       { path: "/user/memory", label: "Memory", layout: "collection" },
       { path: "/user/skills", label: "Skills", layout: "collection" },
+      // Shown only when the server signs agents in with an account.
+      { path: "/user/connect", label: "Connect", layout: "collection", requiresConnect: true },
     ],
   },
   admin: {
@@ -22,6 +24,8 @@ export const workspaceDefinitions = {
     defaultPath: "/admin/runtime",
     items: [
       { path: "/admin/runtime", label: "Runtime", layout: "collection" },
+      // Shown only to an admin on a server that holds accounts.
+      { path: "/admin/setup", label: "Setup", layout: "collection", requiresManage: true },
       { path: "/admin/workbench", label: "Workbench", layout: "canvas" },
       { path: "/admin/catalog", label: "Catalog", layout: "collection" },
       { path: "/admin/workflows", label: "Workflows", layout: "collection" },
@@ -64,7 +68,11 @@ export function routeDefinition(pathname) {
 export function visibleItems(workspace, bootstrap) {
   const served = (bootstrap?.workspaces || []).find((candidate) => candidate?.id === workspace?.id);
   const capabilities = new Set(served?.capabilities || []);
-  return (workspace?.items || []).filter((item) => !item.requiresCapability || capabilities.has(item.requiresCapability));
+  return (workspace?.items || []).filter((item) =>
+    (!item.requiresCapability || capabilities.has(item.requiresCapability)) &&
+    (!item.requiresConnect || Boolean(bootstrap?.connect?.mcp_url)) &&
+    (!item.requiresManage || Boolean(bootstrap?.manage))
+  );
 }
 
 export function availableWorkspaces(bootstrap) {
@@ -76,6 +84,6 @@ export function availableWorkspaces(bootstrap) {
 
 export function commandItems(bootstrap) {
   return availableWorkspaces(bootstrap).flatMap((workspace) =>
-    workspace.items.map((item) => ({ ...item, workspace }))
+    visibleItems(workspace, bootstrap).map((item) => ({ ...item, workspace }))
   );
 }

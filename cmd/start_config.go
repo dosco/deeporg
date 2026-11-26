@@ -45,6 +45,12 @@ type startConfig struct {
 	path string
 	// created is true when this run wrote the file.
 	created bool
+	// listenChosen is true when the address was set for this run through
+	// the environment. Then it is used as given, or not at all.
+	listenChosen bool
+	// portTaken is the port that was wanted when the server had to move to
+	// another one because it was in use.
+	portTaken string
 }
 
 // usesStartConfig decides which flow `serve` takes. The legacy flow is chosen
@@ -125,6 +131,7 @@ func loadStartConfig(file string) (*startConfig, error) {
 			*target = value
 		}
 	}
+	sc.listenChosen = strings.TrimSpace(os.Getenv(startListenEnv)) != ""
 	if strings.TrimSpace(sc.SecretKey) == "" {
 		return nil, missingSecretKeyError(file)
 	}
@@ -141,6 +148,60 @@ func loadStartConfig(file string) (*startConfig, error) {
 		sc.Listen = "0.0.0.0:8080"
 	}
 	return sc, nil
+}
+
+// startPortTries is how many ports after the wanted one are tried.
+const startPortTries = 20
+
+// findListen makes sure the server has a port to listen on before anything
+// else is started.
+//
+// On a laptop a taken port is nobody's mistake: something else happens to be
+// on 8080. The server moves to the next free port and says so. Where the
+// address was chosen on purpose, through the environment or for a server
+// that listens beyond this machine, moving would break whatever points at it,
+// so the error says what to change.
+func (sc *startConfig) findListen() error {
+	host, port, err := net.SplitHostPort(sc.Listen)
+	if err != nil {
+		return fmt.Errorf("the listen address %q in %s is not a host and port, such as 127.0.0.1:8080", sc.Listen, sc.path)
+	}
+	if listenFree(sc.Listen) {
+		return nil
+	}
+	taken := fmt.Errorf("Port %s is already in use.\nStop whatever is using it, or set another address as `listen` in %s or as %s, and start again.", port, sc.path, startListenEnv)
+	number, err := net.LookupPort("tcp", port)
+	if err != nil || sc.listenChosen || !loopbackHost(host) {
+		return taken
+	}
+	for next := number + 1; next <= number+startPortTries && next < 65536; next++ {
+		candidate := net.JoinHostPort(host, fmt.Sprint(next))
+		if listenFree(candidate) {
+			sc.portTaken, sc.Listen = port, candidate
+			// A setup step restarts the server in place. Keep it on the
+			// port the browser is already talking to.
+			os.Setenv(startListenEnv, candidate) //nolint:errcheck
+			return nil
+		}
+	}
+	return taken
+}
+
+func listenFree(address string) bool {
+	l, err := net.Listen("tcp", address)
+	if err != nil {
+		return false
+	}
+	l.Close() //nolint:errcheck
+	return true
+}
+
+func loopbackHost(host string) bool {
+	if strings.EqualFold(host, "localhost") {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
 }
 
 // missingSecretKeyError tells whoever started the server exactly what to add,
@@ -208,14 +269,20 @@ func yamlString(value string) string {
 	return strings.TrimSpace(string(out))
 }
 
+// startLogLevel is the least important kind of log line a start-config
+// install prints: warnings and errors unless the start config asks for more.
+func startLogLevel(sc *startConfig) string {
+	if level := strings.ToLower(strings.TrimSpace(sc.LogLevel)); level != "" {
+		return level
+	}
+	return "warn"
+}
+
 // startBaseConfig is the configuration every start-config install runs with
 // before the stored document is laid over it. The MCP switches match the
 // generated agentic config.
 func startBaseConfig(sc *startConfig) string {
-	logLevel := strings.TrimSpace(sc.LogLevel)
-	if logLevel == "" {
-		logLevel = "warn"
-	}
+	logLevel := startLogLevel(sc)
 	base := map[string]any{
 		"app_name":                "DeepORG",
 		"mode":                    "agentic",
@@ -252,6 +319,36 @@ func startBaseConfig(sc *startConfig) string {
 	return string(out)
 }
 
+// agentChoiceEnv are the settings that decide which model provider is called.
+// Each can also arrive as an SG_ or SJ_ variable.
+var agentChoiceEnv = []string{"AGENT_PROVIDER", "AGENT_MODEL", "AGENT_BASE_URL"}
+
+// dropAgentChoiceFromEnv makes the model chosen on the setup page the one that
+// is used. Variables left in a shell from other work would otherwise replace
+// it without a word, and the agent would call a provider nobody chose here.
+// It returns the variables it removed. With no stored choice it removes
+// nothing, so an install can still be pointed at a model from the environment.
+func dropAgentChoiceFromEnv(doc string) []string {
+	var stored struct {
+		Agent struct {
+			Provider string `yaml:"provider"`
+		} `yaml:"agent"`
+	}
+	if yaml.Unmarshal([]byte(doc), &stored) != nil || strings.TrimSpace(stored.Agent.Provider) == "" {
+		return nil
+	}
+	var dropped []string
+	for _, name := range agentChoiceEnv {
+		for _, prefix := range []string{"GJ_", "SG_", "SJ_"} {
+			if _, set := os.LookupEnv(prefix + name); set {
+				os.Unsetenv(prefix + name) //nolint:errcheck
+				dropped = append(dropped, prefix+name)
+			}
+		}
+	}
+	return dropped
+}
+
 // loadStartFlowConfig builds the running configuration for a start-config
 // install: the base, with the document read from the store laid over it.
 func loadStartFlowConfig(sc *startConfig) (*serv.Config, error) {
@@ -265,6 +362,9 @@ func loadStartFlowConfig(sc *startConfig) (*serv.Config, error) {
 	}
 	if len(ignored) != 0 {
 		log.Warnf("The stored configuration sets %s, which it may not; ignoring.", strings.Join(ignored, ", "))
+	}
+	if dropped := dropAgentChoiceFromEnv(doc); len(dropped) != 0 {
+		log.Warnf("The model chosen during setup is used. Ignoring %s from the environment.", strings.Join(dropped, ", "))
 	}
 	c, err := serv.NewConfig(merged, "yaml")
 	if err != nil {
@@ -309,12 +409,16 @@ func restartInPlace() error {
 // announceSetup tells whoever started a new install how to finish setting it
 // up, and on a laptop opens the page for them once the server is listening.
 func announceSetup(gj *serv.HttpService, sc *startConfig) {
+	if sc.portTaken != "" {
+		_, port, _ := net.SplitHostPort(sc.Listen)
+		fmt.Printf("Port %s is in use, so DeepORG is on port %s.\n\n", sc.portTaken, port)
+	}
 	link := gj.SetupLink()
 	if link == "" {
-		fmt.Printf("\nDeepORG is running at http://%s/\n\n", displayListen(sc.Listen))
+		fmt.Printf("DeepORG is running at http://%s/\n\n", displayListen(sc.Listen))
 		return
 	}
-	fmt.Printf("\nFinish setup in your browser:\n\n  %s\n\n", link)
+	fmt.Printf("Finish setup in your browser:\n\n  %s\n\n", link)
 	if !opensBrowser(sc) {
 		return
 	}
@@ -341,7 +445,7 @@ func opensBrowser(sc *startConfig) bool {
 		return false
 	}
 	host, _, err := net.SplitHostPort(sc.Listen)
-	if err != nil || (host != "127.0.0.1" && host != "localhost" && host != "::1") {
+	if err != nil || !loopbackHost(host) {
 		return false
 	}
 	info, err := os.Stdout.Stat()

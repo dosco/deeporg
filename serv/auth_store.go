@@ -81,6 +81,9 @@ type authStateStore interface {
 	putOAuthClient(ctx context.Context, c *mcpOAuthClient, expiresAt time.Time) error
 	getOAuthClient(ctx context.Context, clientID string, now time.Time) (*mcpOAuthClient, error)
 	putOAuthRequest(ctx context.Context, state string, req *mcpOAuthAuthRequest) error
+	// peekOAuthRequest reads a request and leaves it in place, so a person
+	// can be shown what they are about to allow.
+	peekOAuthRequest(ctx context.Context, state string, now time.Time) (*mcpOAuthAuthRequest, error)
 	takeOAuthRequest(ctx context.Context, state string) (*mcpOAuthAuthRequest, error)
 	putOAuthCode(ctx context.Context, code string, c *mcpOAuthCode) error
 	takeOAuthCode(ctx context.Context, code string) (*mcpOAuthCode, error)
@@ -340,6 +343,27 @@ func (st *sqlAuthStore) q(query string) string {
 func (st *sqlAuthStore) get(ctx context.Context, kind, id string) (*authStoreRow, error) {
 	return st.scanRow(st.db.QueryRowContext(ctx,
 		st.q(`SELECT id, state_key, data, version, expires_at FROM {t} WHERE kind = ? AND id = ?`), kind, id))
+}
+
+// list returns up to limit rows of a kind, oldest first.
+func (st *sqlAuthStore) list(ctx context.Context, kind string, limit int) ([]authStoreRow, error) {
+	rows, err := st.db.QueryContext(ctx,
+		st.q(`SELECT id, state_key, data, version, expires_at FROM {t} WHERE kind = ? ORDER BY created_at, id LIMIT `+strconv.Itoa(limit)), kind)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close() //nolint:errcheck
+	var out []authStoreRow
+	for rows.Next() {
+		var r authStoreRow
+		var data string
+		if err := rows.Scan(&r.id, &r.stateKey, &data, &r.version, &r.expiresAt); err != nil {
+			return nil, err
+		}
+		r.data = []byte(data)
+		out = append(out, r)
+	}
+	return out, rows.Err()
 }
 
 // getBy looks a row up by one of the secondary key columns.
@@ -602,6 +626,18 @@ func (st *sqlAuthStore) putOAuthRequest(ctx context.Context, state string, req *
 	return st.insert(ctx, authKindOAuthRequest, authStoreKey(state), "", req, req.ExpiresAt)
 }
 
+func (st *sqlAuthStore) peekOAuthRequest(ctx context.Context, state string, now time.Time) (*mcpOAuthAuthRequest, error) {
+	row, err := st.get(ctx, authKindOAuthRequest, authStoreKey(state))
+	if err != nil || row == nil || row.expired(now) {
+		return nil, err
+	}
+	var req mcpOAuthAuthRequest
+	if err := json.Unmarshal(row.data, &req); err != nil {
+		return nil, err
+	}
+	return &req, nil
+}
+
 func (st *sqlAuthStore) takeOAuthRequest(ctx context.Context, state string) (*mcpOAuthAuthRequest, error) {
 	var req mcpOAuthAuthRequest
 	ok, err := st.take(ctx, authKindOAuthRequest, authStoreKey(state), &req)
@@ -849,6 +885,16 @@ func (m memoryAuthStore) putOAuthRequest(_ context.Context, state string, req *m
 	defer a.mu.Unlock()
 	a.oauthStates[state] = req
 	return nil
+}
+
+func (m memoryAuthStore) peekOAuthRequest(_ context.Context, state string, now time.Time) (*mcpOAuthAuthRequest, error) {
+	a := m.lock()
+	defer a.mu.Unlock()
+	req := a.oauthStates[state]
+	if req == nil || now.After(req.ExpiresAt) {
+		return nil, nil
+	}
+	return req, nil
 }
 
 func (m memoryAuthStore) takeOAuthRequest(_ context.Context, state string) (*mcpOAuthAuthRequest, error) {

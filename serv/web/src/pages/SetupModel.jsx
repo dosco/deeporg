@@ -15,7 +15,7 @@ const PROVIDERS = [
 // a model to think with. The server checks the key with one small request
 // before saving it, then restarts with it; onDone runs once it is back.
 // onSkip leaves the step for later.
-const SetupModel = ({ onDone, onSkip }) => {
+const SetupModel = ({ onDone, onSkip, step = "", embedded = false }) => {
   const [provider, setProvider] = React.useState("openai");
   const [apiKey, setAPIKey] = React.useState("");
   const [model, setModel] = React.useState("");
@@ -33,8 +33,9 @@ const SetupModel = ({ onDone, onSkip }) => {
     }
     setError("");
     setPhase("checking");
+    let reply;
     try {
-      await chooseModel({ provider, apiKey: apiKey.trim(), model: nameModel ? model.trim() : "" });
+      reply = await chooseModel({ provider, apiKey: apiKey.trim(), model: nameModel ? model.trim() : "" });
     } catch (err) {
       setError(err?.message || "The provider did not accept that key.");
       setPhase("form");
@@ -42,7 +43,7 @@ const SetupModel = ({ onDone, onSkip }) => {
     }
     setPhase("starting");
     try {
-      await waitForModel();
+      await waitForModel({ boot: reply?.boot, restarting: reply?.restarting !== false });
       onDone?.();
     } catch (err) {
       setError(err?.message || "The server has not come back yet.");
@@ -50,9 +51,14 @@ const SetupModel = ({ onDone, onSkip }) => {
     }
   }
 
+  // On its own the screen fills the page. Inside the console it is a section.
+  const Frame = embedded ? "div" : "main";
+  const frame = embedded
+    ? { className: "w-full max-w-md" }
+    : { id: "main-content", className: "relative mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-6 py-12" };
   return (
-    <main id="main-content" className="relative mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-6 py-12">
-      <p className="hud-label">Setup</p>
+    <Frame {...frame}>
+      <p className="hud-label">{step ? `Setup · ${step}` : "Setup"}</p>
       <h1 className="mt-2 text-2xl font-bold tracking-tight">Choose a model</h1>
       <p className="mt-3 text-sm text-muted-foreground">
         The built-in agent uses a model from a provider you have an account with. Paste an API key and we will check that it works.
@@ -91,14 +97,16 @@ const SetupModel = ({ onDone, onSkip }) => {
       {onSkip && (
         <div className="mt-10 grid gap-1.5">
           <button type="button" className="justify-self-start text-left text-sm text-muted-foreground underline underline-offset-4" disabled={busy} onClick={onSkip}>
-            Do this later
+            {embedded ? "Cancel" : "Do this later"}
           </button>
-          <p className="text-xs text-muted-foreground">
-            Without a key the built-in agent and routines stay off. Everything else in the console works.
-          </p>
+          {!embedded && (
+            <p className="text-xs text-muted-foreground">
+              Without a key the built-in agent and routines stay off. Everything else in the console works.
+            </p>
+          )}
         </div>
       )}
-    </main>
+    </Frame>
   );
 };
 

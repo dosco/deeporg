@@ -88,8 +88,9 @@ One screen, two choices.
 
 One screen: provider and key. The page makes one live call to check the key and
 shows which model it will use. "Skip for now" is allowed; the page says what
-will not work until a key is added (the built-in agent and routines) and what
-still will (connecting your own Claude Code).
+will not work until a key is added: the built-in agent and routines. A
+connected agent such as Claude Code asks the built-in agent, so it gets no
+answers until a key is added either.
 
 **5. Ask your first question**
 
@@ -313,7 +314,7 @@ tokens DeepORG itself issues carry no role.
 - **The session carries the user id.** Role and status are looked up from the `users` table on each request, with a short cache. Removing a user or changing their role takes effect at once, not when a token expires.
 - **Invites** are one-time links the admin creates. The teammate chooses a password. There is no self-signup.
 - **Personal access tokens** let the CLI and headless clients sign in. They are stored hashed.
-- **Claude Code** signs in through the built-in OAuth flow against local users. Today that flow requires an outside identity provider (`newAuthLoginServiceWithStore`, `serv/auth_login.go`); the part that checks who the user is has to be separated from the part that issues tokens. Until that lands, Claude Code connects with a personal access token.
+- **Claude Code** signs in through the built-in OAuth flow against local users. That flow was written for an outside identity provider; it now also runs with a console session for a local account vouching for the person (slice 7 in Part 5). No personal access token is needed for it.
 - **Sign-in attempts are rate limited.** The existing limiter (`serv/iplimiter.go`) tracks ten addresses with one global rate and is not suitable; this needs its own.
 
 Single sign-on is not in the first version. When it is added it maps onto the
@@ -453,8 +454,8 @@ What this slice does not do yet:
 
 What this slice does not do yet:
 
-- **Counting the tables on the setup screen.** The count shows on the Runtime page.
-- **Connecting a second database, or changing one, from the console.** The step adds or replaces by name, but only setup calls it.
+- **Counting the tables on the setup screen.** Done in slice 8.
+- **Connecting a second database, or changing one, from the console.** Done in slice 8.
 - **Changes take effect by restarting the process**, which drops requests in flight. That is fine during setup; changes made later should use the live path the config pipeline already has.
 - **With no database connected, asking for a table that does not exist names the store's own tables in the error.** No data is exposed.
 
@@ -469,7 +470,7 @@ With this slice the path in Part 1 works from start to finish on a laptop: run `
 
 What is still open in Phase 2:
 
-- **`GJ_AGENT_*` variables in the environment override the stored model choice.** Found while testing. Reasonable for an operator, surprising for a newcomer with stray variables.
+- **`GJ_AGENT_*` variables in the environment override the stored model choice.** Found while testing. Fixed in slice 8.
 - **The setup screens do not show which model a provider's default is.**
 - **Hiding the store's table names** from the error for a table that does not exist, on a server with no database.
 
@@ -484,7 +485,55 @@ Known limits of the sample data:
 
 - **Its dates do not move.** The demo, run with `--demo`, shifts its dates forward as days pass. The sample file is a plain database, so "last week" gets less true the longer it sits.
 - **It is the database only.** The demo's policy files, its outside API and its saved routines are not connected.
-- **There is no screen yet for connecting a database of your own afterwards.** `deeporg config import` does it.
+- **There was no screen for connecting a database of your own afterwards.** Admin → Setup does it since slice 8.
+
+*Slice 7, connecting Claude Code — done on 2026-11-25.*
+
+An agent is given the server's address and nothing else. No secret is copied by hand.
+
+- With local accounts and no other MCP sign-in configured, the MCP endpoint refuses a client that has not signed in and says where it can (`withAccountOAuthChallenge`, `serv/account_oauth.go`). Before this such a client was let through as nobody: it connected, every tool turned it away, and it never learned that signing in was the answer.
+- The client registers itself, sends the person's browser to the server, and the console shows "Allow Claude Code to connect?" with the account it will act as and where it sends the browser afterwards (`serv/web/src/pages/ConnectApprove.jsx`). A client that is not on the person's own computer is named by its site, with a warning. The link survives sign-in, and setup on a server that has no admin yet.
+- Allowing it gives the client a one-hour token and a 30-day one to renew it with. The token names the account and the client. The role is read from the account store on each request, as for a console session.
+- **The token works at the MCP endpoint only.** GraphQL, REST and the console's own endpoints refuse it, so a connected agent can do what the MCP tools let it do and no more.
+- The console has a Connect page with the command for Claude Code and the address for other agents (`serv/web/src/pages/Connect.jsx`). `deeporg mcp add claude <url>` works too and now says to finish in Claude Code with `/mcp`.
+- This reuses the authorization-code and PKCE code written for single sign-on. Only who vouches for the person differs.
+- It is off when the config sets `mcp.oauth`, defines an `anon` role, has no console, or is a demo with its own sign-in.
+
+Two bugs found by running a real client:
+
+- **Every tool disappeared for a strict client.** A field that can hold anything was described with the schema `true`. The MCP client library Claude Code is built on accepts only an object there and throws away the whole tool list. Such fields are now described as `{}`, which means the same.
+- **`deeporg mcp add claude <url>` set up Codex.** The client named as an argument was read and then ignored. This is the command the server prints when it starts.
+
+What it does not do:
+
+- **A connected agent gets answers by asking the built-in agent**, which needs the model step done. Running queries itself (`mcp.allow_raw_queries`) is off on a new install, as it is for every agentic config. Without a model key the agent can search the catalog and nothing more. The Connect page says so and offers the model step.
+- **It was checked with the MCP client library, not by clicking through Claude Code itself.**
+- **Redirects must be `https`, or `http` to the person's own computer.** A client that hands the answer back through an address of its own kind, as some editors do, is refused.
+- **There is no list of connected agents and no way to disconnect one** short of removing the account. The renewal token lasts 30 days, then the person is asked again.
+- **A client that registers and is never allowed is forgotten after a week.** Registration and sign-in requests are rate limited per address.
+
+*Slice 8, a simpler start — done on 2026-11-25.*
+
+Each of these came from walking the finished flow as a newcomer.
+
+- **The first run says one thing.** A new install prints the banner, which now reads DeepORG, and the setup link. The list of addresses, the two warnings a newcomer cannot act on and the second copy of the link are gone for an install that uses a start config; the start config's `log_level` brings the detail back. An install run from config files prints what it did before.
+- **A taken port is not an error on a laptop.** If 8080 is in use the server moves to the next free port and says so. Where the address was chosen on purpose, through `DEEPORG_LISTEN` or for a server that listens beyond the machine, it stops and says what to change (`findListen`, `cmd/start_config.go`).
+- **The setup screens say which step they are**, and the database step ends by saying how many tables it found before moving on.
+- **The agent page suggests questions about the connected tables**, such as "How many accounts are there?" and "Which accounts have the most invoices?" (`serv/agent_starters.go`). Which table is the parent is read from the foreign keys.
+- **With no model, the agent page offers the model step** to an admin, and tells anyone else to ask their admin. It no longer tells a newcomer to set an environment variable.
+- **Setup can be come back to.** Admin → Setup lists the connected databases, the model and the people, and can connect another database, change the model and invite a teammate (`serv/web/src/pages/AdminSetup.jsx`, `serv/setup_manage.go`).
+- **Teammates join by invite.** The admin enters an email and gets a link to send. The teammate chooses a password and is signed in as an ordinary user, or as an admin if the admin said so. A link works once, for a week; a new invite for the same email replaces the old one; only the link's hash is stored.
+- **The model chosen on the setup page is the one used.** `GJ_AGENT_PROVIDER`, `GJ_AGENT_MODEL` and `GJ_AGENT_BASE_URL` left in the environment are dropped, with a warning, once a model has been chosen. Before that they still apply.
+- **A setup step waits for the new server.** The reply to a step carries a marker that changes when the process restarts, so connecting a second database, whose flag was already clear, no longer returns before the restart.
+- **The console and the terminal say DeepORG.**
+- **The website quick start describes this flow**, and keeps the config-file path as a section for people who run DeepORG as an API service.
+
+What this does not do:
+
+- **There is no way to remove a person, change their role or reset a password** from the console.
+- **Invite links are shown to the admin to send.** DeepORG sends no email.
+- **Suggested questions are built from table names with fixed wording**, so an odd table name gives an odd question. A table one role may not read can still appear in a suggestion to that role.
+- **A database cannot be disconnected from the console**, only added or replaced by name.
 
 *Remaining slices:* hiding the store's tables from data sources.
 
@@ -494,7 +543,8 @@ prompts. The container image starts the server. Demos and the evaluation
 harness load through import. The new quick start is published.
 
 **Phase 4: Teammates and Claude Code.**
-Invites. Personal access tokens. Claude Code sign-in against local users.
+Invites (done, slice 8). Personal access tokens. Claude Code sign-in against
+local users (done, slice 7).
 
 **Phase 5: Later.**
 Telling other servers that config changed (a `config` entry in the existing

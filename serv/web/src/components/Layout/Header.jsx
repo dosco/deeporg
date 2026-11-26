@@ -157,9 +157,9 @@ const Header = () => {
       <Link
         to={workspace?.defaultPath || "/user/agent"}
         className="flex shrink-0 items-baseline gap-2 md:px-2"
-        aria-label="GraphJin Console home"
+        aria-label="DeepORG console home"
       >
-        <span className="text-[1.0625rem] font-extrabold tracking-[-0.02em]">GraphJin</span>
+        <span className="text-[1.0625rem] font-extrabold tracking-[-0.02em]">DeepORG</span>
         <span className="hud-label hidden sm:inline">Console</span>
       </Link>
 

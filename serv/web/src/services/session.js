@@ -36,7 +36,8 @@ export function connectDatabase(connection) {
 }
 
 // waitForDatabase resolves once the server is back up with a database
-// connected.
+// connected. It resolves with the setup state, which says how many tables
+// were found.
 export function waitForDatabase(options) {
   return waitForSetupStep("needs_database", options);
 }
@@ -57,22 +58,68 @@ export function waitForModel(options) {
   return waitForSetupStep("needs_model", options);
 }
 
-// waitForSetupStep resolves once the server reports the step is done. A setup
-// step restarts the server; while it does, requests fail, which is expected.
-async function waitForSetupStep(field, { timeoutMs = 45000, intervalMs = 700 } = {}) {
+// waitForSetupStep resolves with the setup state once the server reports the
+// step is done. A setup step restarts the server; while it does, requests
+// fail, which is expected. The server's reply to the step carries a marker
+// that changes when it restarts, so a step whose own flag was already clear,
+// such as connecting a second database, still waits for the new server.
+async function waitForSetupStep(field, { boot = "", restarting = true, timeoutMs = 45000, intervalMs = 700 } = {}) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     await new Promise((resolve) => setTimeout(resolve, intervalMs));
     try {
       const state = await fetchJSON("/api/v1/setup");
-      if (!state[field]) {
-        return;
+      const restarted = !restarting || !boot || !state.boot || state.boot !== boot;
+      if (restarted && !(field && state[field])) {
+        return state;
       }
     } catch {
       // The server is restarting.
     }
   }
   throw new Error("That was saved, but the server has not come back yet. Reload this page in a moment.");
+}
+
+// setupDetails tells an admin what is connected and who has an account.
+export function setupDetails() {
+  return fetchJSON("/api/v1/setup/details");
+}
+
+// inviteTeammate makes a one-time link the admin sends to a teammate.
+export function inviteTeammate(email, role) {
+  return fetchJSON("/api/v1/setup/invites", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, role }),
+  });
+}
+
+export function withdrawInvite(email) {
+  return fetchJSON(`/api/v1/setup/invites?email=${encodeURIComponent(email)}`, { method: "DELETE" });
+}
+
+// readInvite says who an invite link is for.
+export function readInvite(token) {
+  return fetchJSON(`/api/v1/setup/invite?token=${encodeURIComponent(token)}`);
+}
+
+// acceptInvite creates the teammate's account with the password they chose
+// and signs them in.
+export function acceptInvite(token, password) {
+  return fetchJSON("/api/v1/setup/invite", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, password }),
+  });
+}
+
+// manageState reads whether the caller is an admin who can manage this
+// server from the console, and whether its databases and model are set there.
+export function manageState(bootstrap) {
+  return {
+    canManage: Boolean(bootstrap?.manage),
+    storeBacked: Boolean(bootstrap?.manage?.store_backed),
+  };
 }
 
 // setupState reads which first-run step, if any, the server is waiting on.
@@ -83,6 +130,50 @@ export function setupState(bootstrap) {
     needsModel: Boolean(bootstrap?.setup?.needs_model),
     sampleData: Boolean(bootstrap?.setup?.sample_data),
   };
+}
+
+// The admin can leave the model step of setup for later. That choice lasts for
+// this browser tab and is kept under this key.
+export const SKIP_MODEL_KEY = "deeporg.setup.skipModel";
+
+// returnToModelStep undoes that choice and reloads, which brings the model
+// step back for an admin.
+export function returnToModelStep(location = window.location) {
+  try {
+    sessionStorage.removeItem(SKIP_MODEL_KEY);
+  } catch {
+    // Without storage the step was never remembered as skipped.
+  }
+  location.assign("/user/agent");
+}
+
+// connectState reads how a signed-in person connects their own agent. The
+// address is absent on a server that does not sign agents in with an account.
+// answers says how a connected agent gets answers from the data: "agent" when
+// it asks the built-in agent, "queries" when it runs queries itself, and
+// empty when it cannot do either yet.
+export function connectState(bootstrap) {
+  return {
+    mcpURL: bootstrap?.connect?.mcp_url || "",
+    answers: bootstrap?.connect?.answers || "",
+    isAdmin: bootstrap?.identity?.role === "admin",
+  };
+}
+
+// readConnectRequest describes an agent that is waiting to be allowed: what
+// it calls itself and where it will send the browser afterwards.
+export function readConnectRequest(request) {
+  return fetchJSON(`/api/v1/oauth/consent?request=${encodeURIComponent(request)}`);
+}
+
+// answerConnectRequest allows or refuses the agent. The reply carries the
+// address to send the browser back to, which is how the agent hears the answer.
+export function answerConnectRequest(request, allow) {
+  return fetchJSON("/api/v1/oauth/consent", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ request, allow }),
+  });
 }
 
 export function signOut() {

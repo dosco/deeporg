@@ -174,3 +174,110 @@ func assertAccountsNotReadable(t *testing.T, base string, sessions map[string]st
 		}
 	}
 }
+
+// After setup the admin brings teammates in by invite. There is no way to
+// sign up without one, a link works once, and a teammate is an ordinary user:
+// they read the data and cannot change the server's setup.
+func TestAdminInvitesATeammate(t *testing.T) {
+	if testing.Short() {
+		t.Skip("embedded service integration")
+	}
+	const setupToken = "invite-setup-token"
+	t.Setenv("DEEPORG_SETUP_TOKEN", setupToken)
+	base, _, _ := bootGeneratedAgentic(t, "")
+
+	status, body, admin := accountsPost(t, base+"/api/v1/setup/admin", "", map[string]any{"token": setupToken, "email": "ada@example.com", "password": "a long enough password"})
+	if status != http.StatusOK || admin == "" {
+		t.Fatalf("creating the admin answered %d: %s", status, body)
+	}
+	invites := base + "/api/v1/setup/invites"
+
+	// Only an admin invites.
+	if status, body, _ := accountsPost(t, invites, "", map[string]any{"email": "sam@example.com"}); status != http.StatusUnauthorized {
+		t.Fatalf("inviting without signing in answered %d: %s", status, body)
+	}
+	// Someone who already has an account is not invited again.
+	if status, body, _ := accountsPost(t, invites, admin, map[string]any{"email": "Ada@Example.com"}); status != http.StatusConflict {
+		t.Fatalf("inviting an existing account answered %d: %s", status, body)
+	}
+	if status, body, _ := accountsPost(t, invites, admin, map[string]any{"email": "not an email"}); status != http.StatusBadRequest {
+		t.Fatalf("inviting a bad address answered %d: %s", status, body)
+	}
+
+	invite := func() string {
+		t.Helper()
+		status, body, _ := accountsPost(t, invites, admin, map[string]any{"email": "Sam@Example.com"})
+		var out struct {
+			Email string `json:"email"`
+			Link  string `json:"link"`
+		}
+		connectJSON(t, body, &out)
+		prefix := base + "/invite?token="
+		if status != http.StatusOK || out.Email != "sam@example.com" || !strings.HasPrefix(out.Link, prefix) {
+			t.Fatalf("inviting answered %d: %s", status, body)
+		}
+		return strings.TrimPrefix(out.Link, prefix)
+	}
+	first := invite()
+	// A second invite for the same person replaces the first, so a link sent
+	// to the wrong place can be cancelled by sending a new one.
+	token := invite()
+	if got := accountsGet(t, base+"/api/v1/setup/invite?token="+first, ""); !strings.Contains(got, "not valid any more") {
+		t.Fatalf("a replaced invite link still works: %s", got)
+	}
+
+	// The admin sees who has an account and who has been invited.
+	details := accountsGet(t, base+"/api/v1/setup/details", admin)
+	for _, want := range []string{`"email":"ada@example.com"`, `"role":"admin"`, `"invites":[{"email":"sam@example.com"`, `"databases":[{"name":"default"`} {
+		if !strings.Contains(details, want) {
+			t.Fatalf("the details are missing %s: %s", want, clip(details))
+		}
+	}
+	if strings.Contains(details, "password_hash") || strings.Contains(details, token) {
+		t.Fatalf("the details give away a secret: %s", clip(details))
+	}
+
+	// The teammate opens the link, is told who it is for, and chooses a password.
+	if got := accountsGet(t, base+"/api/v1/setup/invite?token="+token, ""); !strings.Contains(got, `"email":"sam@example.com"`) {
+		t.Fatalf("the invite did not say who it is for: %s", got)
+	}
+	accept := base + "/api/v1/setup/invite"
+	if status, body, _ := accountsPost(t, accept, "", map[string]any{"token": token, "password": "short"}); status != http.StatusBadRequest || !strings.Contains(body, "at least") {
+		t.Fatalf("a short password answered %d: %s", status, body)
+	}
+	status, body, sam := accountsPost(t, accept, "", map[string]any{"token": token, "password": "another long password"})
+	if status != http.StatusOK || sam == "" || !strings.Contains(body, `"role":"user"`) {
+		t.Fatalf("accepting the invite answered %d: %s", status, body)
+	}
+	// The link is spent.
+	if status, body, _ := accountsPost(t, accept, "", map[string]any{"token": token, "password": "yet another long password"}); status != http.StatusNotFound {
+		t.Fatalf("an invite was accepted twice (%d): %s", status, body)
+	}
+
+	// The teammate reads the data, as everyone signed in does.
+	if body := accountsGraphQL(t, base, sam, `query { orders(order_by: { id: asc }) { id total } }`); !strings.Contains(body, `"total"`) {
+		t.Fatalf("the teammate could not read a table: %s", clip(body))
+	}
+	// They are not an admin: no invites, no details, no configuration.
+	if status, body, _ := accountsPost(t, invites, sam, map[string]any{"email": "eve@example.com"}); status != http.StatusForbidden {
+		t.Fatalf("a teammate invited someone (%d): %s", status, body)
+	}
+	if got := accountsGet(t, base+"/api/v1/setup/details", sam); strings.Contains(got, "people") {
+		t.Fatalf("a teammate read the setup details: %s", clip(got))
+	}
+	if body := accountsGraphQL(t, base, sam, `query { gj_config(id: "current") { id } }`); !strings.Contains(body, "errors") {
+		t.Fatalf("a teammate read the configuration: %s", clip(body))
+	}
+	if page := accountsGet(t, base+"/api/v1/console/bootstrap", sam); strings.Contains(page, `"manage"`) {
+		t.Fatalf("a teammate's console was offered the admin's setup page: %s", clip(page))
+	}
+	if page := accountsGet(t, base+"/api/v1/console/bootstrap", admin); !strings.Contains(page, `"manage"`) {
+		t.Fatalf("the admin's console was not offered the setup page: %s", clip(page))
+	}
+	// They sign in again with their password.
+	if status, body, again := accountsPost(t, base+"/api/v1/auth/session", "", map[string]any{"method": "password", "email": "sam@example.com", "password": "another long password"}); status != http.StatusOK || again == "" {
+		t.Fatalf("the teammate could not sign in again (%d): %s", status, body)
+	}
+	// Invites are in the store with everything else, and as unreadable.
+	assertAccountsNotReadable(t, base, map[string]string{"the admin": admin, "the teammate": sam})
+}

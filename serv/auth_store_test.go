@@ -248,7 +248,7 @@ func TestAuthStoreRefreshTokenSurvivesRestart(t *testing.T) {
 	before, db := openAuthStoreReplica(t, path)
 	rec := httptest.NewRecorder()
 	before.writeMCPOAuthTokenResponse(context.Background(), rec, "client-1", "mcp", resource,
-		&oidc.Identity{Subject: "u1", Email: "u1@example.com", Issuer: "https://idp.example"})
+		&oidc.Identity{Subject: "u1", Email: "u1@example.com", Issuer: "https://idp.example"}, "")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("token response: %d %s", rec.Code, rec.Body.String())
 	}

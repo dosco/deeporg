@@ -60,6 +60,26 @@ type consoleBootstrapResponse struct {
 	// Setup is present while a first-run step is still to be done, so the
 	// console can open on it.
 	Setup *consoleBootstrapSetup `json:"setup,omitempty"`
+	// Connect is present when a signed-in person can connect their own
+	// agent, such as Claude Code, by signing in with their account.
+	Connect *consoleBootstrapConnect `json:"connect,omitempty"`
+	// Manage is present for an admin on a server that holds accounts: they
+	// can invite people and, on an install set up from the setup page,
+	// connect databases and change the model.
+	Manage *consoleBootstrapManage `json:"manage,omitempty"`
+}
+
+type consoleBootstrapManage struct {
+	StoreBacked bool `json:"store_backed"`
+}
+
+type consoleBootstrapConnect struct {
+	// MCPURL is the address to give the agent.
+	MCPURL string `json:"mcp_url"`
+	// Answers says how a connected agent gets answers from the data:
+	// "agent" when it asks the built-in agent, "queries" when it runs
+	// queries itself, and empty when it can do neither yet.
+	Answers string `json:"answers"`
 }
 
 type consoleBootstrapSetup struct {
@@ -142,6 +162,21 @@ func (s1 *HttpService) apiV1ConsoleBootstrap(ns *string) http.Handler {
 			setup = &consoleBootstrapSetup{NeedsAdmin: needsAdmin, NeedsDatabase: needsDatabase, NeedsModel: needsModel, SampleData: s.storeBacked() && s.sampleData != nil}
 		}
 
+		var manage *consoleBootstrapManage
+		if s.accounts != nil && s.callerIsAdmin(ctx) {
+			manage = &consoleBootstrapManage{StoreBacked: s.storeBacked()}
+		}
+		var connect *consoleBootstrapConnect
+		if s.accountOAuth != nil && identity.Authenticated {
+			connect = &consoleBootstrapConnect{MCPURL: s.conf.mcpOAuthResource(r)}
+			switch {
+			case s.conf.agentEnabled() && s.conf.Agent.APIKeyConfigured():
+				connect.Answers = "agent"
+			case s.conf.MCP.AllowRawQueries:
+				connect.Answers = "queries"
+			}
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Cache-Control", "private, no-store")
 		_ = json.NewEncoder(w).Encode(consoleBootstrapResponse{
@@ -151,6 +186,8 @@ func (s1 *HttpService) apiV1ConsoleBootstrap(ns *string) http.Handler {
 			Workspaces:    workspaces,
 			Features:      features,
 			Setup:         setup,
+			Connect:       connect,
+			Manage:        manage,
 		})
 	})
 }

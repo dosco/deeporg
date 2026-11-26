@@ -152,6 +152,7 @@ type graphjinService struct {
 	onboardingCandidates map[string]cachedDiscoveredCandidate
 	authLogin            *authLoginService                     // built-in OIDC login (optional)
 	accounts             *accountService                       // local accounts (agentic, optional)
+	accountOAuth         *authLoginService                     // signs MCP clients in with a local account
 	configApplier        func() error                          // makes a changed stored configuration take effect
 	sampleData           func(context.Context) (string, error) // builds the sample database, returns its file
 }
@@ -660,6 +661,29 @@ func OptionSetZapLogger(zlog *zap.Logger) Option {
 	}
 }
 
+// OptionSetMinLogLevel drops log lines less important than level: "debug",
+// "info", "warn" or "error". An unknown level changes nothing.
+func OptionSetMinLogLevel(level string) Option {
+	return func(s *graphjinService) error {
+		var min zapcore.Level
+		switch strings.ToLower(strings.TrimSpace(level)) {
+		case "debug":
+			min = zapcore.DebugLevel
+		case "info":
+			min = zapcore.InfoLevel
+		case "warn":
+			min = zapcore.WarnLevel
+		case "error":
+			min = zapcore.ErrorLevel
+		default:
+			return nil
+		}
+		s.zlog = s.zlog.WithOptions(zap.IncreaseLevel(min))
+		s.log = s.zlog.Sugar()
+		return nil
+	}
+}
+
 // OptionSetLogOutput sets the log output writer (e.g., os.Stderr for MCP stdio mode)
 func OptionSetLogOutput(output zapcore.WriteSyncer) Option {
 	return func(s *graphjinService) error {
@@ -835,6 +859,15 @@ func newGraphJinService(conf *Config, dbs map[string]*sql.DB, options ...Option)
 		return nil, fmt.Errorf("accounts: %w", err)
 	}
 	s.accounts = accounts
+
+	// With local accounts and no other MCP sign-in configured, MCP clients
+	// sign in with an account too.
+	accountOAuth, err := s.initAccountOAuth()
+	if err != nil {
+		return nil, fmt.Errorf("mcp sign-in: %w", err)
+	}
+	s.accountOAuth = accountOAuth
+	s.conf.accountOAuth = accountOAuth != nil
 
 	// if s.deployActive {
 	// 	err = s.hotStart()

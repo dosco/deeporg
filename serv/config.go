@@ -60,7 +60,11 @@ type Config struct {
 	// config directory.
 	storePath string
 	// storeSealKey encrypts the configuration document kept in the store.
-	storeSealKey     string
+	storeSealKey string
+	// accountOAuth is set by the service when MCP clients sign in with a
+	// local account. It is decided from the rest of the configuration and is
+	// never read from a file.
+	accountOAuth     bool
 	explicitSettings map[string]bool
 
 	// agentKeyFileDir is the directory of the agent.api_key_file the config
