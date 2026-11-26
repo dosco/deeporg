@@ -59,9 +59,10 @@
       <span data-pagefind-meta="source" data-pagefind-filter="source">{{ $source }}</span>
     </div>
 
-    {{- /* Five destinations for a visitor. The docs sections (Start, Core,
+    {{- /* Six destinations for a visitor. The docs sections (Start, Core,
            Integrations, Agentic, Configure, Reference) are one click further,
-           in the sidebar of every docs page. */ -}}
+           in the sidebar of every docs page. Release notes are here because
+           someone who already runs DeepORG comes back for them. */ -}}
     {{ $docsSections := slice "start" "story" "core" "integrations" "agentic" "configure" "reference" }}
     {{ $sectionLinks := slice
       (dict "label" "Why DeepORG" "href" "/why/" "active" (eq $section "why"))
@@ -69,6 +70,7 @@
       (dict "label" "Guides" "href" "/guides/" "active" (in (slice "guides" "compare") $section))
       (dict "label" "Environment" "href" "/environment/overview/" "active" (eq $section "environment"))
       (dict "label" "Docs" "href" "/start/install/" "active" (in $docsSections $section))
+      (dict "label" "Release notes" "href" "/releases/" "active" (eq $slug "releases"))
     }}
 
     <header class="site-header" data-pagefind-ignore>

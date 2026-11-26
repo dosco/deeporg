@@ -5038,8 +5038,54 @@ h3 {
   margin: 0;
 }
 
+/* What happens after the two commands: the three setup screens, in order. */
+.quickstart-steps {
+  display: grid;
+  gap: 0.7rem;
+  margin: 0.35rem 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: quickstart-step;
+  color: var(--muted);
+  font-size: 1rem;
+}
+
+.quickstart-steps li {
+  display: grid;
+  grid-template-columns: 1.6rem minmax(0, 1fr);
+  column-gap: 0.6rem;
+  counter-increment: quickstart-step;
+}
+
+.quickstart-steps li::before {
+  content: counter(quickstart-step);
+  color: var(--accent-readable);
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  font-weight: 700;
+  line-height: 1.75;
+}
+
+.quickstart-steps li b {
+  color: var(--heading);
+  font-weight: 600;
+}
+
 .dx-demos {
   margin-top: clamp(2rem, 5vw, 3.5rem);
+}
+
+.dx-demos-lede {
+  max-width: 44rem;
+  margin: -0.35rem 0 1.25rem;
+  color: var(--muted);
+}
+
+.dx-demos-run {
+  max-width: 44rem;
+  margin: 1.25rem 0 0;
+  color: var(--muted);
+  font-size: 0.98rem;
 }
 
 .dx-demos h3 {

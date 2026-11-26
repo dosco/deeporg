@@ -101,7 +101,7 @@ Every DeepORG server includes a first-party console. Ask the agent, inspect sour
 
 <div class="console-gallery"><figure class="console-shot"><img src="/assets/webui-runtime-overview.webp" width="1440" height="900" alt="DeepORG Console Admin Runtime view showing source health, table discovery, catalog readiness, and security posture." loading="lazy" decoding="async"><figcaption><strong>Runtime</strong><span>Source health, table discovery, catalog readiness, and effective security posture.</span></figcaption></figure><figure class="console-shot"><img src="/assets/webui-workbench-query.webp" width="1440" height="900" alt="DeepORG Console Workbench running a read-only GraphQL query with JSON results." loading="lazy" decoding="async"><figcaption><strong>Workbench</strong><span>Run application and system-root queries against the same GraphQL endpoint your clients use.</span></figcaption></figure></div>
 
-<div class="home-actions"><a class="button-primary" href="/start/quick-start/">Run it on your computer</a><a class="button-secondary" href="/#quickstart">Run the 2-minute demo</a></div>
+<div class="home-actions"><a class="button-primary" href="/start/quick-start/">Run it on your computer</a><a class="button-secondary" href="/#demos">See the demo companies</a></div>
 
 {{< endband >}}
 

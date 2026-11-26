@@ -58,6 +58,7 @@ const requiredRoutes = [
   'og/index.html',
   'start/install/index.html',
   'start/quick-start/index.html',
+  'releases/index.html',
   'start/demos/index.html',
   'story/index.html',
   'story/vision/index.html',
@@ -226,6 +227,9 @@ const failures = [];
 // topic instead.
 const requiredRenderedContent = [
   ['index.html', 'Test an agent on your own systems, or train one.'],
+  ['releases/index.html', 'What to change when you upgrade'],
+  ['releases/index.html', 'Every config file needs a'],
+  ['releases/index.html', 'The API service no longer writes access rules for you.'],
   // Moved off the homepage with its link grid.
   ['core/filters/index.html', 'geo filters'],
   ['core/aggregations-functions/index.html', 'Expression aggregates'],
@@ -350,7 +354,7 @@ const requiredRenderedContent = [
   ['why/complete-agent/index.html', 'It cannot touch your secrets'],
   ['why/complete-agent/index.html', 'Only while you are building'],
   ['why/complete-agent/index.html', 'tried it first'],
-  ['why/complete-agent/index.html', 'Run the 2-minute demo'],
+  ['why/complete-agent/index.html', 'See the demo companies'],
   ['why/no-hand-built-tools/index.html', 'The agent loop'],
   ['why/no-hand-built-tools/index.html', 'Discover, check, validate, act.'],
   ['why/no-hand-built-tools/index.html', 'One catalog of everything you connect.'],
@@ -517,7 +521,7 @@ if (await exists(path.join(publicRoot, 'index.html'))) {
   // The homepage no longer ends in a grid of docs links (the footer and the docs
   // sidebar carry those). The phrases that grid held are pinned on the pages
   // that own them, in requiredRenderedContent.
-  for (const required of ['A made-up answer is blocked.', 'Your first answer is one command away.', 'has to come from a query the agent actually ran', 'Run it in two minutes.']) {
+  for (const required of ['A made-up answer is blocked.', 'Or start with a demo company.', 'has to come from a query the agent actually ran', 'Run it in two minutes.']) {
     if (!home.includes(required)) {
       failures.push(`Homepage missing required enriched copy: ${required}`);
     }
@@ -552,17 +556,36 @@ if (await exists(path.join(publicRoot, 'index.html'))) {
       failures.push(`Homepage missing benchmark copy: ${required}`);
     }
   }
-  // The full MCP setup story moved to /why/complete-agent/ (asserted above);
-  // the homepage keeps the one-line way in.
-  for (const required of ['deeporg mcp --demo', 'deeporg mcp add claude']) {
+  // Getting started is two commands and a setup page in the browser. The
+  // section says what the three setup steps are, and does not send a newcomer
+  // through a model key file, a port number or an MCP command first.
+  for (const required of [
+    'A setup page opens in your browser',
+    'There is no config file to write.',
+    'Create your account.',
+    'Connect your data.',
+    'Choose a model.',
+    'Connect Claude Code',
+  ]) {
     if (!home.includes(required)) {
-      failures.push(`Homepage missing MCP setup copy: ${required}`);
+      failures.push(`Homepage missing get-started copy: ${required}`);
+    }
+  }
+  {
+    const start = home.search(/id=["']?quickstart(?=["'\s>])/);
+    const end = home.search(/id=["']?demos(?=["'\s>])/);
+    const getStarted = start >= 0 && end > start ? home.slice(start, end) : '';
+    if (!getStarted) failures.push('Homepage #quickstart section not found ahead of #demos');
+    for (const banned of ['.env', '8083', 'mcp add', 'serve --demo']) {
+      if (getStarted.includes(banned)) failures.push(`Homepage get-started steps mention ${banned}; they should be install, run, and the setup page`);
     }
   }
   for (const href of [
     '/watch/',
     '/why/',
-    '/agentic/mcp/',
+    '/start/quick-start/',
+    '/start/quick-start/#connect-claude-code',
+    '/releases/',
     '/benchmarks/deeporg/',
     '/benchmarks/deeporg/methodology/',
     '/benchmark/',
@@ -675,7 +698,7 @@ if (await exists(path.join(publicRoot, 'index.html'))) {
     if (!/data-ascii=["']?how\b/.test(engine)) failures.push('Homepage #engine section lost its step-by-step figure');
   }
 
-  const navTargets = ['/why/', '/benchmark/', '/guides/', '/environment/overview/', '/start/install/'];
+  const navTargets = ['/why/', '/benchmark/', '/guides/', '/environment/overview/', '/start/install/', '/releases/'];
   for (const page of [['index.html'], ['start', 'install', 'index.html'], ['why', 'complete-agent', 'index.html'], ['404.html']]) {
     const html = await read(...page);
     const name = page.join('/');

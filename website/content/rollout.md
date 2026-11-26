@@ -6,8 +6,8 @@ headline: "What a rollout takes, step by step."
 description: "A step-by-step guide for whoever rolls out an AI agent across a company's data: connect the systems, set who may see what, write down what the company's words mean, check answers until people trust them, hand it over, give it recurring work, and know whether it is working."
 lede: "Choosing the model is the small part of an AI rollout. Most of the work is connecting the systems, deciding who may see what, writing down what the company's words mean, checking answers until people trust them, and then giving the agent real work to do every week. Companies usually bring in forward-deployed engineers or consultants for it. This page is for whoever does that work. For each step, it shows the part of DeepORG that handles it."
 actions:
-  - label: "Try the demo first"
-    href: "/#quickstart"
+  - label: "Try a demo first"
+    href: "/#demos"
   - label: "Install"
     href: "/start/install/"
 landing: true
