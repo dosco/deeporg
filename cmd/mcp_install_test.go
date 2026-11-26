@@ -473,3 +473,49 @@ func TestPrintPostInstallGuide(t *testing.T) {
 		t.Fatalf("expected codex config path note, got:\n%s", out)
 	}
 }
+
+// `deeporg mcp add claude <url>` is the command the server prints when it
+// starts. The client named there was read and then thrown away, so the
+// command set up Codex, or asked which client was meant.
+func TestSplitMCPAddArgs(t *testing.T) {
+	for _, tc := range []struct {
+		args           []string
+		client, server string
+	}{
+		{nil, "", ""},
+		{[]string{"claude"}, "claude", ""},
+		{[]string{"http://127.0.0.1:8080"}, "", "http://127.0.0.1:8080"},
+		{[]string{"localhost:8080"}, "", "localhost:8080"},
+		{[]string{"claude", "http://127.0.0.1:8080"}, "claude", "http://127.0.0.1:8080"},
+		{[]string{"all", "data.example.com"}, "all", "data.example.com"},
+	} {
+		client, server := splitMCPAddArgs(tc.args)
+		if client != tc.client || server != tc.server {
+			t.Errorf("splitMCPAddArgs(%q) = %q, %q; want %q, %q", tc.args, client, server, tc.client, tc.server)
+		}
+	}
+
+	// The client named as an argument is the one set up, with no prompt.
+	client, _ := splitMCPAddArgs([]string{"claude", "http://127.0.0.1:8080"})
+	opts, err := resolveInstallOptions(mcpInstallResolveInput{Client: client, ClientSet: client != "", Server: "http://127.0.0.1:8080", ServerSet: true})
+	if err != nil || opts.Client != "claude" {
+		t.Fatalf("the named client was not used: %q, %v", opts.Client, err)
+	}
+}
+
+// When the server has the client sign in for itself, the next step is in
+// Claude Code, and the person has to be told what it is.
+func TestPostInstallGuideSaysHowToSignIn(t *testing.T) {
+	var out bytes.Buffer
+	printPostInstallGuide(&out, mcpInstallOptions{Client: "claude", Server: "http://127.0.0.1:8080/api/v1/mcp", SignIn: true}, codexInstallPlan{})
+	for _, want := range []string{"type /mcp", "then Authenticate", "choose Allow"} {
+		if !strings.Contains(out.String(), want) {
+			t.Errorf("the guide does not say %q:\n%s", want, out.String())
+		}
+	}
+	out.Reset()
+	printPostInstallGuide(&out, mcpInstallOptions{Client: "claude", Server: "http://127.0.0.1:8080/api/v1/mcp"}, codexInstallPlan{})
+	if strings.Contains(out.String(), "Authenticate") {
+		t.Errorf("a server with no sign-in was given sign-in steps:\n%s", out.String())
+	}
+}

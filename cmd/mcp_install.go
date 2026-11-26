@@ -46,6 +46,8 @@ type mcpInstallOptions struct {
 	NoBrowser   bool
 	ConfigPath  string
 	DeviceStart *deviceStartResp
+	// SignIn is true when the server asked the client to sign in for itself.
+	SignIn bool
 }
 
 type mcpInstallResolveInput struct {
@@ -162,24 +164,16 @@ func newMCPInstallCommand(cfg mcpInstallCommandConfig) *cobra.Command {
 				log.Fatalf("failed to get absolute config path: %s", err)
 			}
 
-			posClient := ""
-			posServer := ""
-			if len(args) > 0 {
-				if looksLikeURLish(args[0]) {
-					posServer = args[0]
-				} else {
-					posClient = args[0]
-				}
-			}
-			if len(args) > 1 {
-				posServer = args[1]
-			}
+			posClient, posServer := splitMCPAddArgs(args)
 			if posClient != "" && !cmd.Flags().Changed("client") {
 				client = posClient
 			}
 			if posServer != "" && !cmd.Flags().Changed("server") {
 				server = posServer
 			}
+			// A client or server named on the command line has been chosen,
+			// whether it came as a flag or as a plain argument.
+			clientSet := cmd.Flags().Changed("client") || posClient != ""
 			serverSet := cmd.Flags().Changed("server") || posServer != ""
 
 			interactive := isInteractiveTTY() && !yes
@@ -190,7 +184,7 @@ func newMCPInstallCommand(cfg mcpInstallCommandConfig) *cobra.Command {
 
 			opts, err := resolveInstallOptions(mcpInstallResolveInput{
 				Client:      client,
-				ClientSet:   cmd.Flags().Changed("client"),
+				ClientSet:   clientSet,
 				Scope:       scope,
 				ScopeSet:    cmd.Flags().Changed("scope"),
 				Server:      server,
@@ -356,6 +350,23 @@ func resolveInstallOptions(in mcpInstallResolveInput) (mcpInstallOptions, error)
 	return opts, nil
 }
 
+// splitMCPAddArgs reads `deeporg mcp add [client] [server-url]`. Either part
+// may be left out, so a lone argument is told apart by whether it looks like
+// an address.
+func splitMCPAddArgs(args []string) (client, server string) {
+	if len(args) > 0 {
+		if looksLikeURLish(args[0]) {
+			server = args[0]
+		} else {
+			client = args[0]
+		}
+	}
+	if len(args) > 1 {
+		server = args[1]
+	}
+	return client, server
+}
+
 func looksLikeURLish(v string) bool {
 	v = strings.TrimSpace(v)
 	return strings.Contains(v, "://") ||
@@ -478,6 +489,7 @@ func applyMCPProbeResult(ctx context.Context, cmd *cobra.Command, opts *mcpInsta
 	switch probe.Kind {
 	case mcpProbeNoAuth, mcpProbeOAuth:
 		opts.Mode = mcpInstallModeDirect
+		opts.SignIn = probe.Kind == mcpProbeOAuth
 		return nil
 	case mcpProbeAuthLogin:
 		opts.Mode = mcpInstallModeProxy
@@ -866,9 +878,16 @@ func printPostInstallGuide(w io.Writer, opts mcpInstallOptions, codexPlan codexI
 	fmt.Fprintf(w, "Server: %s\n", opts.Server)
 
 	if usesClaude(opts.Client) {
-		fmt.Fprintf(w, "\nClaude Desktop / Claude Code\n")
-		fmt.Fprintf(w, "  1) Restart Claude Desktop.\n")
-		fmt.Fprintf(w, "  2) Verify with: claude mcp list\n")
+		if opts.SignIn {
+			fmt.Fprintf(w, "\nClaude Code\n")
+			fmt.Fprintf(w, "  1) Start Claude Code and type /mcp.\n")
+			fmt.Fprintf(w, "  2) Choose %s, then Authenticate.\n", claudeMCPServerName)
+			fmt.Fprintf(w, "  3) Your browser opens on the server. Sign in and choose Allow.\n")
+		} else {
+			fmt.Fprintf(w, "\nClaude Desktop / Claude Code\n")
+			fmt.Fprintf(w, "  1) Restart Claude Desktop.\n")
+			fmt.Fprintf(w, "  2) Verify with: claude mcp list\n")
+		}
 	}
 
 	if usesCodex(opts.Client) {
