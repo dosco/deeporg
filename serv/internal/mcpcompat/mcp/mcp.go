@@ -274,9 +274,36 @@ func WithOutputSchema[T any]() ToolOption {
 			if out.Type == "" && reflect.TypeOf(zero) != nil {
 				out.Type = "object"
 			}
+			for name, prop := range out.Properties {
+				out.Properties[name] = objectSchema(prop)
+			}
 			t.OutputSchema = out
 		}
 	}
+}
+
+// objectSchema rewrites the schema `true`, which a field of any type reflects
+// to, as the empty schema `{}`. The two mean the same thing, but the MCP
+// client library Claude Code is built on only accepts an object where a
+// schema goes and otherwise throws the whole tool list away.
+func objectSchema(schema any) any {
+	switch v := schema.(type) {
+	case bool:
+		if v {
+			return map[string]any{}
+		}
+		return map[string]any{"not": map[string]any{}}
+	case map[string]any:
+		if props, ok := v["properties"].(map[string]any); ok {
+			for name, prop := range props {
+				props[name] = objectSchema(prop)
+			}
+		}
+		if items, ok := v["items"]; ok {
+			v["items"] = objectSchema(items)
+		}
+	}
+	return schema
 }
 
 type ReadResourceParams struct{ URI string }
