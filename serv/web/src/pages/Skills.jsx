@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DataErrorState, EmptyState, LoadingState, PageHeader, Panel } from "../components/ui";
 import { addSkill, deleteSkill, listSkills, updateSkill } from "../services/agent";
 import { operatorIdentityKey, useOperatorIdentity } from "../services/identity";
+import { Lock, Pencil, Plus, Save, Trash2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -88,6 +89,7 @@ const Skills = () => {
                 </Button>
               )}
               <Button type="submit" size="sm" disabled={!ready || save.isPending}>
+                {editingID ? <Save aria-hidden="true" /> : <Plus aria-hidden="true" />}
                 {editingID ? "Save" : "Add"}
               </Button>
             </div>
@@ -104,7 +106,7 @@ const Skills = () => {
         ) : (
           <ul className="grid gap-1">
             {skills.map((skill) => (
-              <li key={skill.id} className="flex flex-col gap-2 py-2.5 sm:flex-row sm:items-start sm:justify-between">
+              <li key={skill.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="grid min-w-0 gap-1">
                   <p className="text-sm font-medium">{skill.name}</p>
                   <p className="text-sm text-muted-foreground">{skill.description}</p>
@@ -124,12 +126,15 @@ const Skills = () => {
                       disabled={share.isPending}
                       onClick={() => share.mutate({ id: skill.id, tier: skill.scope === "team" ? "observed" : "approved" })}
                     >
+                      {skill.scope === "team" ? <Lock aria-hidden="true" /> : <Users aria-hidden="true" />}
                       {skill.scope === "team" ? "Make personal" : "Share with team"}
                     </Button>
                     <Button type="button" variant="ghost" size="sm" aria-label="Edit skill" onClick={() => edit(skill)}>
+                      <Pencil aria-hidden="true" />
                       Edit
                     </Button>
-                    <Button type="button" variant="ghost" size="sm" aria-label="Delete skill" disabled={remove.isPending} onClick={() => remove.mutate(skill.id)}>
+                    <Button type="button" variant="ghost" size="sm" aria-label="Delete skill" className="text-muted-foreground hover:text-destructive" disabled={remove.isPending} onClick={() => remove.mutate(skill.id)}>
+                      <Trash2 aria-hidden="true" />
                       Delete
                     </Button>
                   </div>

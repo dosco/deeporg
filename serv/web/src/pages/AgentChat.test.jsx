@@ -55,6 +55,29 @@ describe("agent thread sidebar", () => {
   });
 });
 
+describe("routine threads", () => {
+  const routineThreads = Array.from({ length: 8 }, (_, index) => ({ id: `th_w${index}`, title: `Watch: overdue_${index}`, channel: "watch", unread: index < 2 }));
+
+  it("keeps routine threads out of Chats and folds a long list", async () => {
+    const user = userEvent.setup();
+    render(
+      <ThreadList threads={[{ id: "th_1", title: "Revenue question", channel: "web" }, ...routineThreads]} activeID="th_w6" onSelect={vi.fn()} />,
+    );
+    const chats = screen.getByRole("region", { name: "Chats" });
+    expect(within(chats).queryByText(/overdue_/)).toBeNull();
+
+    const routines = screen.getByRole("region", { name: "From routines" });
+    expect(within(routines).getByText("2 unread")).toBeInTheDocument();
+    // The prefix only repeats the heading, and the open thread stays in view.
+    expect(within(routines).getByText("overdue_0")).toBeInTheDocument();
+    expect(within(routines).getByText("overdue_6")).toBeInTheDocument();
+    expect(within(routines).queryByText("overdue_5")).toBeNull();
+
+    await user.click(within(routines).getByRole("button", { name: "Show 3 more" }));
+    expect(within(routines).getByText("overdue_5")).toBeInTheDocument();
+  });
+});
+
 // Three questions run at once, so their events arrive interleaved: the lead's
 // ask_graphjin record (running, then done/error) and each worker's own actions.
 const questions = ["Revenue last month?", "Top customer by orders?", "Open support tickets?"];

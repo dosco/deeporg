@@ -1,51 +1,84 @@
+import {
+  Bot,
+  BookOpenText,
+  Braces,
+  Brain,
+  Code2,
+  FileCheck2,
+  FileCog,
+  FlaskConical,
+  Gauge,
+  GraduationCap,
+  Inbox,
+  Library,
+  ListTodo,
+  Plug,
+  Radar,
+  ServerCog,
+  Settings2,
+  ShieldCheck,
+  SquareTerminal,
+  UserRound,
+  Workflow,
+} from "lucide-react";
+
+// Every view carries an icon and one of the palette's five section tones
+// (warm, amber, blue, teal, violet), taken from the deeporg.io palette. The rail, the search palette and the
+// page header all read them from here, so a view looks the same everywhere.
 export const workspaceDefinitions = {
   user: {
     id: "user",
     label: "User",
     description: "Your work",
+    icon: UserRound,
+    tone: "warm",
     defaultPath: "/user/agent",
     items: [
-      { path: "/user/agent", label: "Agent", layout: "canvas" },
+      { path: "/user/agent", label: "Agent", layout: "canvas", icon: Bot, tone: "warm" },
       // Shown only when the server offers notifications to this viewer.
-      { path: "/user/inbox", label: "Inbox", layout: "collection", requiresCapability: "gj_notification", count: "notifications" },
-      { path: "/user/tasks", label: "Tasks", layout: "collection" },
-      { path: "/user/watches", label: "Watches", layout: "collection" },
-      { path: "/user/artifacts", label: "Artifacts", layout: "collection" },
-      { path: "/user/memory", label: "Memory", layout: "collection" },
-      { path: "/user/skills", label: "Skills", layout: "collection" },
+      { path: "/user/inbox", label: "Inbox", layout: "collection", icon: Inbox, tone: "amber", requiresCapability: "gj_notification", count: "notifications" },
+      { path: "/user/tasks", label: "Tasks", layout: "collection", icon: ListTodo, tone: "teal" },
+      { path: "/user/watches", label: "Watches", layout: "collection", icon: Radar, tone: "blue" },
+      { path: "/user/artifacts", label: "Artifacts", layout: "collection", icon: FileCheck2, tone: "violet" },
+      { path: "/user/memory", label: "Memory", layout: "collection", icon: Brain, tone: "amber" },
+      { path: "/user/skills", label: "Skills", layout: "collection", icon: BookOpenText, tone: "blue" },
       // Shown only when the server signs agents in with an account.
-      { path: "/user/connect", label: "Connect", layout: "collection", requiresConnect: true },
+      { path: "/user/connect", label: "Connect", layout: "collection", icon: Plug, tone: "teal", requiresConnect: true },
     ],
   },
   admin: {
     id: "admin",
     label: "Admin",
     description: "Server",
+    icon: ServerCog,
+    tone: "blue",
     defaultPath: "/admin/runtime",
     items: [
-      { path: "/admin/runtime", label: "Runtime", layout: "collection" },
+      { path: "/admin/runtime", label: "Runtime", layout: "collection", icon: Gauge, tone: "teal" },
       // Shown only to an admin on a server that holds accounts.
-      { path: "/admin/setup", label: "Setup", layout: "collection", requiresManage: true },
+      { path: "/admin/setup", label: "Setup", layout: "collection", icon: Settings2, tone: "amber", requiresManage: true },
       // The two views an API service has: a place to try queries, and the
       // reference for the endpoints it serves.
-      { path: "/admin/workbench", label: "Workbench", layout: "canvas", apiService: true },
-      { path: "/admin/catalog", label: "Catalog", layout: "collection" },
-      { path: "/admin/workflows", label: "Workflows", layout: "collection" },
+      { path: "/admin/workbench", label: "Workbench", layout: "canvas", icon: SquareTerminal, tone: "warm", apiService: true },
+      { path: "/admin/catalog", label: "Catalog", layout: "collection", icon: Library, tone: "blue" },
+      { path: "/admin/workflows", label: "Workflows", layout: "collection", icon: Workflow, tone: "violet" },
       // Shown only when the server serves its security report. A new install
       // does not: security.read is off by default on an agent server.
-      { path: "/admin/security", label: "Security", layout: "collection", requiresCapability: "gj_security" },
-      { path: "/admin/code", label: "Code", layout: "document" },
-      { path: "/admin/config", label: "Config", layout: "document" },
-      { path: "/admin/api", label: "API", layout: "document", apiService: true },
+      { path: "/admin/security", label: "Security", layout: "collection", icon: ShieldCheck, tone: "warm", requiresCapability: "gj_security" },
+      { path: "/admin/code", label: "Code", layout: "document", icon: Code2, tone: "blue" },
+      { path: "/admin/config", label: "Config", layout: "document", icon: FileCog, tone: "amber" },
+      { path: "/admin/api", label: "API", layout: "document", icon: Braces, tone: "violet", apiService: true },
     ],
   },
   trainer: {
     id: "trainer",
     label: "Trainer",
     description: "Evals",
+    icon: GraduationCap,
+    tone: "amber",
     defaultPath: "/trainer/reports",
     items: [
-      { path: "/trainer/reports", label: "Reports", layout: "document" },
+      { path: "/trainer/reports", label: "Reports", layout: "document", icon: FlaskConical, tone: "amber" },
     ],
   },
 };

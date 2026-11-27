@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 
 import { ThemeProvider } from "@/components/theme-provider";
-import Header from "./Header";
+import Header, { RAIL_COLLAPSED_KEY } from "./Header";
 import { ConsoleProvider } from "./console-context";
 
 afterEach(() => {
@@ -78,5 +78,19 @@ describe("console header", () => {
     fireEvent.click(screen.getByRole("button", { name: "Signed in as Ana Ruiz" }));
     expect(screen.getByRole("button", { name: /Sign out/ })).toBeInTheDocument();
     expect(screen.getByText("admin")).toBeInTheDocument();
+  });
+
+  it("folds the rail to icons and remembers it", () => {
+    const bootstrap = { scope: { environment: "agentic" }, identity: { role: "admin" }, workspaces: [{ id: "user" }, { id: "admin" }] };
+    const { container, unmount } = renderHeader(bootstrap);
+    fireEvent.click(screen.getByRole("button", { name: "Collapse menu" }));
+    expect(container.querySelector("header").dataset.collapsed).toBe("true");
+    expect(localStorage.getItem(RAIL_COLLAPSED_KEY)).toBe("1");
+    // Labels stay in the accessible name even when only icons show.
+    expect(screen.getByRole("link", { name: "Agent" })).toBeInTheDocument();
+    unmount();
+
+    renderHeader(bootstrap);
+    expect(screen.getByRole("button", { name: "Expand menu" })).toBeInTheDocument();
   });
 });

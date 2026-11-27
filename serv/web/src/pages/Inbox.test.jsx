@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { visibleItems, workspaceDefinitions } from "../app/workspaces";
-import { NotificationItem, relativeTime } from "./Inbox";
+import { NotificationItem, inboxSummary, relativeTime } from "./Inbox";
 
 afterEach(cleanup);
 
@@ -32,6 +32,12 @@ describe("inbox", () => {
     expect(onOpen).toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "Mark seen" }));
     expect(onToggleSeen).toHaveBeenCalled();
+  });
+
+  it("never says nothing new above a list that is still there", () => {
+    expect(inboxSummary(2, 5)).toBe("2 new");
+    expect(inboxSummary(0, 2)).toBe("All read · 2 earlier");
+    expect(inboxSummary(0, 0)).toBeUndefined();
   });
 
   it("reads times relative to now", () => {

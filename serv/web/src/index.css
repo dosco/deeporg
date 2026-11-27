@@ -4,8 +4,10 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Inter, Roboto, "Helvetica Neue", sans-serif;
-  --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, "Cascadia Code", Menlo, Consolas, monospace;
+  /* The deeporg.io stacks: system text, Helvetica Neue headings, system mono. */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Helvetica Neue", Helvetica, "Segoe UI", Inter, Roboto, Arial, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -28,6 +30,7 @@
   --color-ring: var(--ring);
   --color-success: var(--success);
   --color-warning: var(--warning);
+  --color-info: var(--info);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -36,107 +39,132 @@
   --color-ribbon: var(--ribbon);
   --color-ribbon-foreground: var(--ribbon-foreground);
 
-  --radius-sm: 2px;
-  --radius-md: 3px;
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 1px);
-  --radius-2xl: calc(var(--radius) + 2px);
-  --radius-3xl: calc(var(--radius) + 2px);
+  /* The palette by name, for section colours and illustration. */
+  --color-warm: var(--warm);
+  --color-amber: var(--amber);
+  --color-blue: var(--blue);
+  --color-teal: var(--teal);
+  --color-violet: var(--violet);
+  --color-sea: var(--sea);
 
-  --shadow-glow: 0 0 18px -6px var(--glow);
-  --shadow-glow-lg: 0 0 26px -4px var(--glow);
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 2px);
+  --radius-2xl: calc(var(--radius) + 4px);
+  --radius-3xl: calc(var(--radius) + 6px);
+
+  --shadow-glow: 0 8px 24px -10px var(--glow);
+  --shadow-glow-lg: 0 12px 32px -8px var(--glow);
   --shadow-float: var(--float-shadow);
+  --shadow-raised: var(--raised-shadow);
 }
 
 /*
- * Two themes share one structure. Dark ("deep space") is the default: a true
- * black canvas, hairline borders and a single vivid accent ("nova") kept for
- * calls to action, active tabs and focus. Light keeps the same structure on a
- * white canvas so every surface still reads.
+ * The deeporg.io "soft club" palette: cool mist and deep teal ink, sea glass
+ * (#6fe3d1) as the one accent, and blue, teal, violet, amber and one warm
+ * point as section colours. Values are copied from website/static/css/site.css
+ * so the console and the site read as one product; change them there first.
  */
 :root {
   color-scheme: light;
-  --radius: 4px;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.16 0.006 265);
-  --card: oklch(0.975 0.003 265);
-  --card-foreground: oklch(0.16 0.006 265);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.16 0.006 265);
-  --primary: oklch(0.57 0.235 359);
-  --primary-foreground: oklch(1 0 0);
-  --brand: oklch(0.57 0.235 359);
-  --secondary: oklch(0.96 0.003 265);
-  --secondary-foreground: oklch(0.2 0.006 265);
-  --muted: oklch(0.965 0.003 265);
-  --muted-foreground: oklch(0.47 0.012 260);
-  --accent: oklch(0.2 0.01 265 / 5%);
-  --accent-foreground: oklch(0.16 0.006 265);
-  --destructive: oklch(0.56 0.2 38);
-  --success: oklch(0.52 0.14 160);
-  --warning: oklch(0.6 0.14 65);
-  --border: oklch(0.2 0.01 265 / 8%);
-  --input: oklch(0.2 0.01 265 / 14%);
-  --ring: oklch(0.57 0.235 359);
-  --glow: oklch(0.57 0.235 359 / 32%);
-  --glow-edge: oklch(0.57 0.235 359 / 18%);
-  --float-shadow: 0 1px 2px oklch(0.2 0.01 265 / 8%), 0 18px 48px -12px oklch(0.2 0.01 265 / 22%);
-  --chart-1: oklch(0.57 0.235 359);
-  --chart-2: oklch(0.6 0.13 215);
-  --chart-3: oklch(0.66 0.14 70);
-  --chart-4: oklch(0.56 0.16 290);
-  --chart-5: oklch(0.6 0.14 160);
-  /* Answer charts: validated for CVD and contrast on this surface. Pink stays
-     the call-to-action colour, so charts start from the next hue. */
-  --viz-1: oklch(0.6 0.13 215);
-  --viz-2: oklch(0.56 0.16 290);
-  --viz-3: oklch(0.6 0.14 160);
-  --ribbon: oklch(1 0 0);
-  --ribbon-foreground: oklch(0.16 0.006 265);
-  --stars: oklch(0.2 0.01 265 / 9%);
-  --stars-bright: oklch(0.2 0.01 265 / 0%);
+  --radius: 7px;
+
+  --sea: #6fe3d1;
+  --warm: #c2501f;
+  --amber: #9c6410;
+  --blue: #1f6a9c;
+  --teal: #0b8f7f;
+  --violet: #5158cf;
+
+  --background: #eef3f2;
+  --foreground: #17282e;
+  --heading: #0a1a20;
+  --card: #f8fbfa;
+  --card-foreground: #17282e;
+  --popover: #f8fbfa;
+  --popover-foreground: #17282e;
+  --primary: #6fe3d1;
+  --primary-foreground: #062a27;
+  --brand: #0b6b64;
+  --secondary: #e4edec;
+  --secondary-foreground: #17282e;
+  --muted: #e4edec;
+  --muted-foreground: #4b6067;
+  --accent: rgba(10, 40, 46, 0.05);
+  --accent-foreground: #0a1a20;
+  --destructive: #b4472f;
+  --success: #0b8f7f;
+  --warning: #9c6410;
+  --info: #1f6a9c;
+  --border: #d1dddc;
+  --input: #b3c5c5;
+  --ring: rgba(11, 107, 100, 0.55);
+  --glow: rgba(11, 107, 100, 0.45);
+  --glow-edge: rgba(11, 107, 100, 0.35);
+  --float-shadow: 0 18px 50px rgba(10, 40, 46, 0.14);
+  --raised-shadow: 0 18px 50px rgba(10, 40, 46, 0.1);
+  --chart-1: #0b8f7f;
+  --chart-2: #1f6a9c;
+  --chart-3: #5158cf;
+  --chart-4: #9c6410;
+  --chart-5: #c2501f;
+  /* Answer charts: teal, blue and violet hold apart for colour-blind readers. */
+  --viz-1: #0b8f7f;
+  --viz-2: #1f6a9c;
+  --viz-3: #5158cf;
+  --ribbon: #eef3f2;
+  --ribbon-foreground: #17282e;
   --chrome-top: 3.5rem;
-  --chrome-bottom: calc(3.75rem + env(safe-area-inset-bottom));
+  --chrome-bottom: calc(4rem + env(safe-area-inset-bottom));
 }
 
 .dark {
   color-scheme: dark;
-  --background: oklch(0 0 0);
-  --foreground: oklch(0.94 0.003 250);
-  --card: oklch(0.13 0.005 265);
-  --card-foreground: oklch(0.94 0.003 250);
-  --popover: oklch(0 0 0);
-  --popover-foreground: oklch(0.94 0.003 250);
-  --primary: oklch(0.6 0.24 359);
-  --primary-foreground: oklch(1 0 0);
-  --brand: oklch(0.7 0.21 357);
-  --secondary: oklch(0.18 0.006 265);
-  --secondary-foreground: oklch(0.94 0.003 250);
-  --muted: oklch(0.13 0.005 265);
-  --muted-foreground: oklch(0.67 0.01 255);
-  --accent: oklch(1 0 0 / 7%);
-  --accent-foreground: oklch(0.97 0.002 250);
-  --destructive: oklch(0.7 0.18 40);
-  --success: oklch(0.74 0.16 158);
-  --warning: oklch(0.82 0.15 80);
-  --border: oklch(1 0 0 / 8%);
-  --input: oklch(1 0 0 / 12%);
-  --ring: oklch(0.7 0.21 357);
-  --glow: oklch(0.66 0.25 358 / 55%);
-  --glow-edge: oklch(0.7 0.21 357 / 35%);
-  --float-shadow: 0 0 0 1px oklch(1 0 0 / 8%), 0 0 18px oklch(1 0 0 / 7%), 0 24px 60px -16px oklch(0 0 0 / 90%);
-  --chart-1: oklch(0.7 0.21 357);
-  --chart-2: oklch(0.76 0.12 215);
-  --chart-3: oklch(0.82 0.14 80);
-  --chart-4: oklch(0.7 0.16 295);
-  --chart-5: oklch(0.76 0.15 158);
-  --viz-1: oklch(0.66 0.12 215);
-  --viz-2: oklch(0.64 0.17 295);
-  --viz-3: oklch(0.66 0.15 158);
-  --ribbon: oklch(0 0 0);
-  --ribbon-foreground: oklch(0.94 0.003 250);
-  --stars: oklch(1 0 0 / 45%);
-  --stars-bright: oklch(1 0 0 / 85%);
+
+  --warm: #ff9d76;
+  --amber: #f0c46f;
+  --blue: #7cc4f0;
+  --teal: #6ddbc9;
+  --violet: #b3b8ff;
+
+  --background: #071317;
+  --foreground: #dbe9e7;
+  --heading: #f2faf9;
+  --card: #0e2228;
+  --card-foreground: #dbe9e7;
+  --popover: #0e2228;
+  --popover-foreground: #dbe9e7;
+  --primary: #6fe3d1;
+  --primary-foreground: #062a27;
+  --brand: #8cecdc;
+  --secondary: #132c33;
+  --secondary-foreground: #dbe9e7;
+  --muted: #0e2228;
+  --muted-foreground: #9db3b5;
+  --accent: rgba(176, 226, 222, 0.07);
+  --accent-foreground: #f2faf9;
+  --destructive: #ff9a83;
+  --success: #6ddbc9;
+  --warning: #f0c46f;
+  --info: #7cc4f0;
+  --border: rgba(176, 226, 222, 0.13);
+  --input: rgba(176, 226, 222, 0.24);
+  --ring: rgba(140, 236, 220, 0.55);
+  --glow: rgba(111, 227, 209, 0.35);
+  --glow-edge: rgba(140, 236, 220, 0.35);
+  --float-shadow: 0 0 0 1px rgba(176, 226, 222, 0.13), 0 18px 52px rgba(0, 0, 0, 0.4);
+  --raised-shadow: 0 18px 52px rgba(0, 0, 0, 0.4);
+  --chart-1: #6ddbc9;
+  --chart-2: #7cc4f0;
+  --chart-3: #b3b8ff;
+  --chart-4: #f0c46f;
+  --chart-5: #ff9d76;
+  --viz-1: #6ddbc9;
+  --viz-2: #7cc4f0;
+  --viz-3: #b3b8ff;
+  --ribbon: #071317;
+  --ribbon-foreground: #dbe9e7;
 }
 
 @media (min-width: 768px) {
@@ -211,8 +239,8 @@ code,
 }
 
 ::selection {
-  background: color-mix(in oklch, var(--brand) 32%, transparent);
-  color: var(--foreground);
+  background: color-mix(in srgb, var(--sea) 55%, transparent);
+  color: var(--heading);
 }
 
 html {
@@ -220,66 +248,50 @@ html {
   scrollbar-width: thin;
 }
 
-/*
- * Starfield: three tiled layers of single-pixel stars on a fixed, composited
- * layer behind the shell. Light theme swaps it for a faint dot grid. Pure CSS,
- * no images, and it never repaints on scroll.
- */
-.starfield {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background-image:
-    radial-gradient(1px 1px at 20px 30px, var(--stars-bright), transparent 60%),
-    radial-gradient(1px 1px at 140px 90px, var(--stars), transparent 60%),
-    radial-gradient(1px 1px at 90px 160px, var(--stars), transparent 60%),
-    radial-gradient(1.5px 1.5px at 230px 210px, var(--stars-bright), transparent 60%),
-    radial-gradient(1px 1px at 310px 60px, var(--stars), transparent 60%),
-    radial-gradient(1px 1px at 60px 260px, var(--stars), transparent 60%);
-  background-size: 340px 300px, 340px 300px, 340px 300px, 520px 460px, 410px 380px, 270px 330px;
-  opacity: 0.4;
-  transform: translateZ(0);
-}
-
-:root:not(.dark) .starfield {
-  background-image: radial-gradient(circle at 1px 1px, var(--stars) 1px, transparent 1.5px);
-  background-size: 24px 24px;
-  opacity: 1;
-  mask-image: linear-gradient(to bottom, black, transparent 70%);
-}
-
-/*
- * Horizon: one dim light source low on the canvas, so the black reads as
- * depth instead of an empty page. Sits under the starfield.
- */
+/* The site paints a flat canvas; these layers stay as hooks but draw nothing. */
+.grain,
 .horizon {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(60rem 26rem at 50% 118%, color-mix(in oklch, var(--brand) 10%, transparent), transparent 70%),
-    radial-gradient(48rem 30rem at 92% -12%, color-mix(in oklch, var(--chart-2) 9%, transparent), transparent 70%);
-  transform: translateZ(0);
+  display: none;
 }
 
-:root:not(.dark) .horizon {
-  opacity: 0.6;
+/* Titles as on deeporg.io: Helvetica Neue, medium weight, tightly set. */
+@utility font-display {
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: -0.045em;
+  color: var(--heading);
 }
 
-/* Hairline HUD label: mono, uppercase, wide tracking. */
+/*
+ * Section tones. A nav item or page sets data-tone and everything inside it
+ * can use var(--tone): its icon, its rule, its tinted tile.
+ */
+[data-tone="warm"] { --tone: var(--warm); }
+[data-tone="amber"] { --tone: var(--amber); }
+[data-tone="blue"] { --tone: var(--blue); }
+[data-tone="teal"] { --tone: var(--teal); }
+[data-tone="violet"] { --tone: var(--violet); }
+
+/* A section's icon in its colour. Open, with no box around it. */
+@utility tone-tile {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  color: var(--tone, var(--brand));
+}
+
+/* Small section label: mono, uppercase, wide tracking. */
 @utility hud-label {
   font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 500;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--muted-foreground);
 }
 
 @utility text-glow {
-  text-shadow: 0 0 14px var(--glow);
+  text-shadow: 0 0 18px var(--glow);
 }
 
 @utility scrollbar-none {
@@ -303,7 +315,7 @@ html {
 
 /*
  * GraphiQL themes itself with HSL triplets. Point them at the console palette
- * (neutral greys, the pink accent, near-square corners) so the workbench sits
+ * (the deeporg.io teal ink and sea-glass accent, small corners) so the workbench sits
  * on the same canvas instead of its own slate-blue one. The html prefix
  * outranks GraphiQL's body.graphiql-dark selectors, which load later.
  */
@@ -312,15 +324,15 @@ html body .graphiql-dialog,
 html body .graphiql-dialog-overlay,
 html body .graphiql-tooltip,
 html body [data-radix-popper-content-wrapper] {
-  --color-primary: 340, 80%, 50%;
-  --color-neutral: 0, 0%, 30%;
-  --color-base: 0, 0%, 100%;
+  --color-primary: 176, 81%, 23%;
+  --color-neutral: 195, 33%, 14%;
+  --color-base: 170, 15%, 94%;
   --font-family: var(--font-sans);
   --font-family-mono: var(--font-mono);
-  --border-radius-2: 2px;
-  --border-radius-4: 3px;
-  --border-radius-8: 4px;
-  --border-radius-12: 5px;
+  --border-radius-2: 3px;
+  --border-radius-4: 4px;
+  --border-radius-8: 6px;
+  --border-radius-12: 8px;
   --popover-box-shadow: var(--float-shadow);
 }
 
@@ -329,9 +341,9 @@ html body.graphiql-dark .graphiql-dialog,
 html body.graphiql-dark .graphiql-dialog-overlay,
 html body.graphiql-dark .graphiql-tooltip,
 html body.graphiql-dark [data-radix-popper-content-wrapper] {
-  --color-primary: 340, 90%, 66%;
-  --color-neutral: 0, 0%, 78%;
-  --color-base: 0, 0%, 0%;
+  --color-primary: 171, 67%, 66%;
+  --color-neutral: 173, 18%, 88%;
+  --color-base: 194, 53%, 6%;
   --popover-border: 1px solid var(--border);
 }
 

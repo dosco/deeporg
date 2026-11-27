@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- The DeepORG mark: the sea-glass dot from the site header, on the dark ink
+       tile so it reads on light and dark tab bars alike. favicon.ico and
+       apple-touch-icon.png are rendered from this file. -->
+  <defs>
+    <radialGradient id="orb" cx="36%" cy="30%" r="78%">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.44" stop-color="#6fe3d1"/>
+      <stop offset="1" stop-color="#0b6b64"/>
+    </radialGradient>
+  </defs>
+  <rect width="64" height="64" rx="15" fill="#0a1a20"/>
+  <circle cx="32" cy="32" r="23" fill="#6fe3d1" opacity="0.2"/>
+  <circle cx="32" cy="32" r="16" fill="url(#orb)"/>
+</svg>

@@ -56,7 +56,7 @@ const SheetHeader = ({ className, ...props }) => (
 SheetHeader.displayName = "SheetHeader";
 
 const SheetTitle = React.forwardRef(({ className, ...props }, ref) => (
-  <SheetPrimitive.Title ref={ref} className={cn("text-xl font-extrabold tracking-tight text-foreground", className)} {...props} />
+  <SheetPrimitive.Title ref={ref} className={cn("font-display text-xl leading-tight text-foreground", className)} {...props} />
 ));
 SheetTitle.displayName = SheetPrimitive.Title.displayName;
 

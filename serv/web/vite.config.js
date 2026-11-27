@@ -5,6 +5,23 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const apiTarget = process.env.GJ_CONSOLE_API || 'http://localhost:8080';
+
+// The server refuses session requests from another origin. In dev the page is
+// served by Vite, so the proxy presents the API's own origin instead.
+function apiProxy() {
+  return {
+    target: apiTarget,
+    changeOrigin: true,
+    configure(proxy) {
+      proxy.on('proxyReq', (req) => {
+        if (req.getHeader('origin')) {
+          req.setHeader('origin', apiTarget);
+        }
+      });
+    },
+  };
+}
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -18,19 +35,13 @@ export default defineConfig({
   server: {
     port: 3001,
     proxy: {
-      '^/api/': {
-        target: process.env.GJ_CONSOLE_API || 'http://localhost:8080',
-        changeOrigin: true,
-      },
+      '^/api/': apiProxy(),
     },
   },
   preview: {
     port: 4173,
     proxy: {
-      '^/api/': {
-        target: process.env.GJ_CONSOLE_API || 'http://localhost:8080',
-        changeOrigin: true,
-      },
+      '^/api/': apiProxy(),
     },
   },
   test: {

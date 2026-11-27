@@ -1,6 +1,7 @@
 import React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
+import { ArrowUpRight, Bot, CheckCheck, CircleX, Eye, EyeOff, Hand, PenLine, ShieldCheck, TriangleAlert } from "lucide-react";
 
 import { DataErrorState, EmptyState, LoadingState, PageHeader } from "../components/ui";
 import { fetchApproval } from "../services/agent";
@@ -50,9 +51,10 @@ const Inbox = () => {
     <div className="grid max-w-3xl gap-6">
       <PageHeader
         title="Inbox"
-        description={unseen > 0 ? `${unseen} new` : "Nothing new."}
+        description={inboxSummary(unseen, notifications.length)}
         actions={unseen > 0 && (
           <Button type="button" variant="ghost" size="sm" disabled={markAll.isPending} onClick={() => markAll.mutate()}>
+            <CheckCheck aria-hidden="true" />
             Mark all seen
           </Button>
         )}
@@ -64,7 +66,7 @@ const Inbox = () => {
       ) : notifications.length === 0 ? (
         <EmptyState title="Nothing here yet" message="Approvals, routine answers and stopped runs show up here." />
       ) : (
-        <ol className="grid gap-7" aria-label="Notifications">
+        <ol className="grid gap-6" aria-label="Notifications">
           {notifications.map((item) => (
             <NotificationItem key={item.id} item={item} onOpen={() => open(item)} onToggleSeen={() => markOne.mutate({ id: item.id, seen: !item.seen })} onDecided={refresh} />
           ))}
@@ -74,24 +76,67 @@ const Inbox = () => {
   );
 };
 
+// Each kind of notification keeps one icon and section colour.
+const notificationLooks = {
+  approval_pending: { icon: Hand, tone: "amber" },
+  approval_decided: { icon: ShieldCheck, tone: "teal" },
+  routine_answer: { icon: Bot, tone: "blue" },
+  run_failed: { icon: CircleX, tone: "warm" },
+  task_verify_failed: { icon: TriangleAlert, tone: "warm" },
+  autonomous_write: { icon: PenLine, tone: "violet" },
+};
+
+// inboxSummary says how many are new, and never "nothing new" over a list
+// that is still there.
+export function inboxSummary(unseen, total) {
+  if (unseen > 0) {
+    return `${unseen} new`;
+  }
+  if (total > 0) {
+    return `All read · ${total} earlier`;
+  }
+  return undefined;
+}
+
 export function NotificationItem({ item, onOpen, onToggleSeen, onDecided }) {
   const waiting = item.kind === "approval_pending" && !item.seen;
+  const look = notificationLooks[item.kind] || { icon: Bot, tone: "blue" };
+  const Icon = look.icon;
   return (
-    <li className="grid gap-2">
-      <div className="flex items-baseline justify-between gap-4">
-        <h3 className={cn("min-w-0 text-[0.9375rem]", item.seen ? "font-medium text-muted-foreground" : "font-semibold text-foreground")}>
-          {item.title}
-        </h3>
-        <time className="shrink-0 font-mono text-[0.6875rem] text-muted-foreground" dateTime={item.created_at} title={item.created_at}>
-          {relativeTime(item.created_at)}
-        </time>
-      </div>
-      {item.body && <p className="line-clamp-3 whitespace-pre-wrap break-words text-sm leading-6 text-muted-foreground">{item.body}</p>}
-      {waiting && <PendingApproval approvalID={item.ref_id} onDecided={onDecided} />}
-      <div className="flex flex-wrap items-center gap-1 text-xs">
-        {item.link && <Button type="button" variant="ghost" size="sm" onClick={onOpen}>Open</Button>}
-        <Button type="button" variant="ghost" size="sm" onClick={onToggleSeen}>{item.seen ? "Mark unseen" : "Mark seen"}</Button>
-        {item.delegated_by && <span className="text-muted-foreground">for {item.delegated_by}</span>}
+    <li
+      data-tone={look.tone}
+      className={cn(
+        "relative grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-2",
+      )}
+    >
+      {!item.seen && <span aria-hidden="true" className="absolute -left-4 top-1.5 size-1.5 rounded-full bg-[var(--tone)]" />}
+      <span aria-hidden="true" className={cn("tone-tile self-start pt-0.5", item.seen && "opacity-60")}>
+        <Icon className="size-[1.125rem]" strokeWidth={1.75} />
+      </span>
+      <div className="grid min-w-0 gap-1.5">
+        <div className="flex items-baseline justify-between gap-4">
+          <h3 className={cn("min-w-0 text-[0.9375rem]", item.seen ? "font-medium text-muted-foreground" : "font-semibold text-foreground")}>
+            {item.title}
+          </h3>
+          <time className="shrink-0 font-mono text-[0.6875rem] text-muted-foreground" dateTime={item.created_at} title={item.created_at}>
+            {relativeTime(item.created_at)}
+          </time>
+        </div>
+        {item.body && <p className="line-clamp-3 whitespace-pre-wrap break-words text-sm leading-6 text-muted-foreground">{item.body}</p>}
+        {waiting && <PendingApproval approvalID={item.ref_id} onDecided={onDecided} />}
+        <div className="-ml-2 flex flex-wrap items-center gap-1 text-xs">
+          {item.link && (
+            <Button type="button" variant="ghost" size="sm" onClick={onOpen}>
+              <ArrowUpRight aria-hidden="true" />
+              Open
+            </Button>
+          )}
+          <Button type="button" variant="ghost" size="sm" className="text-muted-foreground" onClick={onToggleSeen}>
+            {item.seen ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+            {item.seen ? "Mark unseen" : "Mark seen"}
+          </Button>
+          {item.delegated_by && <span className="text-muted-foreground">for {item.delegated_by}</span>}
+        </div>
       </div>
     </li>
   );

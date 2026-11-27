@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DataErrorState, EmptyState, LoadingState, PageHeader, Panel } from "../components/ui";
 import { addMemory, deleteMemory, listMemories, updateMemory } from "../services/agent";
 import { operatorIdentityKey, useOperatorIdentity } from "../services/identity";
+import { Lock, Plus, Trash2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -46,7 +47,7 @@ const Memory = () => {
           />
           <div className="flex items-center justify-between gap-3">
             {error ? <p className="text-sm text-destructive">{error.message}</p> : <span />}
-            <Button type="submit" size="sm" disabled={!draft.trim() || add.isPending}>Remember</Button>
+            <Button type="submit" size="sm" disabled={!draft.trim() || add.isPending}><Plus aria-hidden="true" />Remember</Button>
           </div>
         </form>
       </Panel>
@@ -60,7 +61,7 @@ const Memory = () => {
         ) : (
           <ul className="grid gap-1">
             {memories.map((memory) => (
-              <li key={memory.id} className="flex flex-col gap-2 py-2.5 sm:flex-row sm:items-start sm:justify-between">
+              <li key={memory.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="grid min-w-0 gap-1">
                   <p className="whitespace-pre-wrap break-words text-sm">{memory.content}</p>
                   <div className="flex items-center gap-2">
@@ -78,9 +79,11 @@ const Memory = () => {
                       disabled={update.isPending}
                       onClick={() => update.mutate({ id: memory.id, patch: { tier: memory.scope === "team" ? "observed" : "approved" } })}
                     >
+                      {memory.scope === "team" ? <Lock aria-hidden="true" /> : <Users aria-hidden="true" />}
                       {memory.scope === "team" ? "Make personal" : "Share with team"}
                     </Button>
-                    <Button type="button" variant="ghost" size="sm" aria-label="Delete memory" disabled={remove.isPending} onClick={() => remove.mutate(memory.id)}>
+                    <Button type="button" variant="ghost" size="sm" aria-label="Delete memory" className="text-muted-foreground hover:text-destructive" disabled={remove.isPending} onClick={() => remove.mutate(memory.id)}>
+                      <Trash2 aria-hidden="true" />
                       Delete
                     </Button>
                   </div>

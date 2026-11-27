@@ -1,6 +1,7 @@
 import React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
+import { Bot, CheckCheck } from "lucide-react";
 import {
   approveAnnotation,
   demoteAnnotation,
@@ -265,7 +266,9 @@ function TasksPanel({ query, tasks, onOpenTask }) {
           queryMessage="Couldn't load tasks."
         />
       ) : tasks.length === 0 ? (
-        <EmptyState title="No tasks" message="Ask the agent to create one." />
+        <EmptyState title="No tasks" message="Ask the agent to create one, for example: “make a task to follow up on overdue invoices”.">
+          <Button asChild size="sm" variant="ghost" className="-ml-3"><Link to="/user/agent"><Bot aria-hidden="true" />Open the agent</Link></Button>
+        </EmptyState>
       ) : (
         <Table>
           <TableHeader>
@@ -436,7 +439,7 @@ function WatchInboxPanel({ query, watches, events, identityKey, onOpenEvent, onO
             queryMessage="Couldn't load watches."
           />
         ) : events.length === 0 ? (
-          <EmptyState title="All caught up" />
+          <EmptyState title="All caught up" message="New events from your watches show up here." icon={CheckCheck} tone="teal" />
         ) : (
           <ul className="-mx-3 grid gap-0.5">
             {visibleEvents.map((event) => {

@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 import Header from "./Header";
 import { ConsoleProvider } from "./console-context";
+import { RailSlotProvider } from "./rail-slot";
 import { routeDefinition } from "@/app/workspaces";
 import { cn } from "@/lib/utils";
 import { fetchConsoleBootstrap } from "@/services/console";
@@ -80,7 +81,7 @@ const Layout = ({ children }) => {
     return (
       <div className="relative min-h-dvh bg-background text-foreground">
         <div className="horizon" aria-hidden="true" />
-        <div className="starfield" aria-hidden="true" />
+        <div className="grain" aria-hidden="true" />
         <Invite
           search={location.search}
           onDone={() => {
@@ -99,7 +100,7 @@ const Layout = ({ children }) => {
     return (
       <div className="relative min-h-dvh bg-background text-foreground">
         <div className="horizon" aria-hidden="true" />
-        <div className="starfield" aria-hidden="true" />
+        <div className="grain" aria-hidden="true" />
         <Setup
           search={location.search}
           onDone={() => {
@@ -120,7 +121,7 @@ const Layout = ({ children }) => {
     return (
       <div className="relative min-h-dvh bg-background text-foreground">
         <div className="horizon" aria-hidden="true" />
-        <div className="starfield" aria-hidden="true" />
+        <div className="grain" aria-hidden="true" />
         <ConnectApprove
           request={new URLSearchParams(location.search).get("request") || ""}
           session={signInState(bootstrapQuery.data)}
@@ -140,7 +141,7 @@ const Layout = ({ children }) => {
     return (
       <div className="relative min-h-dvh bg-background text-foreground">
         <div className="horizon" aria-hidden="true" />
-        <div className="starfield" aria-hidden="true" />
+        <div className="grain" aria-hidden="true" />
         <SetupDatabase
           step="Step 2 of 3"
           sampleData={setupState(bootstrapQuery.data).sampleData}
@@ -163,7 +164,7 @@ const Layout = ({ children }) => {
     return (
       <div className="relative min-h-dvh bg-background text-foreground">
         <div className="horizon" aria-hidden="true" />
-        <div className="starfield" aria-hidden="true" />
+        <div className="grain" aria-hidden="true" />
         <SetupModel
           step="Step 3 of 3"
           onDone={() => {
@@ -182,9 +183,10 @@ const Layout = ({ children }) => {
 
   return (
     <ConsoleProvider value={consoleValue}>
+      <RailSlotProvider>
       <div className="relative min-h-dvh bg-background text-foreground">
         <div className="horizon" aria-hidden="true" />
-        <div className="starfield" aria-hidden="true" />
+        <div className="grain" aria-hidden="true" />
         <a href="#main-content" className="sr-only z-[100] rounded-md bg-foreground px-4 py-2 font-semibold text-background focus:not-sr-only focus:fixed focus:left-3 focus:top-3">
           Skip to content
         </a>
@@ -193,6 +195,7 @@ const Layout = ({ children }) => {
           <main
             id="main-content"
             data-layout={route.layout}
+            data-tone={route.tone}
             className={cn(
               "relative min-w-0 flex-1 pb-[var(--chrome-bottom)] md:pb-0",
               layoutClasses[route.layout] || layoutClasses.collection
@@ -202,6 +205,7 @@ const Layout = ({ children }) => {
           </main>
         </div>
       </div>
+      </RailSlotProvider>
     </ConsoleProvider>
   );
 };

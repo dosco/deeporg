@@ -1,4 +1,5 @@
 import * as React from "react";
+import { Search } from "lucide-react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Command as CommandPrimitive } from "cmdk";
 
@@ -13,7 +14,7 @@ function CommandDialog({ open, onOpenChange, children, title = "Command menu" })
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/55 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out" />
-        <DialogPrimitive.Content className="fixed left-1/2 top-[15vh] z-50 w-[min(92vw,38rem)] -translate-x-1/2 overflow-hidden rounded-lg border bg-popover shadow-float outline-none">
+        <DialogPrimitive.Content className="fixed left-1/2 top-[15vh] z-50 w-[min(92vw,38rem)] -translate-x-1/2 overflow-hidden rounded-xl border bg-popover shadow-float outline-none">
           <DialogPrimitive.Title className="sr-only">{title}</DialogPrimitive.Title>
           <DialogPrimitive.Description className="sr-only">Search DeepORG console views and actions</DialogPrimitive.Description>
           <Command>{children}</Command>
@@ -25,7 +26,8 @@ function CommandDialog({ open, onOpenChange, children, title = "Command menu" })
 
 function CommandInput({ className, ...props }) {
   return (
-    <div className="flex h-14 items-center px-5">
+    <div className="flex h-14 items-center gap-3 border-b px-5">
+      <Search aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
       <CommandPrimitive.Input className={cn("h-12 w-full bg-transparent text-[0.9375rem] outline-none placeholder:text-muted-foreground", className)} {...props} />
     </div>
   );
@@ -44,7 +46,7 @@ function CommandGroup({ className, ...props }) {
 }
 
 function CommandItem({ className, ...props }) {
-  return <CommandPrimitive.Item className={cn("relative flex cursor-default select-none items-center gap-3 rounded-md px-3 py-2 text-[0.9375rem] font-medium outline-none data-[disabled=true]:pointer-events-none data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground data-[disabled=true]:opacity-50 [&_svg]:size-4 [&_svg]:text-muted-foreground", className)} {...props} />;
+  return <CommandPrimitive.Item className={cn("relative flex cursor-default select-none items-center gap-3 rounded-md px-3 py-2 text-[0.9375rem] font-medium outline-none data-[disabled=true]:pointer-events-none data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground data-[disabled=true]:opacity-50 [&_svg]:size-4", className)} {...props} />;
 }
 
 function CommandShortcut({ className, ...props }) {

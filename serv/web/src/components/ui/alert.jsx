@@ -4,14 +4,14 @@ import { cva } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const alertVariants = cva(
-  "relative grid w-full gap-1 rounded-2xl border px-4 py-3 text-sm [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg~*]:pl-7",
+  "relative grid w-full gap-1 rounded-md border px-4 py-3 text-sm [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg~*]:pl-7",
   {
     variants: {
       variant: {
         default: "border-transparent bg-card text-card-foreground",
-        destructive: "border-transparent bg-destructive/10 text-destructive [&_[data-slot=alert-description]]:text-foreground/85",
-        warning: "border-transparent bg-warning/10 text-warning [&_[data-slot=alert-description]]:text-foreground/85",
-        success: "border-transparent bg-success/10 text-success [&_[data-slot=alert-description]]:text-foreground/85",
+        destructive: "border-transparent border-l-destructive border-l-[3px] bg-destructive/10 text-destructive [&_[data-slot=alert-description]]:text-foreground/85",
+        warning: "border-transparent border-l-warning border-l-[3px] bg-warning/10 text-warning [&_[data-slot=alert-description]]:text-foreground/85",
+        success: "border-transparent border-l-success border-l-[3px] bg-success/10 text-success [&_[data-slot=alert-description]]:text-foreground/85",
       },
     },
     defaultVariants: {

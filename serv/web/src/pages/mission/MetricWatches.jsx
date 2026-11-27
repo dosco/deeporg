@@ -1,6 +1,7 @@
 import React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
+import { Plus } from "lucide-react";
 
 import { listProfiles } from "../../services/agent";
 import { deleteWatch, previewQuery, saveMetricWatch, setWatchEnabled } from "../../services/mission";
@@ -220,9 +221,10 @@ export function MetricWatchGrid({ watches, identityKey }) {
     <div className="grid gap-3">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-[1.1875rem] font-extrabold tracking-tight">Metric watches</h2>
+          <h2 className="font-display text-[1.25rem] leading-tight tracking-[-0.03em]">Metric watches</h2>
         </div>
         <Button type="button" size="sm" onClick={() => setEditing({})}>
+          <Plus aria-hidden="true" />
           New metric watch
         </Button>
       </div>
