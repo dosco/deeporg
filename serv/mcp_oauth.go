@@ -75,6 +75,9 @@ type mcpOAuthRefreshToken struct {
 	Resource  string
 	Identity  *oidc.Identity
 	ExpiresAt time.Time
+	// IssuedAt is when the token was made. One made before the account's
+	// password was last changed is refused.
+	IssuedAt time.Time
 }
 
 // mcpOAuthModeAccounts is how a server with local accounts signs MCP clients
@@ -586,6 +589,17 @@ func (a *authLoginService) handleMCPOAuthRefreshToken(w http.ResponseWriter, r *
 	}
 	keep := ""
 	if a.accounts != nil {
+		// Choosing a new password signs the account out everywhere, and a
+		// connected agent is one of those places.
+		if rt.Identity == nil {
+			writeOAuthError(w, http.StatusBadRequest, "invalid_grant", "refresh_token is invalid or expired")
+			return
+		}
+		if account, err := a.accounts.get(r.Context(), rt.Identity.Subject); err == nil && account != nil &&
+			account.SessionsAfter > 0 && rt.IssuedAt.Unix() < account.SessionsAfter {
+			writeOAuthError(w, http.StatusBadRequest, "invalid_grant", "the password was changed; sign in again")
+			return
+		}
 		// The same renewal token is used until it expires, when the person
 		// is asked again. Issuing a new one each hour would leave a trail of
 		// live tokens behind every connected agent.
@@ -655,6 +669,7 @@ func (a *authLoginService) writeMCPOAuthTokenResponse(ctx context.Context, w htt
 			Resource:  resource,
 			Identity:  ident,
 			ExpiresAt: time.Now().Add(refreshTTL),
+			IssuedAt:  time.Now(),
 		})
 		if err != nil {
 			writeOAuthError(w, http.StatusInternalServerError, "server_error", "failed to store refresh token")

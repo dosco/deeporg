@@ -272,7 +272,7 @@ func cmdDBSync(cmd *cobra.Command, args []string) {
 func computeSchemaDiff(destructive bool) ([]core.SchemaOperation, error) {
 	schemaBytes, schemaPath, err := readProjectSchemaDDL()
 	if err != nil {
-		return nil, fmt.Errorf("failed to read GraphJin DDL: %w", err)
+		return nil, fmt.Errorf("failed to read DeepORG DDL: %w", err)
 	}
 	log.Debugf("Using schema DDL: %s", schemaPath)
 
@@ -491,7 +491,7 @@ func computeSchemaDiffMulti(destructive bool) (map[string][]core.SchemaOperation
 
 	schemaBytes, schemaPath, err := readProjectSchemaDDL()
 	if err != nil {
-		return nil, fmt.Errorf("failed to read GraphJin DDL: %w", err)
+		return nil, fmt.Errorf("failed to read DeepORG DDL: %w", err)
 	}
 	log.Debugf("Using combined schema DDL: %s", schemaPath)
 	return core.SchemaDiffMultiDB(connections, dbTypes, schemaBytes, conf.Blocklist, opts)

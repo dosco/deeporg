@@ -41,6 +41,18 @@ describe("sign-in panel", () => {
     expect(screen.getByLabelText("Access token")).toBeInTheDocument();
   });
 
+  it("says how to get a new password, on a server that signs in with one", () => {
+    stubFetch(200, {});
+    const { unmount } = render(<SignInPanel state={signedOut(["password"])} onChange={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Forgot your password?" }));
+    expect(screen.getByText(/Ask an admin for a new password link/)).toHaveTextContent("deeporg reset-password");
+    unmount();
+
+    render(<SignInPanel state={signedOut(["token"])} onChange={vi.fn()} />);
+    expect(screen.queryByRole("button", { name: "Forgot your password?" })).not.toBeInTheDocument();
+  });
+
   it("shows why a sign-in was refused", async () => {
     stubFetch(401, { error: "that email and password do not match an account" });
     const onChange = vi.fn();

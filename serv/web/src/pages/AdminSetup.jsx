@@ -7,7 +7,7 @@ import { Select } from "@/components/ui/select";
 import { DataErrorState, LoadingState } from "@/components/ui";
 import { useConsole } from "@/components/Layout/console-context";
 import { errorText } from "@/services/graphql";
-import { inviteTeammate, manageState, setupDetails, withdrawInvite } from "@/services/session";
+import { changeRole, inviteTeammate, makePasswordLink, manageState, removePerson, setupDetails, withdrawInvite } from "@/services/session";
 import SetupDatabase from "./SetupDatabase";
 import SetupModel from "./SetupModel";
 
@@ -101,15 +101,20 @@ const AdminSetup = () => {
   );
 };
 
-// People lists who has an account and lets the admin invite someone. An
-// invite is a link the admin sends; the teammate chooses their own password.
+// People lists who has an account and lets the admin invite someone, change
+// what a person may do, give them a link for a new password, or remove them.
+// An invite and a password link are both links the admin sends; the person
+// chooses their own password.
 function People({ people, invites, onChange }) {
   const [email, setEmail] = React.useState("");
   const [role, setRole] = React.useState("user");
   const [pending, setPending] = React.useState(false);
   const [error, setError] = React.useState("");
+  // made is the link to send: { kind: "invite" | "password", email, link }.
   const [made, setMade] = React.useState(null);
   const [copied, setCopied] = React.useState(false);
+  // The person the admin is about to remove, until they confirm or back out.
+  const [removing, setRemoving] = React.useState("");
 
   async function invite(event) {
     event.preventDefault();
@@ -120,7 +125,7 @@ function People({ people, invites, onChange }) {
     setError("");
     setCopied(false);
     try {
-      setMade(await inviteTeammate(email.trim(), role));
+      setMade({ kind: "invite", ...(await inviteTeammate(email.trim(), role)) });
       setEmail("");
       onChange?.();
     } catch (err) {
@@ -143,6 +148,40 @@ function People({ people, invites, onChange }) {
     }
   }
 
+  async function setPersonRole(address, next) {
+    setError("");
+    try {
+      await changeRole(address, next);
+      onChange?.();
+    } catch (err) {
+      setError(errorText(err, "The role could not be changed."));
+    }
+  }
+
+  async function passwordLink(address) {
+    setError("");
+    setCopied(false);
+    try {
+      setMade({ kind: "password", ...(await makePasswordLink(address)) });
+    } catch (err) {
+      setError(errorText(err, "The link could not be made."));
+    }
+  }
+
+  async function remove(address) {
+    setError("");
+    try {
+      await removePerson(address);
+      setRemoving("");
+      if (made?.email === address) {
+        setMade(null);
+      }
+      onChange?.();
+    } catch (err) {
+      setError(errorText(err, "The person could not be removed."));
+    }
+  }
+
   async function copy() {
     try {
       await navigator.clipboard.writeText(made.link);
@@ -152,21 +191,49 @@ function People({ people, invites, onChange }) {
     }
   }
 
+  const quiet = "text-muted-foreground underline underline-offset-4 hover:text-foreground";
   return (
     <section className="mt-10" aria-labelledby="setup-people">
       <h2 id="setup-people" className="text-base font-bold">People</h2>
-      <ul className="mt-3 grid gap-1.5 text-sm">
+      <ul className="mt-3 grid gap-2.5 text-sm">
         {people.map((person) => (
-          <li key={person.email} className="flex flex-wrap items-baseline gap-x-3">
+          <li key={person.email} className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
             <span>{person.email}</span>
-            <span className="text-muted-foreground">{person.role === "admin" ? "admin" : "can use DeepORG"}</span>
+            {person.you ? (
+              // An admin cannot demote or remove their own account, so that a
+              // server is never left with nobody in charge.
+              <span className="text-muted-foreground">{person.role === "admin" ? "admin" : "can use DeepORG"}, you</span>
+            ) : removing === person.email ? (
+              <span className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+                <span>Remove them? They are signed out at once.</span>
+                <button type="button" className="font-medium text-destructive underline underline-offset-4" onClick={() => remove(person.email)}>
+                  Remove {person.email}
+                </button>
+                <button type="button" className={quiet} onClick={() => setRemoving("")}>
+                  Keep
+                </button>
+              </span>
+            ) : (
+              <>
+                <Select aria-label={`What ${person.email} can do`} className="w-auto" value={person.role === "admin" ? "admin" : "user"} onChange={(event) => setPersonRole(person.email, event.target.value)}>
+                  <option value="user">can use DeepORG</option>
+                  <option value="admin">is an admin</option>
+                </Select>
+                <button type="button" className={quiet} aria-label={`New password link for ${person.email}`} onClick={() => passwordLink(person.email)}>
+                  New password link
+                </button>
+                <button type="button" className={quiet} aria-label={`Remove ${person.email}`} onClick={() => setRemoving(person.email)}>
+                  Remove
+                </button>
+              </>
+            )}
           </li>
         ))}
         {invites.map((invite) => (
-          <li key={`invite:${invite.email}`} className="flex flex-wrap items-baseline gap-x-3">
+          <li key={`invite:${invite.email}`} className="flex flex-wrap items-baseline gap-x-4">
             <span>{invite.email}</span>
             <span className="text-muted-foreground">invited, has not joined yet</span>
-            <button type="button" className="text-muted-foreground underline underline-offset-4 hover:text-foreground" onClick={() => withdraw(invite.email)}>
+            <button type="button" className={quiet} onClick={() => withdraw(invite.email)}>
               Withdraw
             </button>
           </li>
@@ -192,10 +259,14 @@ function People({ people, invites, onChange }) {
       {error && <p role="alert" className="mt-3 text-sm text-destructive">{error}</p>}
       {made && (
         <div role="status" className="mt-5 grid gap-2 text-sm">
-          <p>Send this link to {made.email}. It works once, for a week. They choose their own password.</p>
+          {made.kind === "password" ? (
+            <p>Send this link to {made.email}. It works once, for 24 hours. They choose a new password and are signed out everywhere else.</p>
+          ) : (
+            <p>Send this link to {made.email}. It works once, for a week. They choose their own password.</p>
+          )}
           <div className="flex items-start gap-4">
-            <code aria-label="Invite link" className="min-w-0 flex-1 select-all break-all font-mono text-[0.8125rem] leading-6">{made.link}</code>
-            <button type="button" className="shrink-0 text-muted-foreground underline underline-offset-4 hover:text-foreground" onClick={copy}>
+            <code aria-label={made.kind === "password" ? "Password link" : "Invite link"} className="min-w-0 flex-1 select-all break-all font-mono text-[0.8125rem] leading-6">{made.link}</code>
+            <button type="button" className={`shrink-0 ${quiet}`} onClick={copy}>
               {copied ? "Copied" : "Copy"}
             </button>
           </div>

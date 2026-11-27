@@ -15,6 +15,7 @@ const SignInPanel = ({ state, onChange, intro = "Sign in to see your agents, thr
   const [token, setToken] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
+  const [forgot, setForgot] = React.useState(false);
   const [showToken, setShowToken] = React.useState(false);
   const [pending, setPending] = React.useState("");
   const [error, setError] = React.useState("");
@@ -88,6 +89,17 @@ const SignInPanel = ({ state, onChange, intro = "Sign in to see your agents, thr
             </Button>
           </div>
         </form>
+      )}
+      {has("password") && (
+        forgot ? (
+          <p className="text-sm text-muted-foreground">
+            Ask an admin for a new password link. If you are the only admin, run <code className="font-mono text-foreground">deeporg reset-password</code> followed by your email on the machine DeepORG runs on.
+          </p>
+        ) : (
+          <button type="button" className="justify-self-start text-sm text-muted-foreground underline underline-offset-4" onClick={() => setForgot(true)}>
+            Forgot your password?
+          </button>
+        )
       )}
       {has("token") && has("password") && !showToken && (
         <button type="button" className="justify-self-start text-sm text-muted-foreground underline underline-offset-4" onClick={() => setShowToken(true)}>

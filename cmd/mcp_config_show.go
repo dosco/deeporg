@@ -39,7 +39,7 @@ production mode (conf.Serv.Production).`,
 	c.AddCommand(&cobra.Command{
 		Use:   "docs [variant]",
 		Short: "Print annotated example config files",
-		Long: `Print the annotated example GraphJin config templates.
+		Long: `Print the annotated example DeepORG config templates.
 
 Optional variant: dev (default), prod, or agentic.
 

@@ -73,8 +73,8 @@ func servCmd() *cobra.Command {
 	c := &cobra.Command{
 		Use:     "serve",
 		Aliases: []string{"serv"},
-		Short:   "Run the GraphJin service",
-		Long: `Run the GraphJin HTTP service.
+		Short:   "Run the DeepORG service",
+		Long: `Run the DeepORG HTTP service.
 
 Demo mode (--demo):
   deeporg serve --demo                            # built-in demo (SQLite, no containers)

@@ -50,6 +50,7 @@ const App = () => {
                       address, with the agent's request, while the console loads. */}
                   <Route path="/connect" element={<LoadingState />} />
                   <Route path="/invite" element={<LoadingState />} />
+                  <Route path="/reset" element={<LoadingState />} />
                   <Route path="/user/agent" element={<AgentChat />} />
                   <Route path="/user/inbox" element={<Inbox />} />
                   <Route path="/user/tasks" element={<MissionControl section="tasks" />} />

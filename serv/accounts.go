@@ -69,6 +69,10 @@ type localAccount struct {
 	Role         string `json:"role"`
 	Disabled     bool   `json:"disabled,omitempty"`
 	CreatedAt    int64  `json:"created_at"`
+	// SessionsAfter is when the password was last changed, in Unix seconds.
+	// A session or agent token signed before it is refused, so choosing a
+	// new password signs the account out everywhere.
+	SessionsAfter int64 `json:"sessions_after,omitempty"`
 }
 
 type cachedAccount struct {
@@ -233,11 +237,8 @@ func (a *accountService) create(ctx context.Context, email, password, role strin
 	if !validAccountEmail(email) {
 		return nil, errors.New("enter a valid email address")
 	}
-	if len(password) < minPasswordLength {
-		return nil, fmt.Errorf("choose a password of at least %d characters", minPasswordLength)
-	}
-	if len(password) > maxPasswordLength {
-		return nil, fmt.Errorf("choose a password of at most %d characters", maxPasswordLength)
+	if err := checkPasswordLength(password); err != nil {
+		return nil, err
 	}
 	hash, err := bcrypt.GenerateFromPassword(passwordBytes(password), bcrypt.DefaultCost)
 	if err != nil {
@@ -374,7 +375,7 @@ func (s *graphjinService) resolveLocalAccounts(ah auth.HandlerFunc, mcpEndpoint 
 		if err != nil {
 			return nil, fmt.Errorf("account lookup failed: %w", err)
 		}
-		if account == nil || account.Disabled {
+		if account == nil || account.Disabled || issuedBefore(claims, account.SessionsAfter) {
 			return nil, auth.Err401
 		}
 		roles := []string{accountRoleUser}
@@ -451,6 +452,10 @@ func (s1 *HttpService) Setup(ah auth.HandlerFunc) http.Handler {
 			s.setupInvites(w, r, ah)
 		case r.URL.Path == routeSetupInvite:
 			s.setupInvite(w, r)
+		case r.URL.Path == routeSetupPeople:
+			s.setupPeople(w, r, ah)
+		case r.URL.Path == routeSetupPeopleReset:
+			s.setupPeopleReset(w, r, ah)
 		default:
 			http.Error(w, "not found", http.StatusNotFound)
 		}
@@ -556,10 +561,28 @@ func (s *graphjinService) passwordSignIn(w http.ResponseWriter, r *http.Request,
 	s.finishAccountSignIn(w, r, account)
 }
 
+// clientAddress is the address attempts are counted against.
+//
+// Behind a web server that passes requests on, every request arrives from
+// that web server, and counting by its address would let one person's wrong
+// guesses lock everyone out. So when the request comes from this machine or
+// a private network, the last address in X-Forwarded-For is used: the one
+// the web server itself saw and wrote. Anything earlier in that header came
+// from the client and is never believed. A request that arrives straight
+// from a public address is counted by that address, whatever its headers say.
 func clientAddress(r *http.Request) string {
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
 		return "addr:" + r.RemoteAddr
+	}
+	if peer := net.ParseIP(host); peer != nil && (peer.IsLoopback() || peer.IsPrivate() || peer.IsLinkLocalUnicast()) {
+		forwarded := r.Header.Values("X-Forwarded-For")
+		if len(forwarded) != 0 {
+			hops := strings.Split(forwarded[len(forwarded)-1], ",")
+			if last := net.ParseIP(strings.TrimSpace(hops[len(hops)-1])); last != nil {
+				return "addr:" + last.String()
+			}
+		}
 	}
 	return "addr:" + host
 }

@@ -31,7 +31,7 @@ func setupCmd() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "setup [server-url]",
 		Short: "Sign in and save server + token to ~/.config/graphjin/client.json",
-		Long: `Point this CLI at a GraphJin server and (if the server has built-in login
+		Long: `Point this CLI at a DeepORG server and (if the server has built-in login
 enabled) sign in via OIDC. The resulting JWT and the server URL are persisted
 to ~/.config/graphjin/client.json. Every subsequent ` + "`deeporg cli ...`" + ` and
 ` + "`deeporg mcp ...`" + ` invocation reads from this file — there is no --server

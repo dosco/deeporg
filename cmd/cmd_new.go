@@ -25,9 +25,9 @@ func newCmd() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "new <app-name>",
 		Short: "Create a new application",
-		Long: `Generate the files required to start a new GraphJin app.
+		Long: `Generate the files required to start a new DeepORG app.
 
-The generated dev and agentic configs rely on GraphJin's mode defaults:
+The generated dev and agentic configs rely on DeepORG's mode defaults:
 managed artifacts, watches, the built-in agent, stateful MCP HTTP, and the
 primitive MCP tools need no feature toggles. Production defaults are unchanged.`,
 		Run: cmdNew,

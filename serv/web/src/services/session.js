@@ -98,7 +98,36 @@ export function withdrawInvite(email) {
   return fetchJSON(`/api/v1/setup/invites?email=${encodeURIComponent(email)}`, { method: "DELETE" });
 }
 
-// readInvite says who an invite link is for.
+// changeRole makes a person an admin or an ordinary user.
+export function changeRole(email, role) {
+  return fetchJSON("/api/v1/setup/people", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, role }),
+  });
+}
+
+// removePerson deletes a person's account. They are signed out at once.
+export function removePerson(email) {
+  return fetchJSON("/api/v1/setup/people", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, remove: true }),
+  });
+}
+
+// makePasswordLink makes a one-time link with which a person chooses a new
+// password. The admin sends it; nobody learns anyone else's password.
+export function makePasswordLink(email) {
+  return fetchJSON("/api/v1/setup/people/reset", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+}
+
+// readInvite says who an invite link or a password link is for. reset is true
+// for a password link.
 export function readInvite(token) {
   return fetchJSON(`/api/v1/setup/invite?token=${encodeURIComponent(token)}`);
 }

@@ -27,7 +27,7 @@ func mcpCmd() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "mcp",
 		Short: "Run MCP server in stdio mode (for Claude Desktop / Codex)",
-		Long: `Run the GraphJin MCP server using stdio transport.
+		Long: `Run the DeepORG MCP server using stdio transport.
 
 Designed for AI assistant integration (Claude Desktop, Codex, etc.) which
 spawn this binary and talk to it over stdin/stdout using the MCP protocol.
@@ -35,7 +35,7 @@ spawn this binary and talk to it over stdin/stdout using the MCP protocol.
 Two modes, auto-selected:
 
   Proxy mode  — when ~/.config/graphjin/client.json exists, this command
-                forwards stdio MCP traffic to the remote GraphJin server
+                forwards stdio MCP traffic to the remote DeepORG server
                 saved there. Sign in with: deeporg mcp setup <server-url>
 
   Local mode  — when no client.json is present, runs an embedded MCP server
@@ -136,7 +136,7 @@ func cmdMCP(cmd *cobra.Command, args []string) {
 	}
 	gj, err := serv.NewGraphJinService(conf, opts...)
 	if err != nil {
-		log.Fatalf("failed to initialize GraphJin: %s", err)
+		log.Fatalf("failed to initialize DeepORG: %s", err)
 	}
 	if demo != nil {
 		demo.Status.Emit("GraphJin", "ready", "service initialized")
@@ -170,7 +170,7 @@ func mcpInfoCmd() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "info",
 		Short: "Show Claude Desktop configuration",
-		Long: `Display the Claude Desktop MCP configuration for this GraphJin project.
+		Long: `Display the Claude Desktop MCP configuration for this DeepORG project.
 
 Outputs JSON configuration that can be added to your Claude Desktop config file.
 

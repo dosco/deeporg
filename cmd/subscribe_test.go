@@ -21,7 +21,7 @@ func TestResolveGraphQLURL(t *testing.T) {
 		{"http://localhost:8080/api/v1/mcp/message", "http://localhost:8080/api/v1/graphql", ""},
 		{"https://api.example.com/api/v1/mcp/message", "https://api.example.com/api/v1/graphql", ""},
 		{"http://10.0.0.5", "http://10.0.0.5/api/v1/graphql", ""},
-		{"", "", "no GraphJin server"},
+		{"", "", "no DeepORG server"},
 	}
 	for _, c := range cases {
 		got, err := resolveGraphQLURL(c.in)

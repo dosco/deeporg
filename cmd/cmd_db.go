@@ -14,7 +14,7 @@ func dbCmd() *cobra.Command {
 	// Diff command - show schema differences
 	diffCmd := &cobra.Command{
 		Use:   "diff",
-		Short: "Show SQL diff between GraphJin DDL and database",
+		Short: "Show SQL diff between DeepORG DDL and database",
 		Long: `Compare the desired schema (db.ddl or schema-ddl/<source>.ddl) against the actual database schema
 and output the SQL statements needed to bring the database in sync.
 
@@ -34,8 +34,8 @@ Use --destructive to also show DROP operations.`,
 	// Generate command - generate GraphJin DDL from database
 	generateCmd := &cobra.Command{
 		Use:   "generate",
-		Short: "Generate GraphJin DDL from current database schema",
-		Long: `Introspect the current database and generate GraphJin DDL.
+		Short: "Generate DeepORG DDL from current database schema",
+		Long: `Introspect the current database and generate DeepORG DDL.
 
 This command connects to the configured database, discovers all tables and columns,
 and writes schema DDL that can be used for schema management.
@@ -54,7 +54,7 @@ The generated schema includes:
 	syncCmd := &cobra.Command{
 		Use:   "sync",
 		Short: "Apply schema diff to database",
-		Long: `Apply the schema changes needed to bring the database in sync with GraphJin DDL.
+		Long: `Apply the schema changes needed to bring the database in sync with DeepORG DDL.
 
 This command will:
 1. Show the SQL statements to be executed
@@ -81,7 +81,7 @@ Use --destructive to also apply DROP operations.`,
 	setupCmd := &cobra.Command{
 		Use:   "setup",
 		Short: "Setup database (sync schema, seed, init control-plane store)",
-		Long: `This command will sync the schema from GraphJin DDL, run the seed script and,
+		Long: `This command will sync the schema from DeepORG DDL, run the seed script and,
 when artifacts are enabled, create the control-plane store tables.
 Use 'db diff' first to preview changes.`,
 		Run: cmdDBSetup,

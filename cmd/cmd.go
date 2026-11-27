@@ -82,6 +82,7 @@ func newRootCmd() *cobra.Command {
 	rootCmd.AddCommand(mcpCmd())
 	rootCmd.AddCommand(cliCmd())
 	rootCmd.AddCommand(configCmd())
+	rootCmd.AddCommand(resetPasswordCmd())
 	rootCmd.AddCommand(evalCmd())
 	rootCmd.AddCommand(envCmd())
 	rootCmd.AddCommand(versionCmd())

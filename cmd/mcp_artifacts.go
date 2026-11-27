@@ -70,9 +70,9 @@ func mcpArtifactsCmd() *cobra.Command {
 	c := &cobra.Command{
 		Use:     "artifacts",
 		Aliases: []string{"artifact"},
-		Short:   "Export and import GraphJin artifacts via the configured MCP server",
+		Short:   "Export and import DeepORG artifacts via the configured MCP server",
 		Long: `Export and import saved queries, fragments, workflows, and watches through
-the configured GraphJin MCP server.
+the configured DeepORG MCP server.
 
 The command uses execute_graphql, so the server must expose raw queries for
 export. Import additionally requires mutations to be allowed. Auth, role

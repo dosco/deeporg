@@ -42,11 +42,36 @@ describe("invite: join by link", () => {
     expect(JSON.parse(options.body)).toEqual({ token: "abc123", password: "a long enough password" });
   });
 
+  it("asks for a new password when the link is a password link", async () => {
+    const fetchMock = stubFetch([
+      { status: 200, body: { email: "sam@example.com", reset: true } },
+      { status: 200, body: { email: "sam@example.com", role: "user" } },
+    ]);
+    const onDone = vi.fn();
+    render(<Invite search="?token=xyz" onDone={onDone} />);
+
+    expect(await screen.findByRole("heading", { name: "Choose a new password" })).toBeInTheDocument();
+    expect(screen.getByText(/Your old password stops working/)).toHaveTextContent("sam@example.com");
+    expect(screen.queryByRole("button", { name: "Create account" })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText(/^New password/), { target: { value: "a brand new password" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save and sign in" }));
+
+    await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1));
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toEqual({ token: "xyz", password: "a brand new password" });
+  });
+
   it("says so when the link no longer works", async () => {
-    stubFetch([{ status: 404, body: { error: "This invite link is not valid any more. Ask whoever invited you for a new one." } }]);
+    stubFetch([{ status: 404, body: { error: "This link is not valid any more. Ask whoever sent it for a new one." } }]);
     render(<Invite search="?token=old" onDone={vi.fn()} />);
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("This invite link is not valid any more.");
+    expect(await screen.findByRole("alert")).toHaveTextContent("This link is not valid any more.");
+    expect(screen.getByRole("heading", { name: "Join DeepORG" })).toBeInTheDocument();
+    cleanup();
+
+    // A password link that no longer works is still called a password link.
+    render(<Invite search="?token=old" passwordLink onDone={vi.fn()} />);
+    expect(await screen.findByRole("alert")).toHaveTextContent("This link is not valid any more.");
+    expect(screen.getByRole("heading", { name: "Choose a new password" })).toBeInTheDocument();
     expect(screen.queryByLabelText(/^Password/)).not.toBeInTheDocument();
   });
 
@@ -65,10 +90,10 @@ describe("invite: join by link", () => {
     expect(screen.getByRole("button", { name: "Create account" })).toBeEnabled();
   });
 
-  it("explains a link with no invite in it", () => {
+  it("explains a link with nothing in it", () => {
     const fetchMock = stubFetch([{ status: 200, body: {} }]);
     render(<Invite search="" onDone={vi.fn()} />);
-    expect(screen.getByRole("alert")).toHaveTextContent("This link has no invite in it.");
+    expect(screen.getByRole("alert")).toHaveTextContent("This link is not complete.");
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });

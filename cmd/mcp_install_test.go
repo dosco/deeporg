@@ -240,7 +240,7 @@ func TestBuildCodexAddArgs(t *testing.T) {
 	}
 
 	args := buildCodexAddArgs(opts, true)
-	want := []string{"mcp", "add", "graphjin", "--scope", "user", "--url", "http://localhost:8080/"}
+	want := []string{"mcp", "add", "deeporg", "--scope", "user", "--url", "http://localhost:8080/"}
 	if strings.Join(args, "|") != strings.Join(want, "|") {
 		t.Fatalf("args = %v, want %v", args, want)
 	}
@@ -253,7 +253,7 @@ func TestBuildCodexAddArgs_WithoutScope(t *testing.T) {
 	}
 
 	args := buildCodexAddArgs(opts, false)
-	want := []string{"mcp", "add", "graphjin", "--url", "http://localhost:9090/"}
+	want := []string{"mcp", "add", "deeporg", "--url", "http://localhost:9090/"}
 	if strings.Join(args, "|") != strings.Join(want, "|") {
 		t.Fatalf("args = %v, want %v", args, want)
 	}
@@ -265,7 +265,7 @@ func TestBuildCodexRemoveArgs(t *testing.T) {
 	}
 
 	args := buildCodexRemoveArgs(opts, true)
-	want := []string{"mcp", "remove", "graphjin", "--scope", "user"}
+	want := []string{"mcp", "remove", "deeporg", "--scope", "user"}
 	if strings.Join(args, "|") != strings.Join(want, "|") {
 		t.Fatalf("args = %v, want %v", args, want)
 	}
@@ -277,7 +277,7 @@ func TestBuildCodexRemoveArgs_WithoutScope(t *testing.T) {
 	}
 
 	args := buildCodexRemoveArgs(opts, false)
-	want := []string{"mcp", "remove", "graphjin"}
+	want := []string{"mcp", "remove", "deeporg"}
 	if strings.Join(args, "|") != strings.Join(want, "|") {
 		t.Fatalf("args = %v, want %v", args, want)
 	}
@@ -416,6 +416,23 @@ approval_policy = "on-request"
 	}
 }
 
+// An upgrade writes the server under today's name and takes the entry an
+// earlier version wrote under the old name away, so there is one and not two.
+func TestUpsertCodexConfigReplacesTheOldName(t *testing.T) {
+	input := []byte("[mcp_servers.graphjin]\nurl = \"http://localhost:8080/\"\n\n[mcp_servers.other]\nurl = \"http://localhost:1/\"\n")
+	out, err := upsertCodexConfig(input, graphjinMCPName, codexServerConfig{URL: "http://localhost:9090/"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(out)
+	if strings.Contains(s, "mcp_servers.graphjin") || !strings.Contains(s, "[mcp_servers.deeporg]") || !strings.Contains(s, "http://localhost:9090/") {
+		t.Fatalf("the old entry was not replaced:\n%s", s)
+	}
+	if !strings.Contains(s, "[mcp_servers.other]") {
+		t.Fatalf("another server's entry was lost:\n%s", s)
+	}
+}
+
 func TestBuildClaudeMCPServerArgs(t *testing.T) {
 	// The generated MCP-client config no longer embeds --server: `deeporg
 	// mcp` reads the server URL from ~/.config/graphjin/client.json, so the
@@ -460,7 +477,7 @@ func TestPrintPostInstallGuide(t *testing.T) {
 	})
 
 	out := b.String()
-	if !strings.Contains(out, "GraphJin MCP connection added.") {
+	if !strings.Contains(out, "DeepORG MCP connection added.") {
 		t.Fatalf("expected completion message, got:\n%s", out)
 	}
 	if !strings.Contains(out, "Claude Desktop / Claude Code") {

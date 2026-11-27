@@ -75,15 +75,17 @@ const Layout = ({ children }) => {
   // survive setup and sign-in, or the agent is left waiting for an answer.
   const connecting = location.pathname === "/connect";
 
-  // An invite link is for someone with no account yet. It takes the whole
-  // screen, whoever this browser is or is not signed in as.
-  if (location.pathname === "/invite") {
+  // An invite link is for someone with no account yet, and a password link
+  // for someone who cannot sign in. Either takes the whole screen, whoever
+  // this browser is or is not signed in as.
+  if (location.pathname === "/invite" || location.pathname === "/reset") {
     return (
       <div className="relative min-h-dvh bg-background text-foreground">
         <div className="horizon" aria-hidden="true" />
         <div className="grain" aria-hidden="true" />
         <Invite
           search={location.search}
+          passwordLink={location.pathname === "/reset"}
           onDone={() => {
             queryClient.clear();
             navigate("/user/agent", { replace: true });

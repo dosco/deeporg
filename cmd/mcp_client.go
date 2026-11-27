@@ -114,7 +114,7 @@ type mcpContent struct {
 func callTool(ctx context.Context, cmd *cobra.Command, toolName string, args map[string]any) (json.RawMessage, error) {
 	serverURL := resolveMCPServerURL(cmd)
 	if serverURL == "" {
-		return nil, errors.New("no GraphJin server configured — run `deeporg cli setup <server-url>` first")
+		return nil, errors.New("no DeepORG server configured — run `deeporg cli setup <server-url>` first")
 	}
 
 	reqID := mcpClientReqID.Add(1)

@@ -27,8 +27,8 @@ var (
 func configCmd() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "config",
-		Short: "Inspect and edit local GraphJin config files (offline)",
-		Long: `Read and edit the GraphJin config files on disk without a running server.
+		Short: "Inspect and edit local DeepORG config files (offline)",
+		Long: `Read and edit the DeepORG config files on disk without a running server.
 
 The target file defaults to <path>/<env>.yml where <env> comes from GO_ENV
 (dev, prod, or agentic; dev when unset) and <path> is the global --path flag.
@@ -204,7 +204,7 @@ func configSchemaCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "schema",
 		Short: "Print the config JSON Schema (for editors and tooling)",
-		Long:  "Print the JSON Schema for the GraphJin config file. Redirect it next to your config and reference it with a `# yaml-language-server: $schema=...` modeline for editor autocomplete.",
+		Long:  "Print the JSON Schema for the DeepORG config file. Redirect it next to your config and reference it with a `# yaml-language-server: $schema=...` modeline for editor autocomplete.",
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			os.Stdout.Write(serv.ConfigJSONSchema())

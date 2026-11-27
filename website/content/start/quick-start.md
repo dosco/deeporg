@@ -59,6 +59,8 @@ Claude Code gets its answers by asking DeepORG's built-in agent, so choose a mod
 
 Open **Admin → Setup**, enter a teammate's email, and send them the link it makes. They choose their own password. The same page is where you connect another database or change the model.
 
+That page also lists everyone who has an account. You can make someone an admin, give them a link to choose a new password, or remove them. If you are the only admin and you lose your own password, run `deeporg reset-password you@example.com` on the machine DeepORG runs on.
+
 ## Run it on a server
 
 Set the address to listen on, then open the setup link DeepORG prints. The link is written for the server itself, so replace the host with the server's address if you open it from another computer.

@@ -238,6 +238,14 @@ const failures = [];
 const requiredRenderedContent = [
   ['index.html', 'Test an agent on your own systems, or train one.'],
   ['releases/index.html', 'What to change when you upgrade'],
+  ['releases/index.html', 'Version 3.24'],
+  ['releases/index.html', 'What DeepORG does not do yet'],
+  ['releases/index.html', 'deeporg reset-password'],
+  // Looking after accounts, and the way back in for a locked-out admin.
+  ['start/deploy/index.html', 'Look after the accounts'],
+  ['start/deploy/index.html', 'deeporg reset-password you@example.com'],
+  ['start/install/index.html', 'deeporg reset-password you@example.com'],
+  ['start/install/index.html', 'claude mcp add deeporg -- deeporg mcp --demo'],
   ['releases/index.html', 'Every config file needs a'],
   ['releases/index.html', 'The API service no longer writes access rules for you.'],
   // The walkthrough: both halves, and every screen it shows.

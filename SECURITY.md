@@ -255,6 +255,27 @@ requires. It is rate limited per address, and a client nobody approves is
 forgotten after a week. Accounts, invites, clients and renewal tokens live in
 the store's keyed table, which no role can read through GraphQL.
 
+An admin changes a person's role, removes them, or makes a link with which they
+choose a new password. A password link works once, for 24 hours, and is stored
+as a hash, like an invite. Nobody sets a password for someone else.
+
+- Removing an account ends its sessions and its agents' tokens at once, because
+  each request looks the account up.
+- Choosing a new password ends every session and agent token made before it.
+  The account records when its password last changed, and a session, an access
+  token or a renewal token older than that is refused.
+- An admin cannot remove or demote their own account, and nobody can remove or
+  demote the last admin, so a server is never left with nobody in charge.
+- `deeporg reset-password <email>` makes a password link from the command line.
+  It needs the store file and so the machine the server runs on, which is what
+  makes it the way back in for an admin who has lost their password.
+
+Wrong sign-in guesses are limited per email and per address. Behind a web server
+that passes requests on, the address is the last one in `X-Forwarded-For`, the
+one that web server wrote, and only when the request arrives from this machine
+or a private network. A request straight from a public address is counted by
+that address, whatever headers it sends.
+
 ## Source Access Defaults
 
 Database sources get secure defaults:

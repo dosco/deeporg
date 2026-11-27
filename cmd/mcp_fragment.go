@@ -7,7 +7,7 @@ import "github.com/spf13/cobra"
 func mcpFragmentCmd() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "fragment",
-		Short: "Inspect GraphQL fragments defined on a running GraphJin server",
+		Short: "Inspect GraphQL fragments defined on a running DeepORG server",
 	}
 	c.AddCommand(&cobra.Command{
 		Use:   "list",

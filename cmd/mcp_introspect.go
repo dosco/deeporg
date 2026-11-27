@@ -8,7 +8,7 @@ import "github.com/spf13/cobra"
 func mcpSchemaCmd() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "schema",
-		Short: "Explore schema, relationships, and join paths on a running GraphJin server",
+		Short: "Explore schema, relationships, and join paths on a running DeepORG server",
 	}
 	c.AddCommand(mcpSchemaTablesCmd())
 	c.AddCommand(mcpSchemaDescribeCmd())

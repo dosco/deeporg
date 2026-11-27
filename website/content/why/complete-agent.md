@@ -111,7 +111,7 @@ One command connects Claude Code or Codex to DeepORG. After that you can stop ed
 
 {{< code-card filename="terminal" language="bash" >}}
 # One command. Nothing to start, no Docker, no config file.
-claude mcp add graphjin -- deeporg mcp --demo
+claude mcp add deeporg -- deeporg mcp --demo
 
 # Already running DeepORG? Point at it instead.
 deeporg mcp add claude http://localhost:8083

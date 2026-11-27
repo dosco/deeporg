@@ -15,12 +15,12 @@ Usage:
 
 Available Commands:
   completion  generate the autocompletion script for the specified shell
-  serve       Run the GraphJin service and manage server-side app lifecycle
+  serve       Run the DeepORG service and manage server-side app lifecycle
     new       Create a new application
     db        Create or manage databases
     test      Validate server configuration and connectivity
   mcp         Manage MCP client integrations
-  cli         Call a running GraphJin server
+  cli         Call a running DeepORG server
   config      Inspect and edit configuration
   help        Help about any command
   version     Version information

@@ -22,7 +22,7 @@ import (
 // hang off the same `serv` HTTP service.
 func resolveGraphQLURL(mcpURL string) (string, error) {
 	if mcpURL == "" {
-		return "", errors.New("no GraphJin server configured — run `deeporg cli setup <server-url>` first")
+		return "", errors.New("no DeepORG server configured — run `deeporg cli setup <server-url>` first")
 	}
 	u, err := url.Parse(mcpURL)
 	if err != nil {

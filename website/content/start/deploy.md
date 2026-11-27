@@ -149,6 +149,24 @@ Everyone who signs in can read every table in the databases you connected, and n
 
 Each person can connect their own Claude Code from the **Connect** page. On a server, the command there holds the server's address.
 
+### 5. Look after the accounts
+
+The same page lists everyone who has an account. Next to each person you can do three things.
+
+- **Change what they can do.** Choose between "can use DeepORG" and "is an admin". It takes effect at once.
+- **Give them a new password link.** DeepORG makes a link for you to send, as it does for an invite. It works once, for 24 hours. When they choose the new password, the old one stops working and they are signed out everywhere else, including in any Claude Code they connected.
+- **Remove them.** They are signed out at once and can no longer sign in. You can invite them again later.
+
+You cannot remove your own account or take your own admin rights away, and the last admin cannot be removed by anyone. This keeps a server from being left with nobody in charge.
+
+If you are the only admin and you lose your password, make the link yourself on the server:
+
+```bash
+deeporg reset-password you@example.com
+```
+
+It prints a link written for the server itself, like the setup link. Replace the first part with your server's address. With Docker, run it inside the container: `docker exec deeporg /ko-app/v3 reset-password you@example.com`.
+
 ### What to know before you rely on it
 
 - **Back up DeepORG's folder.** That is `~/.deeporg/`, or the Docker volume. The file `deeporg.yml` in it holds a secret key, and `store.db` holds the accounts and settings. Database passwords and the model key are encrypted with that key. If you lose it, everyone is signed out and the stored passwords cannot be read.
@@ -156,7 +174,7 @@ Each person can connect their own Claude Code from the **Connect** page. On a se
 - **The health address is `/health`.** It answers as soon as DeepORG is running, before setup is finished too. If your hosting restarts a program that fails its health check, you can turn that check on from the start.
 - **To update,** read the [release notes](/releases/), install the new version, and start it again.
 
-The [release notes](/releases/#what-this-release-does-not-do-yet) list what this setup cannot do yet. For example, an admin cannot remove a person from the console.
+The [release notes](/releases/#what-deeporg-does-not-do-yet) list what this setup cannot do yet. For example, a database can be added or replaced from the console, but not disconnected.
 
 ## If you want the API service instead
 

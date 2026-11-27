@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/dosco/graphjin/core/v3"
+	"github.com/dosco/graphjin/core/v3/featurecap"
 	"github.com/dosco/graphjin/core/v3/sourcecap"
 	"github.com/dosco/graphjin/serv/v3/internal/mcpcompat/mcp"
 )
@@ -648,7 +649,9 @@ func (h controlPlaneGraphQL) systemCapabilityRows() []map[string]any {
 			"examples_json": mustMarshalString([]string{`query_catalog(search: "config docs", where: { kind: { eq: "system_capability" } })`}),
 		},
 		{
-			"name": "gj_security.query", "kind": "security", "enabled": true,
+			// The row stays as guidance where the report is not served, marked
+			// as off, so nobody is told to query a root that is not there.
+			"name": "gj_security.query", "kind": "security", "enabled": h.service != nil && h.service.conf != nil && h.service.conf.effectiveFeatureCapability(featurecap.KindSystem, featurecap.KeySecurityRead),
 			"summary":       "Read GraphJin security posture, effective policy rows, config audits, runtime evidence, and findings from the read-only gj_security NanoDB table.",
 			"graphql_query": `gj_security(where: { kind: { eq: "finding" }, severity: { in: ["high", "critical"] } }) { id scope config_id mode severity title recommendation evidence_json }`,
 			"details_json": mustMarshalString(map[string]any{

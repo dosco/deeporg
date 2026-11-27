@@ -1341,6 +1341,42 @@ func TestGraphQLControlPlaneCatalogSecurityGuidance(t *testing.T) {
 	}
 }
 
+// The catalog says the security report is available only where the server
+// serves it. On an agent server it is off unless the config turns it on, and
+// the catalog used to say it was on everywhere.
+func TestCatalogSaysWhetherTheSecurityReportIsServed(t *testing.T) {
+	enabled := func(t *testing.T, mutate func(*Config)) bool {
+		t.Helper()
+		svc := newControlPlaneGraphQLTestServiceWithConfig(t, MCPConfig{}, createSQLiteDBFile(t, "security-capability.sqlite3", true), mutate)
+		res, err := svc.gj.GraphQL(sourceModeAdminTestContext(), `query {
+			gj_catalog(where: { kind: { eq: "system_capability" }, name: { eq: "gj_security.query" } }, limit: 1) { name enabled }
+		}`, nil, &core.RequestConfig{})
+		if err != nil {
+			t.Fatalf("catalog query: %v", err)
+		}
+		var out struct {
+			Items []struct {
+				Name    string `json:"name"`
+				Enabled bool   `json:"enabled"`
+			} `json:"gj_catalog"`
+		}
+		if err := json.Unmarshal(res.Data, &out); err != nil || len(out.Items) != 1 {
+			t.Fatalf("decode: %v %s", err, string(res.Data))
+		}
+		return out.Items[0].Enabled
+	}
+
+	if enabled(t, func(conf *Config) { conf.Core.Mode = "agentic" }) {
+		t.Fatal("the catalog says the security report is served on an agent server that does not serve it")
+	}
+	if !enabled(t, func(conf *Config) {
+		conf.Core.Mode = "agentic"
+		conf.Core.System.Capabilities = map[string]bool{featurecap.KeySecurityRead: true}
+	}) {
+		t.Fatal("the catalog says the security report is off on a server that serves it")
+	}
+}
+
 func TestGraphQLControlPlaneCatalogRuntimeGuidance(t *testing.T) {
 	svc := newControlPlaneGraphQLTestServiceWithConfig(t, MCPConfig{}, createSQLiteDBFile(t, "runtime-guidance.sqlite3", true), func(conf *Config) {
 		conf.Core.Mode = "agentic"

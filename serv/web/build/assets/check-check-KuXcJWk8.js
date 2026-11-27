@@ -1,0 +1,1 @@
+import{D as e}from"./ui-B38Rb4vV.js";var t=e(`check-check`,[[`path`,{d:`M18 6 7 17l-5-5`,key:`116fxf`}],[`path`,{d:`m22 10-7.5 7.5L13 16`,key:`ke71qq`}]]);export{t};

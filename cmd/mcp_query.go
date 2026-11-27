@@ -15,7 +15,7 @@ import (
 func mcpQueryCmd() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "query",
-		Short: "Inspect and execute saved GraphQL queries on a running GraphJin server",
+		Short: "Inspect and execute saved GraphQL queries on a running DeepORG server",
 		Long: `MCP-client commands for saved queries and raw GraphQL execution.
 
 Uses the server saved in ~/.config/graphjin/client.json (set with

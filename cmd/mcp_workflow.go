@@ -11,7 +11,7 @@ import (
 func mcpWorkflowCmd() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "workflow",
-		Short: "List and run JavaScript workflows on a running GraphJin server",
+		Short: "List and run JavaScript workflows on a running DeepORG server",
 	}
 	c.AddCommand(&cobra.Command{
 		Use:   "list",

@@ -86,7 +86,8 @@ func (s *graphjinService) setupDetails(w http.ResponseWriter, r *http.Request, a
 	agent := agentStatusFromConfig(agentConfigFromService(s.conf), nil, s.agentClientFactory != nil)
 	out["model"] = map[string]any{"provider": agent.Provider, "model": agent.Model, "ready": agent.Ready}
 
-	people, err := s.accounts.listPeople(ctx)
+	self, _ := ctx.Value(localAccountKey{}).(string)
+	people, err := s.accounts.listPeople(ctx, self)
 	if err != nil {
 		writeJSONStatus(w, http.StatusInternalServerError, map[string]any{"error": "could not read the account store"})
 		return
@@ -101,7 +102,9 @@ func (s *graphjinService) setupDetails(w http.ResponseWriter, r *http.Request, a
 	writeJSONStatus(w, http.StatusOK, out)
 }
 
-func (a *accountService) listPeople(ctx context.Context) ([]map[string]any, error) {
+// listPeople lists the accounts. The one whose id is self is marked, so the
+// console can leave out what an admin may not do to their own account.
+func (a *accountService) listPeople(ctx context.Context, self string) ([]map[string]any, error) {
 	rows, err := a.store.list(ctx, accountKind, setupListLimit)
 	if err != nil {
 		return nil, err
@@ -112,7 +115,7 @@ func (a *accountService) listPeople(ctx context.Context) ([]map[string]any, erro
 		if json.Unmarshal(row.data, &account) != nil {
 			continue
 		}
-		people = append(people, map[string]any{"email": account.Email, "role": account.Role, "disabled": account.Disabled, "created_at": account.CreatedAt})
+		people = append(people, map[string]any{"email": account.Email, "role": account.Role, "disabled": account.Disabled, "created_at": account.CreatedAt, "you": self != "" && account.ID == self})
 	}
 	sort.SliceStable(people, func(i, j int) bool { return people[i]["email"].(string) < people[j]["email"].(string) })
 	return people, nil
@@ -233,10 +236,12 @@ func (s *graphjinService) setupInvites(w http.ResponseWriter, r *http.Request, a
 	}
 }
 
-const inviteGone = "This invite link is not valid any more. Ask whoever invited you for a new one."
+const inviteGone = "This link is not valid any more. Ask whoever sent it for a new one."
 
 // setupInvite is the teammate's side: GET says who the invite is for, POST
-// chooses a password, creates the account and signs it in.
+// chooses a password, creates the account and signs it in. A password link
+// comes here too: it names an account that exists, and POST gives it the new
+// password.
 func (s *graphjinService) setupInvite(w http.ResponseWriter, r *http.Request) {
 	if !consoleSameOrigin(r) {
 		writeJSONStatus(w, http.StatusForbidden, map[string]any{"error": "cross-origin requests are refused"})
@@ -257,6 +262,15 @@ func (s *graphjinService) setupInvite(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if invite == nil {
+			reset, err := accounts.pendingReset(r.Context(), r.URL.Query().Get("token"))
+			if err != nil {
+				writeJSONStatus(w, http.StatusInternalServerError, map[string]any{"error": "could not read the link"})
+				return
+			}
+			if reset != nil {
+				writeJSONStatus(w, http.StatusOK, map[string]any{"email": reset.Email, "reset": true})
+				return
+			}
 			accounts.failures.fail(who)
 			writeJSONStatus(w, http.StatusNotFound, map[string]any{"error": inviteGone})
 			return
@@ -276,6 +290,9 @@ func (s *graphjinService) setupInvite(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if invite == nil {
+			if s.setupResetPassword(w, r, req.Token, req.Password) {
+				return
+			}
 			accounts.failures.fail(who)
 			writeJSONStatus(w, http.StatusNotFound, map[string]any{"error": inviteGone})
 			return
@@ -298,6 +315,38 @@ func (s *graphjinService) setupInvite(w http.ResponseWriter, r *http.Request) {
 	default:
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 	}
+}
+
+// setupResetPassword uses a password link: it gives the account the new
+// password, signs it out everywhere else and signs this browser in. It
+// reports false, having written nothing, when the token is not a password
+// link. A password that is refused leaves the link in place to try again.
+func (s *graphjinService) setupResetPassword(w http.ResponseWriter, r *http.Request, token, password string) bool {
+	accounts := s.accounts
+	reset, err := accounts.pendingReset(r.Context(), token)
+	if err != nil {
+		writeJSONStatus(w, http.StatusInternalServerError, map[string]any{"error": "could not read the link"})
+		return true
+	}
+	if reset == nil {
+		return false
+	}
+	account, err := accounts.setPassword(r.Context(), reset.Email, password)
+	if err != nil {
+		status := http.StatusBadRequest
+		if errors.Is(err, errNoSuchAccount) {
+			status = http.StatusNotFound
+			err = errors.New(inviteGone)
+		}
+		writeJSONStatus(w, status, map[string]any{"error": err.Error()})
+		return true
+	}
+	_ = accounts.cancelReset(r.Context(), reset.Email)
+	if s.log != nil {
+		s.log.Infof("setup: %s chose a new password", account.Email)
+	}
+	s.finishAccountSignIn(w, r, account)
+	return true
 }
 
 // decodeSetupJSON reads a small JSON body, answering for itself when it

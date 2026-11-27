@@ -43,7 +43,7 @@ func resolveDemoPath(pathSet bool, out io.Writer) (string, error) {
 		status.Emit("project", "failed", err.Error())
 		return "", fmt.Errorf("cannot use %s for the built-in demo: %w", shown, err)
 	case !hasDemoConfig(entries):
-		err := fmt.Errorf("%s exists but has no GraphJin config; delete it to re-extract the built-in demo, or pass --path", shown)
+		err := fmt.Errorf("%s exists but has no DeepORG config; delete it to re-extract the built-in demo, or pass --path", shown)
 		status.Emit("project", "failed", err.Error())
 		return "", err
 	default:

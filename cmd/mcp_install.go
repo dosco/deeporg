@@ -22,8 +22,16 @@ import (
 
 const (
 	defaultMCPServerURL = "http://localhost:8080"
-	graphjinMCPName     = "graphjin"
-	claudeMCPServerName = "GraphJin"
+	// The name the server is added under in an AI client. It is the name the
+	// console's Connect page uses too, so a server added either way is one
+	// entry and not two.
+	graphjinMCPName     = "deeporg"
+	claudeMCPServerName = "deeporg"
+
+	// The names earlier versions used. Adding again removes them, so an
+	// upgrade does not leave the old entry beside the new one.
+	legacyCodexMCPName  = "graphjin"
+	legacyClaudeMCPName = "GraphJin"
 )
 
 var (
@@ -111,8 +119,8 @@ type mcpInstallCommandConfig struct {
 func mcpAddCmd() *cobra.Command {
 	return newMCPInstallCommand(mcpInstallCommandConfig{
 		Use:   "add [client] [server-url]",
-		Short: "Add GraphJin to Claude Code or OpenAI Codex",
-		Long: `Add GraphJin to an MCP-capable AI client.
+		Short: "Add DeepORG to Claude Code or OpenAI Codex",
+		Long: `Add DeepORG to an MCP-capable AI client.
 
 Defaults:
   client: codex
@@ -126,7 +134,7 @@ Examples:
   deeporg mcp add codex http://localhost:8080 --global
 
 The server URL is normalized to /api/v1/mcp. If the server exposes standards
-OAuth, the native MCP client handles login. If the server uses GraphJin's
+OAuth, the native MCP client handles login. If the server uses DeepORG's
 legacy auth_login flow, this command signs in once and installs a credential-free
 local proxy config.`,
 	})
@@ -137,7 +145,7 @@ func mcpInstallCmd() *cobra.Command {
 		Use:        "install [client] [server-url]",
 		Short:      "Alias for `deeporg mcp add`",
 		Deprecated: "use `deeporg mcp add` instead",
-		Long: `Backward-compatible alias for adding GraphJin to Claude Code, OpenAI Codex, or all supported clients.
+		Long: `Backward-compatible alias for adding DeepORG to Claude Code, OpenAI Codex, or all supported clients.
 
 Equivalent to:
   deeporg mcp add [client] [server-url]`,
@@ -255,7 +263,7 @@ func newMCPInstallCommand(cfg mcpInstallCommandConfig) *cobra.Command {
 
 	c.Flags().StringVar(&client, "client", "", "Target client: claude, codex, or all")
 	c.Flags().StringVar(&scope, "scope", "", "Install scope: project, global, or local")
-	c.Flags().StringVar(&server, "server", "", "GraphJin server URL (default http://localhost:8080)")
+	c.Flags().StringVar(&server, "server", "", "DeepORG server URL (default http://localhost:8080)")
 	c.Flags().BoolVar(&global, "global", false, "Install globally (shortcut for --scope global)")
 	c.Flags().BoolVar(&yes, "yes", false, "Skip interactive prompts and confirmation")
 	c.Flags().BoolVar(&noBrowser, "no-browser", false, "Do not attempt to open the verification URL during legacy auth_login")
@@ -448,7 +456,7 @@ func probeMCPServer(ctx context.Context, mcpURL, baseServer string) (mcpProbeRes
 
 	resp, err := mcpProbeHTTPClient.Do(req)
 	if err != nil {
-		return mcpProbeResult{}, fmt.Errorf("could not reach %s: %w\nstart GraphJin and re-run `deeporg mcp add`, or pass the hosted server URL", mcpURL, err)
+		return mcpProbeResult{}, fmt.Errorf("could not reach %s: %w\nstart DeepORG and re-run `deeporg mcp add`, or pass the hosted server URL", mcpURL, err)
 	}
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
@@ -459,7 +467,7 @@ func probeMCPServer(ctx context.Context, mcpURL, baseServer string) (mcpProbeRes
 		}
 		ds, hasAuth, err := startDeviceFlowFn(ctx, baseServer)
 		if err != nil {
-			return mcpProbeResult{}, fmt.Errorf("MCP endpoint requires auth, but GraphJin auth_login probe failed: %w", err)
+			return mcpProbeResult{}, fmt.Errorf("MCP endpoint requires auth, but DeepORG auth_login probe failed: %w", err)
 		}
 		if hasAuth {
 			return mcpProbeResult{Kind: mcpProbeAuthLogin, DeviceStart: ds}, nil
@@ -471,7 +479,7 @@ func probeMCPServer(ctx context.Context, mcpURL, baseServer string) (mcpProbeRes
 	}
 
 	if resp.StatusCode == http.StatusNotFound {
-		return mcpProbeResult{}, fmt.Errorf("MCP endpoint not found at %s; GraphJin expects /api/v1/mcp", mcpURL)
+		return mcpProbeResult{}, fmt.Errorf("MCP endpoint not found at %s; DeepORG expects /api/v1/mcp", mcpURL)
 	}
 	if resp.StatusCode >= 500 {
 		return mcpProbeResult{}, fmt.Errorf("MCP endpoint returned HTTP %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
@@ -495,11 +503,11 @@ func applyMCPProbeResult(ctx context.Context, cmd *cobra.Command, opts *mcpInsta
 		opts.Mode = mcpInstallModeProxy
 		return completeMCPDeviceLogin(ctx, cmd, opts)
 	case mcpProbeUnsupported:
-		msg := "MCP endpoint requires authentication, but it did not advertise OAuth and GraphJin auth_login is not enabled."
+		msg := "MCP endpoint requires authentication, but it did not advertise OAuth and DeepORG auth_login is not enabled."
 		if probe.Reason != "" {
 			msg += " Server said: " + probe.Reason
 		}
-		return errors.New(msg + "\nEnable mcp.oauth for hosted OAuth, enable auth_login for the GraphJin helper, or configure the AI client manually with the required headers.")
+		return errors.New(msg + "\nEnable mcp.oauth for hosted OAuth, enable auth_login for the DeepORG helper, or configure the AI client manually with the required headers.")
 	default:
 		return fmt.Errorf("unknown MCP probe result %q", probe.Kind)
 	}
@@ -525,7 +533,7 @@ func completeMCPDeviceLogin(ctx context.Context, cmd *cobra.Command, opts *mcpIn
 	}
 	out := cmd.OutOrStdout()
 	fmt.Fprintln(out)
-	fmt.Fprintln(out, "GraphJin requires sign-in for this MCP endpoint.")
+	fmt.Fprintln(out, "DeepORG requires sign-in for this MCP endpoint.")
 	fmt.Fprintln(out, "Open this URL in your browser and confirm the code below:")
 	fmt.Fprintf(out, "  URL:  %s\n", completeURL)
 	fmt.Fprintf(out, "  Code: %s\n", ds.UserCode)
@@ -669,7 +677,11 @@ func buildCodexAddArgs(opts mcpInstallOptions, includeScope bool) []string {
 }
 
 func buildCodexRemoveArgs(opts mcpInstallOptions, includeScope bool) []string {
-	args := []string{"mcp", "remove", graphjinMCPName}
+	return codexRemoveArgs(graphjinMCPName, opts, includeScope)
+}
+
+func codexRemoveArgs(name string, opts mcpInstallOptions, includeScope bool) []string {
+	args := []string{"mcp", "remove", name}
 	if includeScope {
 		args = append(args, "--scope", codexScopeValue(opts.Scope))
 	}
@@ -709,7 +721,7 @@ func runClaudeInstall(cmd *cobra.Command, opts mcpInstallOptions) error {
 
 func runClaudeMCPAddURLInstall(cmd *cobra.Command, opts mcpInstallOptions) error {
 	claudeScope := normalizeClaudeScope(opts.Scope)
-	_ = runExternalCommand(cmd, "claude", "mcp", "remove", "--scope", claudeScope, claudeMCPServerName)
+	removeClaudeMCPEntries(cmd, claudeScope)
 	return runExternalCommand(cmd, "claude", "mcp", "add", "--transport", "http", "--scope", claudeScope, claudeMCPServerName, opts.Server)
 }
 
@@ -720,12 +732,20 @@ func runClaudeMCPAddProxyInstall(cmd *cobra.Command, opts mcpInstallOptions) err
 	}
 
 	claudeScope := normalizeClaudeScope(opts.Scope)
-	// Best effort: remove existing config to allow deterministic updates.
-	_ = runExternalCommand(cmd, "claude", "mcp", "remove", "--scope", claudeScope, claudeMCPServerName)
+	removeClaudeMCPEntries(cmd, claudeScope)
 
 	addArgs := []string{"mcp", "add", "--scope", claudeScope, claudeMCPServerName, "--", graphjinPath}
 	addArgs = append(addArgs, buildClaudeMCPServerArgs(opts)...)
 	return runExternalCommand(cmd, "claude", addArgs...)
+}
+
+// removeClaudeMCPEntries removes this server's entry from Claude Code, under
+// today's name and the earlier one, so adding it again updates it. Either may
+// be absent, and that is not an error.
+func removeClaudeMCPEntries(cmd *cobra.Command, claudeScope string) {
+	for _, name := range []string{legacyClaudeMCPName, claudeMCPServerName} {
+		_ = runExternalCommand(cmd, "claude", "mcp", "remove", "--scope", claudeScope, name)
+	}
 }
 
 // cliCommandNames are the names this binary is installed under, newest first.
@@ -773,6 +793,7 @@ func normalizeClaudeScope(scope string) string {
 func runCodexInstall(cmd *cobra.Command, opts mcpInstallOptions, plan codexInstallPlan) error {
 	if plan.UseCLI {
 		// Best effort: remove existing config entry so re-runs update instead of duplicate.
+		_ = runExternalCommand(cmd, "codex", codexRemoveArgs(legacyCodexMCPName, opts, plan.ScopeSupported)...)
 		_ = runExternalCommand(cmd, "codex", buildCodexRemoveArgs(opts, plan.ScopeSupported)...)
 		return runExternalCommand(cmd, "codex", plan.AddArgs...)
 	}
@@ -838,6 +859,11 @@ func upsertCodexConfig(data []byte, serverName string, cfg codexServerConfig) ([
 	if cfg.URL != "" {
 		server["url"] = cfg.URL
 	}
+	// The entry an earlier version wrote under the old name is replaced, not
+	// left beside the new one.
+	if serverName == graphjinMCPName {
+		delete(mcpServers, legacyCodexMCPName)
+	}
 	mcpServers[serverName] = server
 	root["mcp_servers"] = mcpServers
 
@@ -867,14 +893,14 @@ func printInstallPreview(w io.Writer, opts mcpInstallOptions) {
 	fmt.Fprintf(w, "Scope: %s\n", opts.Scope)
 	fmt.Fprintf(w, "Server: %s\n\n", opts.Server)
 	if opts.Mode == mcpInstallModeProxy {
-		fmt.Fprintf(w, "Mode: local GraphJin proxy (legacy auth_login token)\n\n")
+		fmt.Fprintf(w, "Mode: local DeepORG proxy (legacy auth_login token)\n\n")
 	} else {
 		fmt.Fprintf(w, "Mode: native MCP URL\n\n")
 	}
 }
 
 func printPostInstallGuide(w io.Writer, opts mcpInstallOptions, codexPlan codexInstallPlan) {
-	fmt.Fprintf(w, "GraphJin MCP connection added.\n")
+	fmt.Fprintf(w, "DeepORG MCP connection added.\n")
 	fmt.Fprintf(w, "Server: %s\n", opts.Server)
 
 	if usesClaude(opts.Client) {
@@ -979,7 +1005,7 @@ func printEvalSkillInstallResults(w io.Writer, results []evalSkillInstallResult)
 	if len(results) == 0 {
 		return
 	}
-	fmt.Fprintln(w, "GraphJin Eval skill")
+	fmt.Fprintln(w, "DeepORG Eval skill")
 	for _, result := range results {
 		if result.Installed {
 			fmt.Fprintf(w, "  %s: installed %s\n", result.Client, result.Path)

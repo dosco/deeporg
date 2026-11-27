@@ -7,8 +7,8 @@ import (
 func cliCmd() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "cli",
-		Short: "HTTP client commands against a running GraphJin server",
-		Long: `Send commands to a running GraphJin server via the MCP HTTP/JSON-RPC API.
+		Short: "HTTP client commands against a running DeepORG server",
+		Long: `Send commands to a running DeepORG server via the MCP HTTP/JSON-RPC API.
 
 Configuration is read from ~/.config/graphjin/client.json — run
 ` + "`deeporg cli setup <server-url>`" + ` once to point this CLI at a server and

@@ -580,7 +580,7 @@ var deviceFormTmpl = template.Must(template.New("device").Parse(`<!doctype html>
 <html>
 <head>
 <meta charset="utf-8">
-<title>GraphJin sign-in</title>
+<title>DeepORG sign-in</title>
 <style>
 body { font: 14px -apple-system, sans-serif; max-width: 420px; margin: 10vh auto; padding: 24px; }
 input[type=text] { font-size: 24px; letter-spacing: 2px; padding: 8px; width: 100%; text-align: center; text-transform: uppercase; }
@@ -589,7 +589,7 @@ button { margin-top: 16px; padding: 10px 16px; font-size: 16px; }
 </style>
 </head>
 <body>
-<h1>GraphJin CLI sign-in</h1>
+<h1>DeepORG CLI sign-in</h1>
 {{if .Error}}<p class="err">{{.Error}}</p>{{end}}
 <p>Enter the code shown in your terminal:</p>
 <form method="post">

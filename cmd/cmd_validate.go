@@ -42,7 +42,7 @@ func testCmd() *cobra.Command {
 - Primary database
 - All databases in multi-DB mode (conf.Databases)
 - Redis cache (if configured)
-- GraphJin core schema compilation
+- DeepORG core schema compilation
 
 Exit codes:
   0 - All services validated successfully

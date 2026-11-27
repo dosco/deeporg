@@ -6,6 +6,42 @@ description: "What changed in each DeepORG release, and what to do when you upgr
 
 This page says what changed in each release and what you need to do when you upgrade. The downloads for every version are on the [GitHub releases page](https://github.com/dosco/deeporg/releases).
 
+## Version 3.24
+
+These notes cover the releases from 3.23.1 to 3.24.0.
+
+This release is about running DeepORG on a server for a team. An admin can now look after people's accounts, and there is a way back in when a password is lost. If you upgrade, there is nothing you have to change.
+
+### Accounts
+
+- An admin can change what a person may do, from **Admin → Setup**. The choice is between using DeepORG and being an admin, and it takes effect at once.
+- An admin can give a person a link for choosing a new password. DeepORG makes the link and the admin sends it. It works once, for 24 hours. Choosing the new password signs that account out everywhere else, including in any agent it connected.
+- An admin can remove a person. They are signed out at once.
+- An admin cannot remove their own account or take their own admin rights away, and nobody can remove the last admin.
+- `deeporg reset-password <email>` makes a password link from the command line, on the machine DeepORG runs on. It is the way back in for an admin who has lost their password. The server keeps running while you use it.
+- The sign-in screen has a "Forgot your password?" line that says both of these.
+
+### Running on a server
+
+- A new server passes its health check before setup is finished. `/health` used to answer with an error until a database was connected, so hosting that restarts a failing program could stop a new server before anyone had set it up.
+- The Docker image listens for other computers on port 8080 without being told to. Publishing the port is enough.
+- When DeepORG cannot write to its folder, it says which folder and what to mount.
+- Wrong sign-in guesses are counted against the person who made them when DeepORG sits behind a web server that passes requests on. Before, they were all counted against the web server, so a few wrong guesses by one person stopped everyone from signing in for a minute.
+- [Set Up And Deploy](/start/deploy/) is a new page that shows each setup screen and goes through a server step by step.
+
+### Connecting an AI client
+
+- `deeporg mcp add` now adds the server under the name `deeporg`, which is the name the console's Connect page uses. If an earlier version added it as `GraphJin` or `graphjin`, adding it again replaces that entry.
+- The catalog no longer tells an agent that the security report can be read on a server that does not serve it.
+- The console's Runtime page no longer shows a failed security query on a new server.
+
+### What DeepORG does not do yet
+
+- A database can be added or replaced from the console, but not disconnected.
+- The console has no screen for limiting who can read which tables and rows.
+- A server set up in the browser keeps its own data in a local file, so it needs a disk that survives restarts, and you run one copy.
+- An agent that hands its sign-in back through an address of its own kind, as some editors do, is refused. Agents that listen on your own computer or on an `https` address work.
+
 ## Version 3.23
 
 Released on 26 November 2026. These notes cover every release from 3.21.27 to 3.23.0.
@@ -108,7 +144,9 @@ sources:
 
 **`deeporg serve db store init` and `deeporg serve db store status` are removed**, along with the `artifacts.auto_init` setting. DeepORG now creates the tables for its own data each time it starts. If your config says `auto_init: false`, DeepORG refuses to start and tells you what to do: allow its database user to create tables, and delete the setting.
 
-### What this release does not do yet
+### What version 3.23 did not do
+
+The list at the [top of this page](#what-deeporg-does-not-do-yet) is the current one.
 
 - An admin cannot remove a person, change their role or reset a password from the console.
 - A database can be added or replaced from the console, but not disconnected.

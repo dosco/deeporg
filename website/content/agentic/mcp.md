@@ -11,8 +11,8 @@ weight: 10
 Nothing to start, no Docker, no config file, no model key:
 
 ```bash
-claude mcp add graphjin -- deeporg mcp --demo
-codex mcp add graphjin -- deeporg mcp --demo
+claude mcp add deeporg -- deeporg mcp --demo
+codex mcp add deeporg -- deeporg mcp --demo
 ```
 
 `deeporg mcp --demo` extracts the built-in SaaS ops demo to `./graphjin-demo` — SQLite, in-process, no containers — and serves MCP over stdio. Your IDE's own model does the reasoning, so no provider key is needed. Delete `./graphjin-demo` to reset. Point at another [demo vertical](/start/demos/) from a repo clone with `--path examples/<name>`.
@@ -40,8 +40,8 @@ deeporg mcp add codex http://localhost:8083    # terminal 2
 For hosted DeepORG:
 
 ```bash
-codex mcp add graphjin --url https://graphjin.example.com/api/v1/mcp
-claude mcp add --transport http graphjin https://graphjin.example.com/api/v1/mcp
+codex mcp add deeporg --url https://deeporg.example.com/api/v1/mcp
+claude mcp add --transport http deeporg https://deeporg.example.com/api/v1/mcp
 ```
 
 {{< svg "mcp-flow" "MCP flow from discovery to a checked action" >}}
