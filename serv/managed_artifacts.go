@@ -19,6 +19,10 @@ func (s *graphjinService) initManagedArtifactStore() error {
 	}
 	name := allocateRuntimeDatabaseName(internalArtifactDatabaseBase, &s.conf.Core, s.runtimeCore, s.dbs)
 
+	if StoreIsPostgres(s.conf.storePath) {
+		return s.initManagedPostgresStore(name)
+	}
+
 	base, err := s.basePath()
 	if err != nil {
 		return fmt.Errorf("managed artifact store: resolve config path: %w", err)
@@ -63,6 +67,31 @@ func (s *graphjinService) initManagedArtifactStore() error {
 		// gives every replica its own copy of them.
 		s.log.Warn("The managed artifact store is a local sqlite file, so agent threads are not shared between replicas. Point artifacts.source at a shared Postgres or MySQL source before running more than one replica.")
 	}
+	return nil
+}
+
+// initManagedPostgresStore registers the Postgres database a start config
+// names as the store. It is one of the server's databases under a private
+// name: DeepORG keeps its own tables there and it is never offered to anyone
+// as data.
+func (s *graphjinService) initManagedPostgresStore(name string) error {
+	store := s.conf.storePath
+	db, err := openStorePostgres(store)
+	if err != nil {
+		return fmt.Errorf("could not connect to %s: %s", storeAddressForError(store), redactRuntimeError(err))
+	}
+	if s.runtimeCore == nil {
+		runtime := cloneCoreConfig(s.conf.Core)
+		s.runtimeCore = &runtime
+	}
+	if s.runtimeCore.Databases == nil {
+		s.runtimeCore.Databases = make(map[string]core.DatabaseConfig)
+	}
+	s.runtimeCore.Databases[name] = core.DatabaseConfig{Type: "postgres", ConnString: store}
+	s.runtimeCore.Artifacts.Source = name
+	s.dbs[name] = db
+	s.managedArtifactDB = name
+	s.log.Infof("Managed artifact store ready: %s", storeAddressForError(store))
 	return nil
 }
 

@@ -6,6 +6,26 @@ description: "What changed in each DeepORG release, and what to do when you upgr
 
 This page says what changed in each release and what you need to do when you upgrade. The downloads for every version are on the [GitHub releases page](https://github.com/dosco/deeporg/releases).
 
+## Version 3.26
+
+A server can now keep DeepORG's own data in Postgres, so it no longer needs a disk. If you upgrade, there is nothing you have to change.
+
+- Set `DEEPORG_STORE` to the address of a Postgres database and `DEEPORG_SECRET_KEY` to a secret of 32 characters or more. DeepORG keeps its accounts, settings and everything else it stores there, and writes nothing to the local disk. No start config file is needed.
+- Setup in the browser is the same. The sample company is not offered, because it is a file.
+- `deeporg reset-password`, `deeporg config export` and `deeporg config import` work on a Postgres store from the same two settings.
+- If you connect, as data, the same database the store is in, the store's tables stay closed to everyone, admins included.
+- A local file is still the default, and what a laptop uses.
+
+[Set Up And Deploy](/start/deploy/#if-the-server-has-no-disk) shows the two settings.
+
+### What DeepORG does not do yet
+
+- A database can be added or replaced from the console, but not disconnected.
+- The console hides whole tables. It has no screen for hiding some rows of a table, or for giving one person more than another.
+- You run one copy. With the store in Postgres, a second copy does not learn about a change made in setup on the first until it restarts, and running two has not been tested.
+- There is no command to move an existing file store into Postgres. Set the new server up again in the browser.
+- An agent that hands its sign-in back through an address of its own kind, as some editors do, is refused. Agents that listen on your own computer or on an `https` address work.
+
 ## Version 3.25
 
 These notes cover the releases from 3.23.1 to 3.25.0.
@@ -41,12 +61,9 @@ This release is about running DeepORG on a server for a team. An admin can now l
 - The catalog no longer tells an agent that the security report can be read on a server that does not serve it.
 - The console's Runtime page no longer shows a failed security query on a new server.
 
-### What DeepORG does not do yet
+### What version 3.25 did not do
 
-- A database can be added or replaced from the console, but not disconnected.
-- The console hides whole tables. It has no screen for hiding some rows of a table, or for giving one person more than another.
-- A server set up in the browser keeps its own data in a local file, so it needs a disk that survives restarts, and you run one copy.
-- An agent that hands its sign-in back through an address of its own kind, as some editors do, is refused. Agents that listen on your own computer or on an `https` address work.
+The list at the [top of this page](#what-deeporg-does-not-do-yet) is the current one.
 
 ## Version 3.23
 

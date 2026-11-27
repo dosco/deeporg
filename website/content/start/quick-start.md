@@ -69,9 +69,9 @@ Set the address to listen on, then open the setup link DeepORG prints. The link 
 DEEPORG_LISTEN=0.0.0.0:8080 deeporg
 ```
 
-There is one limit to know about: DeepORG keeps its own data in a local file for now, so the server needs a disk that survives restarts.
+DeepORG keeps its own data in a local file, so the server needs a disk that survives restarts. If it has none, DeepORG can keep that data in a Postgres database.
 
-[Set Up And Deploy](/start/deploy/#part-2-put-it-on-a-server) goes through a server step by step: Docker, HTTPS, inviting your team and what to back up.
+[Set Up And Deploy](/start/deploy/#part-2-put-it-on-a-server) goes through a server step by step: Docker, a server with no disk, HTTPS, inviting your team and what to back up.
 
 ## Using config files instead
 

@@ -276,6 +276,15 @@ stored as the source's `admin_tables` and `blocked_tables`, the same settings a
 config file uses, so the engine enforces it for every query. A table in either
 list is left out of the catalog for every caller, so the agent does not use it.
 
+DeepORG's own data is kept in a local file or, on a server with no disk, in a
+Postgres database named by `DEEPORG_STORE`. Database passwords and the model key
+in it are encrypted with a key derived from `DEEPORG_SECRET_KEY`, so reading the
+store's database does not give them away. With a Postgres store that key is
+required from the environment and is never generated. The store's tables sit in
+a schema of their own, and a table in that schema is closed to every role on
+every data source, so connecting the store's database as data does not expose
+accounts or chats.
+
 Wrong sign-in guesses are limited per email and per address. Behind a web server
 that passes requests on, the address is the last one in `X-Forwarded-For`, the
 one that web server wrote, and only when the request arrives from this machine

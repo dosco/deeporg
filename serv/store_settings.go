@@ -7,17 +7,20 @@ import (
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 	"time"
 
+	"github.com/dosco/graphjin/core/v3"
 	"gopkg.in/yaml.v3"
 )
 
@@ -51,8 +54,8 @@ type storedConfigRecord struct {
 	Sealed string `json:"sealed"`
 }
 
-// SetStore names the file a start-config install keeps its store in, and the
-// key its stored configuration is encrypted with.
+// SetStore names where a start-config install keeps its store, a file or a
+// Postgres address, and the key its stored configuration is encrypted with.
 func (c *Config) SetStore(path, sealKey string) {
 	if c != nil {
 		c.storePath = strings.TrimSpace(path)
@@ -253,47 +256,95 @@ func writeStoredSecret(ctx context.Context, st *sqlAuthStore, sealKey, name, val
 	return st.upsert(ctx, storedSecretKind, name, &storedConfigRecord{Sealed: sealed}, time.Time{})
 }
 
-// openStoreSettings opens the store file directly, for the short reads and
-// writes that happen before the server starts. The store allows one
-// connection, so the caller must call done before the server opens it.
-func openStoreSettings(ctx context.Context, path string) (*sqlAuthStore, func(), error) {
-	path = strings.TrimSpace(path)
-	if path == "" {
-		return nil, nil, errors.New("no store path")
-	}
-	if !filepath.IsAbs(path) {
-		abs, err := filepath.Abs(path)
-		if err != nil {
-			return nil, nil, err
-		}
-		path = abs
-	}
-	if err := prepareManagedArtifactPath(path); err != nil {
-		return nil, nil, fmt.Errorf("store %s: %w", path, err)
-	}
-	db, err := openManagedArtifactSQLite(ctx, path)
+// StoreIsPostgres reports whether a store setting names a Postgres database
+// and not a local file.
+func StoreIsPostgres(store string) bool {
+	lower := strings.ToLower(strings.TrimSpace(store))
+	return strings.HasPrefix(lower, "postgres://") || strings.HasPrefix(lower, "postgresql://")
+}
+
+// storeConnectTimeout bounds the first connection to a store on a database
+// server, so a wrong address is reported and not waited on.
+const storeConnectTimeout = 10 * time.Second
+
+// openStorePostgres connects to the Postgres database a store is kept in.
+func openStorePostgres(store string) (*sql.DB, error) {
+	dbConf := core.DatabaseConfig{Type: "postgres", ConnString: strings.TrimSpace(store)}
+	conf := configuredDatabaseServiceConfig("postgres", dbConf)
+	driver, err := initDBDriver(conf, false, false, core.NewOsFS(""))
 	if err != nil {
-		return nil, nil, fmt.Errorf("store %s: %w", path, err)
+		return nil, err
 	}
-	done := func() { db.Close() } //nolint:errcheck
-	if err := os.Chmod(path, 0o600); err != nil {
-		done()
-		return nil, nil, fmt.Errorf("store %s: set permissions: %w", path, err)
+	return connectConfiguredDatabase(driver, conf.DB, storeConnectTimeout)
+}
+
+// storeAddressForError is a store setting with any password taken out, for a
+// message someone will read.
+func storeAddressForError(store string) string {
+	if !StoreIsPostgres(store) {
+		return store
+	}
+	u, err := url.Parse(strings.TrimSpace(store))
+	if err != nil || u.Host == "" {
+		return "the Postgres store"
+	}
+	return "the Postgres store at " + u.Host + u.Path
+}
+
+// openStoreSettings opens the store directly, for the short reads and writes
+// that happen before the server starts and for the commands that work on a
+// store. store is a file path or a Postgres address. A file store allows one
+// connection, so the caller must call done before the server opens it.
+func openStoreSettings(ctx context.Context, store string) (*sqlAuthStore, func(), error) {
+	store = strings.TrimSpace(store)
+	if store == "" {
+		return nil, nil, errors.New("no store path")
 	}
 	// The server reads the same table once it is running, so this has to be
 	// the schema it uses: the store's default.
 	const schema = defaultStoreSchema
-	for _, stmt := range authStoreDDL("sqlite", schema) {
-		if _, err := db.ExecContext(ctx, stmt); err != nil {
-			done()
+	dbType := "sqlite"
+	var db *sql.DB
+	if StoreIsPostgres(store) {
+		dbType = "postgres"
+		var err error
+		if db, err = openStorePostgres(store); err != nil {
+			return nil, nil, fmt.Errorf("could not connect to %s: %s", storeAddressForError(store), redactRuntimeError(err))
+		}
+	} else {
+		path := store
+		if !filepath.IsAbs(path) {
+			abs, err := filepath.Abs(path)
+			if err != nil {
+				return nil, nil, err
+			}
+			path = abs
+		}
+		if err := prepareManagedArtifactPath(path); err != nil {
 			return nil, nil, fmt.Errorf("store %s: %w", path, err)
 		}
+		var err error
+		if db, err = openManagedArtifactSQLite(ctx, path); err != nil {
+			return nil, nil, fmt.Errorf("store %s: %w", path, err)
+		}
+		if err := os.Chmod(path, 0o600); err != nil {
+			db.Close() //nolint:errcheck
+			return nil, nil, fmt.Errorf("store %s: set permissions: %w", path, err)
+		}
 	}
-	if err := migrateAuthStoreSchema(ctx, db, "sqlite", schema); err != nil {
+	done := func() { db.Close() } //nolint:errcheck
+	where := storeAddressForError(store)
+	for _, stmt := range authStoreDDL(dbType, schema) {
+		if _, err := db.ExecContext(ctx, stmt); err != nil {
+			done()
+			return nil, nil, fmt.Errorf("store %s: %s", where, redactRuntimeError(err))
+		}
+	}
+	if err := migrateAuthStoreSchema(ctx, db, dbType, schema); err != nil {
 		done()
-		return nil, nil, fmt.Errorf("store %s: %w", path, err)
+		return nil, nil, fmt.Errorf("store %s: %s", where, redactRuntimeError(err))
 	}
-	return newSQLAuthStore(db, "sqlite", schema), done, nil
+	return newSQLAuthStore(db, dbType, schema), done, nil
 }
 
 // DeriveStoreSecret turns the start config's one secret key into a key for

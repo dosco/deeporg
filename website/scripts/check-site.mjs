@@ -239,6 +239,10 @@ const requiredRenderedContent = [
   ['index.html', 'Test an agent on your own systems, or train one.'],
   ['releases/index.html', 'What to change when you upgrade'],
   ['releases/index.html', 'Version 3.25'],
+  ['releases/index.html', 'Version 3.26'],
+  // A server with no disk keeps the store in Postgres.
+  ['start/deploy/index.html', 'If the server has no disk'],
+  ['start/deploy/index.html', 'Some hosting gives a program no disk that survives a restart'],
   ['releases/index.html', 'What DeepORG does not do yet'],
   ['releases/index.html', 'deeporg reset-password'],
   // Looking after accounts, and the way back in for a locked-out admin.

@@ -1,6 +1,16 @@
 # Design: DeepORG's own data in Postgres
 
-Status: proposed, not built. Written 2026-11-26.
+Status: step 1 is built (2026-11-27): one copy on Postgres, with no disk.
+Steps 2 and 3 are proposed and not built. Written 2026-11-26.
+
+What step 1 changed from this design: the secret key is required from the
+environment when the store is Postgres and there is no start config file, and
+is never made up, because a key kept only on a machine with no disk would be
+lost with it. The store's schema is closed on every data source by
+`isStoreSchemaTable` in `core/source_access.go`; without it the store's tables
+were listed as data when its database was connected. Checked by
+`TestStoreInPostgresNeedsNoDisk` in `cmd/postgres_store_test.go`, against a real
+Postgres.
 
 ## The problem
 

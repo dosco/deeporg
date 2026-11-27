@@ -185,7 +185,11 @@ func cmdServ(cmd *cobra.Command, args []string) {
 		// A setup step saves to the store; the server then comes back up
 		// reading it.
 		opt = append(opt, serv.OptionSetConfigApplier(restartInPlace))
-		opt = append(opt, serv.OptionSetSampleData(sampleDataBuilder(start)))
+		// The sample company is a file on this machine. With the store in a
+		// database there may be no disk to keep it on, so it is not offered.
+		if !serv.StoreIsPostgres(start.Store) {
+			opt = append(opt, serv.OptionSetSampleData(sampleDataBuilder(start)))
+		}
 		// A new install says only what its owner has to act on. The start
 		// config's log_level opens it up for someone who wants the detail.
 		opt = append(opt, serv.OptionSetMinLogLevel(startLogLevel(start)))

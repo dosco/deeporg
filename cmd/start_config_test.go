@@ -166,8 +166,16 @@ func TestStartConfigProblemsSayWhatToDo(t *testing.T) {
 		t.Fatalf("missing secret key: %v", err)
 	}
 
-	// A database server as the store is not supported yet; say so plainly.
+	// A Postgres store is accepted as it is given. MySQL is not supported
+	// yet; say so plainly.
 	body := fmt.Sprintf("store: postgres://u:p@db/deeporg\nsecret_key: %s\n", newInstallSecret())
+	if err := os.WriteFile(file, []byte(body), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if sc, err := loadStartConfig(file); err != nil || sc.Store != "postgres://u:p@db/deeporg" {
+		t.Fatalf("a Postgres store was not taken as given: %+v %v", sc, err)
+	}
+	body = fmt.Sprintf("store: mysql://u:p@db/deeporg\nsecret_key: %s\n", newInstallSecret())
 	if err := os.WriteFile(file, []byte(body), 0o600); err != nil {
 		t.Fatal(err)
 	}

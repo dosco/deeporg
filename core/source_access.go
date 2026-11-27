@@ -38,6 +38,16 @@ func (gj *graphjinEngine) applySourceAccessRules(dbinfo *sdata.DBInfo, database 
 			table.Blocked = true
 			continue
 		}
+		// The store may be kept in the same database server as the data,
+		// under a schema of its own. Seen through a data source, that schema
+		// holds accounts and password hashes, so it is closed to everyone.
+		if gj.isStoreSchemaTable(database, table) {
+			if err := grants.rejectClosedTable(table, "the table belongs to the store"); err != nil {
+				return err
+			}
+			table.Blocked = true
+			continue
+		}
 		class := classifySourceAccessTable(access, table)
 		if class.blocked {
 			if err := grants.rejectClosedTable(table, "the table is in blocked_tables"); err != nil {
@@ -117,6 +127,18 @@ func (gj *graphjinEngine) isArtifactPhysicalTable(database string, table *sdata.
 	default:
 		return false
 	}
+}
+
+// isStoreSchemaTable reports whether a table of a data source sits in the
+// schema the store keeps its tables in. The store's own database is left to
+// isArtifactPhysicalTable, which knows the tables the server reads there.
+func (gj *graphjinEngine) isStoreSchemaTable(database string, table *sdata.DBTable) bool {
+	if gj == nil || gj.conf == nil || table == nil || !gj.conf.Artifacts.Enabled {
+		return false
+	}
+	cfg := gj.conf.EffectiveArtifactsConfig()
+	schema := strings.TrimSpace(cfg.Schema)
+	return schema != "" && cfg.Source != database && strings.EqualFold(table.Schema, schema)
 }
 
 type tableAccessClass struct {

@@ -144,6 +144,15 @@ func loadStartConfig(file string) (*startConfig, error) {
 		if err := yaml.Unmarshal(raw, sc); err != nil {
 			return nil, fmt.Errorf("%s: %w", file, err)
 		}
+	case os.IsNotExist(err) && storeFromEnvIsPostgres():
+		// A server whose store is a database is told everything through its
+		// environment, so that it needs no disk. No file is written, and the
+		// secret key is not made up here: a key kept only on this machine
+		// would be lost with it, and the stored passwords could not be read.
+		sc.Listen = firstRunListen()
+		if strings.TrimSpace(os.Getenv(startSecretKeyEnv)) == "" {
+			return nil, missingSecretKeyForDatabaseStore()
+		}
 	case os.IsNotExist(err):
 		sc.Store = filepath.Join(filepath.Dir(file), "store.db")
 		sc.SecretKey = newInstallSecret()
@@ -188,6 +197,11 @@ func loadStartConfig(file string) (*startConfig, error) {
 // server opens the store. A store that cannot be written fails there with a
 // database error that says nothing about folders.
 func (sc *startConfig) storeWritable() error {
+	if serv.StoreIsPostgres(sc.Store) {
+		// Nothing of the store is on this machine. A database that cannot
+		// be reached or written is reported when it is opened.
+		return nil
+	}
 	dir := filepath.Dir(sc.Store)
 	if err := checkWritable(dir); err != nil {
 		return homeNotWritableError(dir, err)
@@ -310,21 +324,46 @@ func loopbackHost(host string) bool {
 	return ip != nil && ip.IsLoopback()
 }
 
+// storeFromEnvIsPostgres reports whether the environment names a Postgres
+// database as the store.
+func storeFromEnvIsPostgres() bool {
+	return serv.StoreIsPostgres(os.Getenv(startStoreEnv))
+}
+
+// missingSecretKeyForDatabaseStore is missingSecretKeyError for a server
+// that keeps its store in a database: the key goes in the environment, and
+// it has to be kept, because the stored passwords are encrypted with it.
+func missingSecretKeyForDatabaseStore() error {
+	return fmt.Errorf("DeepORG needs a secret key.\nSet this as %s and start again. Keep it somewhere safe and use the same key every time: the database passwords and the model key in the store are encrypted with it.\n\n  %s\n", startSecretKeyEnv, newInstallSecret())
+}
+
+// localDir is the folder on this machine for what sits beside a file store,
+// such as the cache of what was found in the connected databases. With the
+// store in a database there is no such folder, so the system's temporary
+// folder is used and whatever is kept there is rebuilt when it is missing.
+func (sc *startConfig) localDir() string {
+	if serv.StoreIsPostgres(sc.Store) {
+		return filepath.Join(os.TempDir(), "deeporg")
+	}
+	return filepath.Dir(sc.Store)
+}
+
 // missingSecretKeyError tells whoever started the server exactly what to add,
 // with a key ready to paste, so nobody has to work out how to make one.
 func missingSecretKeyError(file string) error {
 	return fmt.Errorf("DeepORG needs a secret key.\nAdd this to %s, or set it as %s, and start again:\n\n  secret_key: %s\n", file, startSecretKeyEnv, newInstallSecret())
 }
 
-// startStorePath resolves the store setting to a file. The store is a local
-// SQLite database for now; a database server as the store comes later.
+// startStorePath resolves the store setting. It is a local SQLite file, or
+// the address of a Postgres database, which is returned as it was given.
 func startStorePath(store, dir string) (string, error) {
 	store = strings.TrimSpace(store)
 	lower := strings.ToLower(store)
-	for _, scheme := range []string{"postgres://", "postgresql://", "mysql://"} {
-		if strings.HasPrefix(lower, scheme) {
-			return "", errors.New("the store must be a local file for now; a Postgres or MySQL store is not supported yet")
-		}
+	if serv.StoreIsPostgres(store) {
+		return store, nil
+	}
+	if strings.HasPrefix(lower, "mysql://") {
+		return "", errors.New("the store is a local file or a Postgres database; a MySQL store is not supported yet")
 	}
 	for _, prefix := range []string{"sqlite://", "sqlite:"} {
 		if strings.HasPrefix(lower, prefix) {
@@ -485,7 +524,7 @@ func loadStartFlowConfig(sc *startConfig) (*serv.Config, error) {
 		return nil, fmt.Errorf("stored configuration: %w", err)
 	}
 	// Relative paths, such as the discovery cache, sit beside the store.
-	c.Serv.ConfigPath = filepath.Dir(sc.Store)
+	c.Serv.ConfigPath = sc.localDir()
 	c.SetStore(sc.Store, sc.sealKey())
 
 	// The model provider's key is kept encrypted in the store. The agent
@@ -580,7 +619,9 @@ func existingStartConfig(cmd *cobra.Command) (*startConfig, error) {
 	if !ok {
 		return nil, errors.New("this directory uses config files, not a start config; edit them with `deeporg config set`")
 	}
-	if _, err := os.Stat(file); err != nil {
+	// A server whose store is a database has no start config file: its
+	// settings are in the environment, and the same settings find the store.
+	if _, err := os.Stat(file); err != nil && !storeFromEnvIsPostgres() {
 		return nil, fmt.Errorf("no start config at %s; run `deeporg` once to create it", file)
 	}
 	return loadStartConfig(file)

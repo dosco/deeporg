@@ -107,6 +107,19 @@ Inside the image DeepORG listens on port 8080 for other computers without being 
 
 The volume is where DeepORG keeps its files, so they are still there after the container restarts. Mount it at `/home/nonroot` as shown. The image does not run as root, and a volume mounted anywhere else belongs to root. If DeepORG cannot write to its volume, it stops and says which folder to mount. Run `docker logs deeporg` to see the setup link.
 
+#### If the server has no disk
+
+Some hosting gives a program no disk that survives a restart. DeepORG can then keep its own data in a Postgres database. Give it two settings and it writes nothing to the local disk:
+
+```bash
+DEEPORG_STORE=postgres://deeporg:password@db.internal:5432/deeporg
+DEEPORG_SECRET_KEY=a-long-secret-of-32-characters-or-more
+```
+
+`DEEPORG_STORE` is the address of a Postgres database for DeepORG's own tables. It is best to give DeepORG a database of its own. `DEEPORG_SECRET_KEY` encrypts the database passwords and the model key kept there. If you leave it out, DeepORG stops and prints a new key for you to use. Keep the key somewhere safe and use the same one every time, because without it the stored passwords cannot be read.
+
+Two things differ from a server with a disk. The sample company is not offered in setup, because it is a file. And you still run one copy: a second copy would not learn about a change made on the first until it restarts.
+
 ### 2. Put HTTPS in front of it
 
 DeepORG set up this way serves plain HTTP. Put a web server in front of it that handles HTTPS and passes requests on. With [Caddy](https://caddyserver.com/), this is the whole configuration:
@@ -177,8 +190,8 @@ It prints a link written for the server itself, like the setup link. Replace the
 
 ### What to know before you rely on it
 
-- **Back up DeepORG's folder.** That is `~/.deeporg/`, or the Docker volume. The file `deeporg.yml` in it holds a secret key, and `store.db` holds the accounts and settings. Database passwords and the model key are encrypted with that key. If you lose it, everyone is signed out and the stored passwords cannot be read.
-- **Run one copy.** DeepORG keeps its own data in a local file for now, so two servers cannot share it.
+- **Back up DeepORG's folder.** That is `~/.deeporg/`, or the Docker volume. With the store in Postgres, back up that database and keep the secret key. The file `deeporg.yml` in it holds a secret key, and `store.db` holds the accounts and settings. Database passwords and the model key are encrypted with that key. If you lose it, everyone is signed out and the stored passwords cannot be read.
+- **Run one copy.** With a local file, two servers cannot share it. With the store in Postgres, running two is not supported yet: a change made in setup on one does not reach the other until it restarts.
 - **The health address is `/health`.** It answers as soon as DeepORG is running, before setup is finished too. If your hosting restarts a program that fails its health check, you can turn that check on from the start.
 - **To update,** read the [release notes](/releases/), install the new version, and start it again.
 
