@@ -11,6 +11,10 @@ import (
 
 var healthyResponse = []byte("All's Well")
 
+// waitingForSetupResponse is what a new install answers before a database has
+// been connected on the setup page.
+var waitingForSetupResponse = []byte("Waiting for setup")
+
 // defaultHealthPingTimeout bounds the health probe when no ping_timeout is
 // configured. In sources mode the legacy DB block is never populated, so
 // conf.DB.PingTimeout is zero — without this guard the probe context is
@@ -33,6 +37,25 @@ func healthCheckHandler(s1 *HttpService) http.Handler {
 		defer span.End()
 
 		db := s.anyDB()
+		if db == nil && s.setupNeedsDatabase() {
+			// A new install has no database until someone connects one on
+			// the setup page. Answering unhealthy here makes a host that
+			// restarts a failing program kill the server before anyone can
+			// finish setup, so the install is healthy while its own store
+			// answers.
+			if store := s.dbs[s.managedArtifactDB]; store != nil {
+				if err := store.PingContext(c1); err != nil {
+					spanError(span, err)
+
+					s.zlog.Error("Health Check", []zapcore.Field{zap.Error(err)}...)
+					w.WriteHeader(http.StatusInternalServerError)
+					_, _ = w.Write([]byte("store ping failed"))
+					return
+				}
+			}
+			_, _ = w.Write(waitingForSetupResponse)
+			return
+		}
 		if db == nil {
 			w.WriteHeader(http.StatusServiceUnavailable)
 			_, _ = w.Write([]byte("no database connection"))

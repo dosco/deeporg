@@ -58,6 +58,20 @@ func TestEveryBuildStampsTheSameIdentity(t *testing.T) {
 	if !role {
 		t.Fatal("no build stamps main.imageRole, so no image can be an environment")
 	}
+
+	// Each image says which one it is, and nothing else does: the server
+	// image first, then the environment. The archives people install on a
+	// laptop carry no role, or a laptop install would listen on every address.
+	var roles []string
+	for _, match := range regexp.MustCompile(`main\.imageRole=(\S+)`).FindAllStringSubmatch(string(release), -1) {
+		roles = append(roles, match[1])
+	}
+	if strings.Join(roles, ",") != imageRoleServer+","+imageRoleEnv {
+		t.Fatalf("the release stamps the roles %v, want the server image then the environment image", roles)
+	}
+	if contains(baseline, "main.imageRole") {
+		t.Fatal("the builds block stamps main.imageRole, so an installed binary would think it is an image")
+	}
 }
 
 // ldflagBlocks returns the -X keys of each ldflags list in a YAML document.

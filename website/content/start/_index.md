@@ -11,6 +11,7 @@ Start with a local project, then move toward production mode where clients run r
 | --- | --- |
 | [Install](/start/install/) | Install the CLI, scaffold a project, and connect MCP clients. |
 | [Quick Start](/start/quick-start/) | Create the smallest useful config and run a joined query. |
+| [Set Up And Deploy](/start/deploy/) | See each setup screen, then put DeepORG on a server for your team. |
 | [First Query](/start/first-query/) | Understand root fields, primary-key lookups, aliases, variables, and explicit ordering. |
 | [Saved Queries](/start/saved-queries/) | Move from dynamic development queries to reviewed production operations. |
 

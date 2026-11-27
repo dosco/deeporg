@@ -26,6 +26,15 @@ var imageRole string
 // a plain `go build` leave it at the historical behaviour.
 var currentImageRole = imageRoleServer
 
+// serverImage is true when this binary was built as the server image, which
+// is the one build that says so with main.imageRole=server. A plain
+// `go build` and the release archives say nothing and are not an image, and
+// the environment image has a role of its own.
+//
+// The server needs to know because a new install is right for a laptop by
+// default and wrong for a container: see startDefaultListen.
+var serverImage bool
+
 const (
 	// imageRoleServer is the historical image: the database server.
 	imageRoleServer = "server"
@@ -50,6 +59,13 @@ func resolveImageRole(role string) (string, error) {
 			"this binary was built with main.imageRole=%q, which is not a role it knows (%s or %s)",
 			role, imageRoleServer, imageRoleEnv)
 	}
+}
+
+// builtAsServerImage reports whether the role stamped into the binary names
+// the server image. An empty role also resolves to the server, but it means a
+// build that is not an image at all.
+func builtAsServerImage(stamped string) bool {
+	return strings.EqualFold(strings.TrimSpace(stamped), imageRoleServer)
 }
 
 // imageRoleArgs supplies the command line an image's role implies.
@@ -119,6 +135,7 @@ func applyImageRole() error {
 		return err
 	}
 	currentImageRole = role
+	serverImage = builtAsServerImage(imageRole)
 	os.Args = append(os.Args[:1], imageRoleArgs(role, os.Args[1:])...)
 	return nil
 }

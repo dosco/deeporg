@@ -2,6 +2,8 @@ import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 
+import { workspaceServes } from "../app/workspaces";
+import { useConsole } from "../components/Layout/console-context";
 import { compactNumber, graphqlRequest, relativeTime } from "../services/graphql";
 import { DataErrorState, EmptyState, LoadingState, Metric, PageHeader, Panel, StatusPill } from "../components/ui";
 
@@ -39,6 +41,10 @@ const securityQuery = `query DashboardSecurity {
 }`;
 
 const Dashboard = () => {
+  // The security report is served only where security.read is on, which it is
+  // not on a new install. Asking anyway showed "table not found" in the panel.
+  const { bootstrap } = useConsole();
+  const securityServed = workspaceServes(bootstrap, "admin", "gj_security");
   const runtime = useQuery({
     queryKey: ["runtime-dashboard"],
     queryFn: () => graphqlRequest(runtimeQuery),
@@ -53,6 +59,7 @@ const Dashboard = () => {
     queryKey: ["dashboard-security"],
     queryFn: () => graphqlRequest(securityQuery),
     staleTime: 30000,
+    enabled: securityServed,
   });
 
   const status = runtime.data?.data?.status?.[0];
@@ -109,7 +116,7 @@ const Dashboard = () => {
               )}
             </Panel>
 
-            <Panel
+            {securityServed && <Panel
               title="Security"
               action={<Link to="/admin/security" className="text-xs font-medium text-muted-foreground hover:text-foreground">All findings</Link>}
             >
@@ -133,7 +140,7 @@ const Dashboard = () => {
               ) : (
                 <EmptyState title="No findings" />
               )}
-            </Panel>
+            </Panel>}
 
             <Panel title={capabilities.length ? `Capabilities · ${capabilities.length}` : "Capabilities"}>
               {catalog.isLoading ? (

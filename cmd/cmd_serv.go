@@ -129,6 +129,9 @@ func cmdServ(cmd *cobra.Command, args []string) {
 		if file, ok := usesStartConfig(cmd); ok {
 			var err error
 			if start, err = loadStartConfig(file); err == nil {
+				err = start.storeWritable()
+			}
+			if err == nil {
 				err = start.findListen()
 			}
 			if err != nil {
@@ -142,6 +145,9 @@ func cmdServ(cmd *cobra.Command, args []string) {
 			}
 			if start.created {
 				fmt.Printf("Created %s\n\n", start.path)
+			}
+			if advice := start.unreachableListenAdvice(); advice != "" {
+				fmt.Fprintf(os.Stderr, "%s\n\n", advice)
 			}
 		}
 	}

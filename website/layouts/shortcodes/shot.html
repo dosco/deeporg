@@ -1,0 +1,3 @@
+{{- /* A screenshot in a docs page. src is a file in static/assets; width and
+       height are the image's own size, so the page does not jump as it loads. */ -}}
+<figure class="console-shot doc-shot"><img src="{{ printf "/assets/%s" (.Get "src") | relURL }}" width="{{ .Get "width" | default "1440" }}" height="{{ .Get "height" | default "900" }}" alt="{{ .Get "alt" }}" loading="lazy" decoding="async">{{ with .Inner | strings.TrimSpace }}<figcaption><span>{{ . | markdownify }}</span></figcaption>{{ end }}</figure>

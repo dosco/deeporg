@@ -6,7 +6,7 @@ doc_kind: "guide"
 weight: 20
 ---
 
-This page takes you from nothing to a first answer from your own data. It takes about five minutes, and you do not write a config file.
+This page takes you from nothing to a first answer from your own data. It takes about five minutes, and you do not write a config file. To see a picture of each screen, read [Set Up And Deploy](/start/deploy/).
 
 ## 1. Install and start
 
@@ -68,6 +68,8 @@ DEEPORG_LISTEN=0.0.0.0:8080 deeporg
 ```
 
 There is one limit to know about: DeepORG keeps its own data in a local file for now, so the server needs a disk that survives restarts.
+
+[Set Up And Deploy](/start/deploy/#part-2-put-it-on-a-server) goes through a server step by step: Docker, HTTPS, inviting your team and what to back up.
 
 ## Using config files instead
 

@@ -58,6 +58,15 @@ const requiredRoutes = [
   'og/index.html',
   'start/install/index.html',
   'start/quick-start/index.html',
+  'start/deploy/index.html',
+  'assets/setup-account.webp',
+  'assets/setup-database.webp',
+  'assets/setup-database-connected.webp',
+  'assets/setup-model.webp',
+  'assets/setup-agent-start.webp',
+  'assets/setup-agent-answer.webp',
+  'assets/setup-connect.webp',
+  'assets/setup-admin.webp',
   'releases/index.html',
   'start/demos/index.html',
   'story/index.html',
@@ -130,6 +139,7 @@ const requiredAnchors = [
 const requiredContent = [
   'start/install.md',
   'start/quick-start.md',
+  'start/deploy.md',
   'start/demos.md',
   'start/first-query.md',
   'start/saved-queries.md',
@@ -230,6 +240,18 @@ const requiredRenderedContent = [
   ['releases/index.html', 'What to change when you upgrade'],
   ['releases/index.html', 'Every config file needs a'],
   ['releases/index.html', 'The API service no longer writes access rules for you.'],
+  // The walkthrough: both halves, and every screen it shows.
+  ['start/deploy/index.html', 'Part 1: Set it up on your laptop'],
+  ['start/deploy/index.html', 'Part 2: Put it on a server'],
+  ['start/deploy/index.html', '-v deeporg:/home/nonroot'],
+  // The image listens for other computers by itself, says which folder to
+  // mount when it cannot write, and is healthy before setup is finished.
+  ['start/deploy/index.html', 'so publishing the port is enough'],
+  ['start/deploy/index.html', 'it stops and says which folder to mount'],
+  ['start/deploy/index.html', 'before setup is finished too'],
+  ['start/deploy/index.html', 'Back up DeepORG'],
+  ...['account', 'database', 'database-connected', 'model', 'agent-start', 'agent-answer', 'connect', 'admin']
+    .map((shot) => ['start/deploy/index.html', `/assets/setup-${shot}.webp`]),
   // Moved off the homepage with its link grid.
   ['core/filters/index.html', 'geo filters'],
   ['core/aggregations-functions/index.html', 'Expression aggregates'],
@@ -465,6 +487,21 @@ for (const [route, expected] of requiredRenderedContent) {
   }
 }
 
+// Limits of a server install that were fixed. The walkthrough must not bring
+// them back: the Docker command needs no listen address, and the health
+// address answers before setup.
+{
+  const file = path.join(publicRoot, 'start/deploy/index.html');
+  if (await exists(file)) {
+    const html = await readFile(file, 'utf8');
+    for (const fixed of ['-e DEEPORG_LISTEN', 'returns an error until a database is connected']) {
+      if (html.includes(fixed)) {
+        failures.push(`start/deploy/index.html still describes a limit that was fixed: ${fixed}`);
+      }
+    }
+  }
+}
+
 for (const [route, target] of [
   ['benchmark/methodology/index.html', '/benchmarks/deeporg/methodology/'],
   ['benchmark/runs/index.html', '/benchmarks/deeporg/runs/'],
@@ -585,6 +622,7 @@ if (await exists(path.join(publicRoot, 'index.html'))) {
     '/why/',
     '/start/quick-start/',
     '/start/quick-start/#connect-claude-code',
+    '/start/deploy/',
     '/releases/',
     '/benchmarks/deeporg/',
     '/benchmarks/deeporg/methodology/',

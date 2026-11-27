@@ -61,12 +61,17 @@ kos:
       - latest
       - "{{ .Version }}"
     bare: true
+    # ko cannot set an environment variable, a command or a volume, so the
+    # role ldflag tells the binary it is the server image. A new install then
+    # listens where a container can be reached, and a volume it cannot write
+    # to is reported with the folder to mount.
     ldflags:
       - -s -w
       - -X main.version={{ .Version }}
       - -X main.commit={{ .Commit }}
       - -X main.date={{ .Date }}
       - -X github.com/dosco/graphjin/serv/v3.version={{ .Version }}
+      - -X main.imageRole=server
     env:
       - CGO_ENABLED=0
 

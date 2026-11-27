@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"net"
 	"net/http"
 	"os"
@@ -33,7 +34,19 @@ const (
 
 	// A laptop install listens on this machine only. A server sets listen.
 	startDefaultListen = "127.0.0.1:8080"
+	// Inside a container, this machine only means the container only: nothing
+	// outside it could reach the server. The server image listens on every
+	// address, and what is published from the container decides who gets in.
+	startImageListen = "0.0.0.0:8080"
 )
+
+// firstRunListen is the address a new install is given when nobody chose one.
+func firstRunListen() string {
+	if serverImage {
+		return startImageListen
+	}
+	return startDefaultListen
+}
 
 type startConfig struct {
 	Store     string `yaml:"store"`
@@ -134,11 +147,13 @@ func loadStartConfig(file string) (*startConfig, error) {
 	case os.IsNotExist(err):
 		sc.Store = filepath.Join(filepath.Dir(file), "store.db")
 		sc.SecretKey = newInstallSecret()
-		sc.Listen = startDefaultListen
+		sc.Listen = firstRunListen()
 		if err := writeStartConfig(sc); err != nil {
-			return nil, err
+			return nil, homeNotWritableError(filepath.Dir(file), err)
 		}
 		sc.created = true
+	case errors.Is(err, fs.ErrPermission):
+		return nil, fmt.Errorf("DeepORG cannot read %s: permission denied.\nMake the file readable for the user DeepORG runs as (user %d) and start again.", file, os.Getuid())
 	default:
 		return nil, err
 	}
@@ -167,6 +182,78 @@ func loadStartConfig(file string) (*startConfig, error) {
 		sc.Listen = "0.0.0.0:8080"
 	}
 	return sc, nil
+}
+
+// storeWritable makes sure the store's folder can be written before the
+// server opens the store. A store that cannot be written fails there with a
+// database error that says nothing about folders.
+func (sc *startConfig) storeWritable() error {
+	dir := filepath.Dir(sc.Store)
+	if err := checkWritable(dir); err != nil {
+		return homeNotWritableError(dir, err)
+	}
+	return nil
+}
+
+// unreachableListenAdvice is what the server image says when it is about to
+// listen where nothing outside the container can reach it. That is what a
+// start config written by an image older than this default holds.
+func (sc *startConfig) unreachableListenAdvice() string {
+	host, port, err := net.SplitHostPort(sc.Listen)
+	if !serverImage || err != nil || !loopbackHost(host) {
+		return ""
+	}
+	return fmt.Sprintf("DeepORG is listening on %s, which nothing outside this container can reach.\nTo open it, set `listen: 0.0.0.0:%s` in %s, or set %s, and start again.",
+		sc.Listen, port, sc.path, startListenEnv)
+}
+
+// checkWritable makes sure files can be created in dir, creating it first
+// when it is not there.
+func checkWritable(dir string) error {
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return err
+	}
+	probe, err := os.CreateTemp(dir, ".deeporg-write-*")
+	if err != nil {
+		return err
+	}
+	probe.Close() //nolint:errcheck
+	return os.Remove(probe.Name())
+}
+
+// homeNotWritableError says which folder could not be written and what to do
+// about it. Any other failure is returned as it is.
+//
+// In the server image this is the first thing most people hit: the image runs
+// as an ordinary user, and a volume mounted anywhere but that user's home
+// belongs to root.
+func homeNotWritableError(dir string, err error) error {
+	if !errors.Is(err, fs.ErrPermission) && !errors.Is(err, syscall.EROFS) {
+		return err
+	}
+	reason := "permission denied"
+	if errors.Is(err, syscall.EROFS) {
+		reason = "it is read-only"
+	}
+	who := "the user it runs as"
+	if uid := os.Getuid(); uid >= 0 {
+		who = fmt.Sprintf("user %d", uid)
+	}
+	lines := []string{
+		fmt.Sprintf("DeepORG cannot write to %s: %s.", dir, reason),
+		"It keeps its start config and its store in that folder.",
+	}
+	home, homeErr := os.UserHomeDir()
+	if !serverImage || homeErr != nil || home == "" {
+		lines = append(lines, fmt.Sprintf("Make the folder writable for %s, or set %s to a folder that is, and start again.", who, startConfigDirEnv))
+		return errors.New(strings.Join(lines, "\n"))
+	}
+	lines = append(lines,
+		fmt.Sprintf("In this image DeepORG runs as %s, and a volume mounted anywhere else belongs to root.", who),
+		fmt.Sprintf("Mount the volume at %s itself, which that user owns, and leave %s unset.", home, startConfigDirEnv),
+		fmt.Sprintf("If the folder comes from the host or from Kubernetes, make it writable for %s first.", who),
+	)
+	return errors.New(strings.Join(lines, "\n"))
 }
 
 // startPortTries is how many ports after the wanted one are tried.
@@ -274,10 +361,18 @@ store: %s
 # lost, everyone is signed out and stored database passwords cannot be read.
 secret_key: %s
 
-# Address and port to listen on. This one is reachable from this machine only.
+# Address and port to listen on. %s
 listen: %s
-`, yamlString(sc.Store), yamlString(sc.SecretKey), yamlString(sc.Listen))
+`, yamlString(sc.Store), yamlString(sc.SecretKey), listenReach(sc.Listen), yamlString(sc.Listen))
 	return os.WriteFile(sc.path, []byte(body), 0o600)
+}
+
+// listenReach is the line the start config carries about its listen address.
+func listenReach(listen string) string {
+	if host, _, err := net.SplitHostPort(listen); err == nil && loopbackHost(host) {
+		return "This one is reachable from this machine only."
+	}
+	return "This one is reachable from other machines."
 }
 
 func yamlString(value string) string {

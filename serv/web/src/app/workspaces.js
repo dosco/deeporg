@@ -31,7 +31,9 @@ export const workspaceDefinitions = {
       { path: "/admin/workbench", label: "Workbench", layout: "canvas", apiService: true },
       { path: "/admin/catalog", label: "Catalog", layout: "collection" },
       { path: "/admin/workflows", label: "Workflows", layout: "collection" },
-      { path: "/admin/security", label: "Security", layout: "collection" },
+      // Shown only when the server serves its security report. A new install
+      // does not: security.read is off by default on an agent server.
+      { path: "/admin/security", label: "Security", layout: "collection", requiresCapability: "gj_security" },
       { path: "/admin/code", label: "Code", layout: "document" },
       { path: "/admin/config", label: "Config", layout: "document" },
       { path: "/admin/api", label: "API", layout: "document", apiService: true },
@@ -75,6 +77,14 @@ export function routeDefinition(pathname) {
     }
   }
   return { layout: "collection", workspace: workspaceDefinitions.user };
+}
+
+// workspaceServes reports whether the server granted a capability, such as a
+// gj_ root, to a workspace. A page asks before it queries a root the server
+// may not serve, so it can leave the question out.
+export function workspaceServes(bootstrap, workspaceID, capability) {
+  const served = (bootstrap?.workspaces || []).find((candidate) => candidate?.id === workspaceID);
+  return (served?.capabilities || []).includes(capability);
 }
 
 // visibleItems drops items whose capability the server did not grant this

@@ -312,7 +312,7 @@ func (s *graphjinService) runtimeCurrentStatusLocked() runtimeStatus {
 		Phase:          "runtime",
 		Status:         runtimeStatusDegraded,
 		Severity:       "warn",
-		Summary:        "GraphJin runtime status is not initialized.",
+		Summary:        "DeepORG runtime status is not initialized.",
 		NextAction:     "Use configuration or database setup tools before querying application data.",
 		Source:         featurecap.KindSystem,
 		SourceKind:     featurecap.KindSystem,
@@ -336,7 +336,7 @@ func (s *graphjinService) runtimeCurrentStatusLocked() runtimeStatus {
 		},
 	}
 	if s.gj == nil {
-		status.Summary = "GraphJin core is not initialized."
+		status.Summary = "DeepORG core is not initialized."
 		status.NextAction = "Inspect recent gj_runtime events and update the database or configuration before application queries."
 		return status
 	}
@@ -349,13 +349,13 @@ func (s *graphjinService) runtimeCurrentStatusLocked() runtimeStatus {
 		status.CatalogRevision = snap.Revision
 	}
 	if !status.SchemaReady {
-		status.Summary = "GraphJin is running but application schema readiness is degraded."
+		status.Summary = "DeepORG is running but application schema readiness is degraded."
 		status.NextAction = "Check recent schema/database events, then reload or fix the database configuration before application queries."
 		return status
 	}
 	status.Status = runtimeStatusReady
 	status.Severity = "info"
-	status.Summary = "GraphJin runtime is ready."
+	status.Summary = "DeepORG runtime is ready."
 	status.NextAction = "Proceed with the requested workflow; re-check gj_runtime after errors or before guarded system changes."
 	return status
 }

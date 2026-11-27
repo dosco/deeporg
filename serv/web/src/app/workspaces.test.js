@@ -9,6 +9,7 @@ import {
   visibleItems,
   workspaceDefinitions,
   workspaceIDFromPath,
+  workspaceServes,
 } from "./workspaces";
 
 describe("console workspace registry", () => {
@@ -57,5 +58,25 @@ describe("an API service", () => {
     expect(isAPIService(agent)).toBe(false);
     expect(homePath(agent)).toBe("/user/agent");
     expect(visibleItems(workspaceDefinitions.admin, agent).map((item) => item.label)).toContain("Runtime");
+  });
+});
+
+describe("the security report", () => {
+  // What a new install serves its admin: security.read is off by default.
+  const fresh = { workspaces: [{ id: "user", capabilities: [] }, { id: "admin", capabilities: ["gj_catalog", "gj_config", "gj_runtime"] }] };
+  const audited = { workspaces: [{ id: "user", capabilities: ["gj_security"] }, { id: "admin", capabilities: ["gj_runtime", "gj_security"] }] };
+
+  it("is not offered where the server does not serve it", () => {
+    expect(workspaceServes(fresh, "admin", "gj_security")).toBe(false);
+    expect(visibleItems(workspaceDefinitions.admin, fresh).map((item) => item.label)).not.toContain("Security");
+    expect(commandItems(fresh).map((item) => item.path)).not.toContain("/admin/security");
+    expect(workspaceServes(null, "admin", "gj_security")).toBe(false);
+  });
+
+  it("is offered where it is served, to the workspace it was granted to", () => {
+    expect(workspaceServes(audited, "admin", "gj_security")).toBe(true);
+    expect(workspaceServes(fresh, "admin", "gj_runtime")).toBe(true);
+    expect(workspaceServes(fresh, "user", "gj_runtime")).toBe(false);
+    expect(visibleItems(workspaceDefinitions.admin, audited).map((item) => item.label)).toContain("Security");
   });
 });

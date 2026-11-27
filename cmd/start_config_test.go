@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -175,6 +176,168 @@ func TestStartConfigProblemsSayWhatToDo(t *testing.T) {
 	}
 }
 
+// asServerImage runs the test as the binary in the server image does.
+func asServerImage(t *testing.T) {
+	t.Helper()
+	previous := serverImage
+	serverImage = true
+	t.Cleanup(func() { serverImage = previous })
+}
+
+// A container that listens on this machine only is one nothing can reach. The
+// server image is the one build that knows it is in a container, so a new
+// install there listens on every address without being told to.
+func TestServerImageListensWhereAContainerCanBeReached(t *testing.T) {
+	// Only the server image's own stamp makes a binary the server image.
+	for stamped, want := range map[string]bool{"": false, "server": true, " Server\n": true, "env": false} {
+		if got := builtAsServerImage(stamped); got != want {
+			t.Fatalf("builtAsServerImage(%q) = %v, want %v", stamped, got, want)
+		}
+	}
+
+	_, home := inEmptyDir(t)
+	file := filepath.Join(home, startConfigName)
+	asServerImage(t)
+
+	sc, err := loadStartConfig(file)
+	if err != nil {
+		t.Fatalf("first run in the image: %v", err)
+	}
+	if sc.Listen != "0.0.0.0:8080" {
+		t.Fatalf("listen = %q in the server image, want every address", sc.Listen)
+	}
+	raw, err := os.ReadFile(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(raw), "listen: 0.0.0.0:8080") || strings.Contains(string(raw), "this machine only") {
+		t.Fatalf("the start config written in the image does not say where it listens:\n%s", raw)
+	}
+	if opensBrowser(sc) {
+		t.Fatal("the server image tried to open a browser")
+	}
+	if advice := sc.unreachableListenAdvice(); advice != "" {
+		t.Fatalf("a reachable address was warned about: %s", advice)
+	}
+	// The environment still chooses the address.
+	t.Setenv(startListenEnv, "0.0.0.0:9999")
+	if sc, err = loadStartConfig(file); err != nil || sc.Listen != "0.0.0.0:9999" {
+		t.Fatalf("%s did not override the image's address: %+v %v", startListenEnv, sc, err)
+	}
+	t.Setenv(startListenEnv, "")
+
+	// A start config written by an older image holds the laptop's address.
+	// It is used as it is, since someone may have meant it, and the server
+	// says how to open it.
+	body := strings.Replace(string(raw), "listen: 0.0.0.0:8080", "listen: "+startDefaultListen, 1)
+	if err := os.WriteFile(file, []byte(body), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if sc, err = loadStartConfig(file); err != nil || sc.Listen != startDefaultListen {
+		t.Fatalf("an existing start config was not used as written: %+v %v", sc, err)
+	}
+	advice := sc.unreachableListenAdvice()
+	for _, want := range []string{startDefaultListen, "listen: 0.0.0.0:8080", file, startListenEnv} {
+		if !strings.Contains(advice, want) {
+			t.Fatalf("the advice does not say %q:\n%s", want, advice)
+		}
+	}
+	// On a laptop the same address is the right one, and nothing is said.
+	serverImage = false
+	if advice := sc.unreachableListenAdvice(); advice != "" {
+		t.Fatalf("a laptop was warned about listening on this machine only: %s", advice)
+	}
+}
+
+// A volume mounted anywhere but the image user's home belongs to root, and the
+// first run cannot write to it. The error names the folder and says what to
+// mount, where it used to be `open /data/deeporg.yml: permission denied`.
+func TestUnwritableHomeSaysWhichFolderAndWhatToMount(t *testing.T) {
+	if os.Getuid() == 0 {
+		t.Skip("root can write anywhere")
+	}
+	inEmptyDir(t)
+	userHome := t.TempDir()
+	t.Setenv("HOME", userHome)
+	locked := filepath.Join(t.TempDir(), "data")
+	if err := os.Mkdir(locked, 0o500); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.Chmod(locked, 0o700) }) //nolint:errcheck
+	t.Setenv(startConfigDirEnv, locked)
+	file, ok := usesStartConfig(nil)
+	if !ok || file != filepath.Join(locked, startConfigName) {
+		t.Fatalf("file=%q ok=%v", file, ok)
+	}
+	uid := fmt.Sprintf("user %d", os.Getuid())
+
+	// On a laptop: which folder, who has to be able to write it, and the
+	// setting that picks another folder.
+	_, err := loadStartConfig(file)
+	if err == nil {
+		t.Fatal("a start config was written to a folder that cannot be written")
+	}
+	for _, want := range []string{"cannot write to " + locked, "permission denied", uid, startConfigDirEnv} {
+		if !strings.Contains(err.Error(), want) {
+			t.Fatalf("the error does not say %q:\n%s", want, err)
+		}
+	}
+	if strings.Contains(err.Error(), "Mount the volume") {
+		t.Fatalf("a laptop was told to mount a volume:\n%s", err)
+	}
+
+	// In the server image: where to mount the volume.
+	asServerImage(t)
+	_, err = loadStartConfig(file)
+	if err == nil {
+		t.Fatal("a start config was written to a folder that cannot be written")
+	}
+	for _, want := range []string{"cannot write to " + locked, uid, "Mount the volume at " + userHome + " itself", "leave " + startConfigDirEnv + " unset"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Fatalf("the error in the image does not say %q:\n%s", want, err)
+		}
+	}
+	// A folder inside one that cannot be written fails the same way.
+	nested := filepath.Join(locked, "deeporg")
+	if _, err = loadStartConfig(filepath.Join(nested, startConfigName)); err == nil || !strings.Contains(err.Error(), "cannot write to "+nested) {
+		t.Fatalf("a home that cannot be created: %v", err)
+	}
+
+	// A start config that is there, with its store somewhere that cannot be
+	// written: caught before the store is opened, and it names that folder.
+	good := filepath.Join(t.TempDir(), "good")
+	sc, err := loadStartConfig(filepath.Join(good, startConfigName))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := sc.storeWritable(); err != nil {
+		t.Fatalf("a writable home was refused: %v", err)
+	}
+	if entries, err := os.ReadDir(good); err != nil || len(entries) != 1 {
+		t.Fatalf("checking the folder left something behind: %v %v", entries, err)
+	}
+	t.Setenv(startStoreEnv, filepath.Join(locked, "store.db"))
+	if sc, err = loadStartConfig(filepath.Join(good, startConfigName)); err != nil {
+		t.Fatal(err)
+	}
+	if err := sc.storeWritable(); err == nil || !strings.Contains(err.Error(), "cannot write to "+locked) {
+		t.Fatalf("a store in a folder that cannot be written: %v", err)
+	}
+	// A start config that is there and cannot be read says so by name.
+	unreadable := filepath.Join(good, "unreadable.yml")
+	if err := os.WriteFile(unreadable, []byte("secret_key: x\n"), 0o000); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = loadStartConfig(unreadable); err == nil || !strings.Contains(err.Error(), "cannot read "+unreadable) || !strings.Contains(err.Error(), uid) {
+		t.Fatalf("a start config that cannot be read: %v", err)
+	}
+	// Any other failure is passed on as it is.
+	other := fmt.Errorf("disk on fire")
+	if got := homeNotWritableError(locked, other); got != other {
+		t.Fatalf("an unrelated error was rewritten: %v", got)
+	}
+}
+
 // The newcomer's path: nothing on disk, start, create the admin, and later a
 // database appears in the store and is there after a restart.
 func TestStartConfigInstallBootsFromTheStore(t *testing.T) {
@@ -217,6 +380,21 @@ func TestStartConfigInstallBootsFromTheStore(t *testing.T) {
 	if link := hs.SetupLink(); !strings.Contains(link, "/setup?token="+setupToken) {
 		t.Fatalf("setup link = %q", link)
 	}
+	// It is healthy while it waits. A host that restarts a program failing
+	// its health check would otherwise kill it before setup could be done.
+	healthy := func(when, want string) {
+		t.Helper()
+		res, err := firstBootClient.Get(base + "/health")
+		if err != nil {
+			t.Fatalf("health %s: %v", when, err)
+		}
+		defer res.Body.Close() //nolint:errcheck
+		body, _ := io.ReadAll(res.Body)
+		if res.StatusCode != http.StatusOK || !strings.Contains(string(body), want) {
+			t.Fatalf("health %s = %d %q, want 200 %q", when, res.StatusCode, body, want)
+		}
+	}
+	healthy("before setup", "Waiting for setup")
 	const email, password = "ada@example.com", "a long enough password"
 	status, body, cookie := accountsPost(t, base+"/api/v1/setup/admin", "", map[string]any{"token": setupToken, "email": email, "password": password})
 	if status != http.StatusOK || cookie == "" {
@@ -225,6 +403,7 @@ func TestStartConfigInstallBootsFromTheStore(t *testing.T) {
 	if hs.SetupLink() != "" {
 		t.Fatal("the setup link was still offered after the admin was created")
 	}
+	healthy("with an admin and no database", "Waiting for setup")
 	// With no database connected the store is the only database the engine
 	// has. Its tables must still be closed to GraphQL.
 	assertAccountsNotReadable(t, base, map[string]string{"the admin, with no database connected": cookie})
@@ -253,6 +432,7 @@ func TestStartConfigInstallBootsFromTheStore(t *testing.T) {
 	if hs.SetupLink() != "" {
 		t.Fatal("setup was offered again after a restart")
 	}
+	healthy("with a database connected", "All's Well")
 	// The session from before the restart is still good: its signing key
 	// comes from the start config's secret key, which did not change.
 	if body := accountsGraphQL(t, base, cookie, `query { orders(order_by: { id: asc }) { id total } }`); !strings.Contains(body, `"total"`) {

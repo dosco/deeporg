@@ -5071,6 +5071,20 @@ h3 {
   font-weight: 600;
 }
 
+/* The one link under the get-started buttons, to the page with every screen. */
+.quickstart-more {
+  margin: 0;
+}
+
+.quickstart-more .dx-more {
+  margin-top: 1.25rem;
+}
+
+/* A screenshot between paragraphs of a docs page. */
+.doc-shot {
+  margin: 1.25rem 0 1.9rem;
+}
+
 .dx-demos {
   margin-top: clamp(2rem, 5vw, 3.5rem);
 }

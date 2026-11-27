@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
+import { workspaceServes } from "../app/workspaces";
+import { useConsole } from "../components/Layout/console-context";
 import { graphqlRequest, relativeTime } from "../services/graphql";
 import { DataErrorState, EmptyState, LoadingState, Metric, PageHeader, Panel, StatusPill } from "../components/ui";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -22,10 +24,15 @@ const filters = ["all", "critical", "high", "medium", "low"];
 
 const SecurityAudit = () => {
   const [severity, setSeverity] = useState("all");
+  // The report is served only where security.read is on. Someone can still
+  // arrive by address on a server where it is off.
+  const { bootstrap } = useConsole();
+  const served = workspaceServes(bootstrap, "admin", "gj_security");
   const { data, isLoading, error } = useQuery({
     queryKey: ["security-audit"],
     queryFn: () => graphqlRequest(securityQuery),
     staleTime: 30000,
+    enabled: served,
   });
   const summary = data?.data?.summary;
   const findings = data?.data?.findings || [];
@@ -43,7 +50,9 @@ const SecurityAudit = () => {
         title="Security"
       />
 
-      {isLoading ? (
+      {!served ? (
+        <EmptyState title="No security report" message="This server does not serve a security report." />
+      ) : isLoading ? (
         <LoadingState />
       ) : error ? (
         <DataErrorState
