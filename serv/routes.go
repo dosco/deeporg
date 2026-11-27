@@ -82,6 +82,7 @@ func routesHandler(s1 *HttpService, mux Mux, ns *string) (http.Handler, error) {
 				mux.Handle(routeSetupInvite, s1.Setup(ah))
 				mux.Handle(routeSetupPeople, s1.Setup(ah))
 				mux.Handle(routeSetupPeopleReset, s1.Setup(ah))
+				mux.Handle(routeSetupAccess, s1.Setup(ah))
 			}
 			ah = withConsoleSession(ah)
 			if s.accountOAuth != nil {

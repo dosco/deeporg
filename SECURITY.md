@@ -270,6 +270,12 @@ as a hash, like an invite. Nobody sets a password for someone else.
   It needs the store file and so the machine the server runs on, which is what
   makes it the way back in for an admin who has lost their password.
 
+On a server set up in the browser an admin chooses who reads each table of a
+connected database: everyone who signs in, admins only, or nobody. The choice is
+stored as the source's `admin_tables` and `blocked_tables`, the same settings a
+config file uses, so the engine enforces it for every query. A table in either
+list is left out of the catalog for every caller, so the agent does not use it.
+
 Wrong sign-in guesses are limited per email and per address. Behind a web server
 that passes requests on, the address is the last one in `X-Forwarded-For`, the
 one that web server wrote, and only when the request arrives from this machine

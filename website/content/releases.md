@@ -6,11 +6,11 @@ description: "What changed in each DeepORG release, and what to do when you upgr
 
 This page says what changed in each release and what you need to do when you upgrade. The downloads for every version are on the [GitHub releases page](https://github.com/dosco/deeporg/releases).
 
-## Version 3.24
+## Version 3.25
 
-These notes cover the releases from 3.23.1 to 3.24.0.
+These notes cover the releases from 3.23.1 to 3.25.0.
 
-This release is about running DeepORG on a server for a team. An admin can now look after people's accounts, and there is a way back in when a password is lost. If you upgrade, there is nothing you have to change.
+This release is about running DeepORG on a server for a team. An admin can now look after people's accounts and choose who reads each table, and there is a way back in when a password is lost. If you upgrade, there is nothing you have to change.
 
 ### Accounts
 
@@ -20,6 +20,12 @@ This release is about running DeepORG on a server for a team. An admin can now l
 - An admin cannot remove their own account or take their own admin rights away, and nobody can remove the last admin.
 - `deeporg reset-password <email>` makes a password link from the command line, on the machine DeepORG runs on. It is the way back in for an admin who has lost their password. The server keeps running while you use it.
 - The sign-in screen has a "Forgot your password?" line that says both of these.
+
+### Who can read each table
+
+- An admin can choose who reads each table of a connected database, from **Admin → Setup**: everyone who signs in, admins only, or nobody. Before, this needed a config file.
+- The agent only uses tables that are open to everyone. It is not told that the others exist.
+- Connecting a database again under the same name keeps these choices.
 
 ### Running on a server
 
@@ -38,7 +44,7 @@ This release is about running DeepORG on a server for a team. An admin can now l
 ### What DeepORG does not do yet
 
 - A database can be added or replaced from the console, but not disconnected.
-- The console has no screen for limiting who can read which tables and rows.
+- The console hides whole tables. It has no screen for hiding some rows of a table, or for giving one person more than another.
 - A server set up in the browser keeps its own data in a local file, so it needs a disk that survives restarts, and you run one copy.
 - An agent that hands its sign-in back through an address of its own kind, as some editors do, is refused. Agents that listen on your own computer or on an `https` address work.
 

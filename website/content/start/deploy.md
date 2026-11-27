@@ -145,7 +145,15 @@ Open **Admin**, then **Setup**. Enter a teammate's email and choose **Make an in
 
 {{< shot src="setup-admin.webp" alt="The Admin Setup page, listing the connected database, the model, the people who can sign in, and a form to invite a teammate." />}}
 
-Everyone who signs in can read every table in the databases you connected, and nobody can write to them. If some tables or rows are not for everyone, limit them with [roles and filters](/configure/auth-rbac/) before you invite people.
+Everyone who signs in can read every table in the databases you connected, and nobody can write to them. If some tables are not for everyone, hide them before you invite people.
+
+On the same page, under **Your data**, choose **Change** next to a database. Each table can be for everyone, for admins only, or for nobody. Saving restarts DeepORG, which takes a few seconds.
+
+- **Admins only** means an admin can still query the table, for example in the Workbench. Nobody else can.
+- **Nobody** closes the table to admins too.
+- The agent only uses tables that are open to everyone. It is not told that the others exist, whoever asks.
+
+This works a table at a time. There is no screen yet for hiding some rows of a table and not others.
 
 Each person can connect their own Claude Code from the **Connect** page. On a server, the command there holds the server's address.
 

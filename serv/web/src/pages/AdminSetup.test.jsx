@@ -96,6 +96,59 @@ describe("admin setup", () => {
     expect(withdrawn[0]).toBe("/api/v1/setup/invites?email=sam%40example.com");
   });
 
+  it("lets the admin choose who can read each table, and saves only what changed from everyone", async () => {
+    const tables = [
+      { name: "accounts", access: "everyone" },
+      { name: "invoices", access: "admins" },
+      { name: "salaries", access: "everyone" },
+    ];
+    const fetchMock = stubFetch((method, url) => {
+      if (method === "POST" && url === "/api/v1/setup/access") {
+        return { status: 200, body: { database: "sample", restarting: false, boot: "b1" } };
+      }
+      if (url === "/api/v1/setup") {
+        return { status: 200, body: { boot: "b1" } };
+      }
+      return { status: 200, body: { ...details, databases: [{ name: "sample", type: "sqlite", tables: 3, table_list: tables }] } };
+    });
+    const reload = vi.fn();
+    vi.stubGlobal("location", { ...window.location, reload });
+    renderPage(admin);
+
+    expect(await screen.findByText("1 for admins only. Everyone can read the rest.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Choose who can read each table of sample" }));
+    expect(screen.getByLabelText("Who can read invoices")).toHaveValue("admins");
+    // Nothing to save until something changes.
+    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText("Who can read salaries"), { target: { value: "nobody" } });
+    fireEvent.change(screen.getByLabelText("Who can read invoices"), { target: { value: "everyone" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(reload).toHaveBeenCalled(), { timeout: 3000 });
+    const post = fetchMock.mock.calls.find(([url, options]) => url === "/api/v1/setup/access" && options?.method === "POST");
+    expect(JSON.parse(post[1].body)).toEqual({ database: "sample", tables: { salaries: "nobody" } });
+  });
+
+  it("says every table is open when none is hidden, and why when a change is refused", async () => {
+    stubFetch((method, url) => {
+      if (method === "POST" && url === "/api/v1/setup/access") {
+        return { status: 400, body: { error: "the database sample has no table named salaries" } };
+      }
+      return { status: 200, body: { ...details, databases: [{ name: "sample", type: "sqlite", tables: 1, table_list: [{ name: "salaries", access: "everyone" }] }] } };
+    });
+    renderPage(admin);
+
+    expect(await screen.findByText("Everyone who signs in can read every table.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Choose who can read each table of sample" }));
+    fireEvent.change(screen.getByLabelText("Who can read salaries"), { target: { value: "admins" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("has no table named salaries");
+    // Backing out puts the choice back.
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.getByText("Everyone who signs in can read every table.")).toBeInTheDocument();
+  });
+
   it("changes a role, makes a password link and removes a person, but not the admin's own account", async () => {
     let team = [
       { email: "ada@example.com", role: "admin", you: true },

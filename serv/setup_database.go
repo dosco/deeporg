@@ -366,6 +366,13 @@ func storedConfigWithSource(doc string, source map[string]any) (string, error) {
 			if isDefault, _ := current["default"].(bool); isDefault {
 				source["default"] = true
 			}
+			// Connecting a database again under the same name changes where
+			// it is, not who may read its tables.
+			if access, ok := current["access"]; ok {
+				if _, set := source["access"]; !set {
+					source["access"] = access
+				}
+			}
 			sources[i] = source
 			replaced = true
 			current = source

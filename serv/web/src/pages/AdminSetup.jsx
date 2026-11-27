@@ -7,7 +7,7 @@ import { Select } from "@/components/ui/select";
 import { DataErrorState, LoadingState } from "@/components/ui";
 import { useConsole } from "@/components/Layout/console-context";
 import { errorText } from "@/services/graphql";
-import { changeRole, inviteTeammate, makePasswordLink, manageState, removePerson, setupDetails, withdrawInvite } from "@/services/session";
+import { changeRole, inviteTeammate, makePasswordLink, manageState, removePerson, saveTableAccess, setupDetails, waitForRestart, withdrawInvite } from "@/services/session";
 import SetupDatabase from "./SetupDatabase";
 import SetupModel from "./SetupModel";
 
@@ -65,9 +65,12 @@ const AdminSetup = () => {
           ) : (
             <ul className="mt-3 grid gap-1.5 text-sm">
               {databases.map((database) => (
-                <li key={database.name} className="flex flex-wrap items-baseline gap-x-3">
-                  <span className="font-mono">{database.name}</span>
-                  <span className="text-muted-foreground">{database.type}, {database.tables} {database.tables === 1 ? "table" : "tables"}</span>
+                <li key={database.name}>
+                  <div className="flex flex-wrap items-baseline gap-x-3">
+                    <span className="font-mono">{database.name}</span>
+                    <span className="text-muted-foreground">{database.type}, {database.tables} {database.tables === 1 ? "table" : "tables"}</span>
+                  </div>
+                  <TableAccess database={database} onSaved={changed} />
                 </li>
               ))}
             </ul>
@@ -100,6 +103,109 @@ const AdminSetup = () => {
     </div>
   );
 };
+
+const ACCESS_CHOICES = [
+  { value: "everyone", label: "everyone" },
+  { value: "admins", label: "admins only" },
+  { value: "nobody", label: "nobody" },
+];
+
+// accessSummary says in a few words how many tables are not open to everyone.
+function accessSummary(tables) {
+  const admins = tables.filter((table) => table.access === "admins").length;
+  const nobody = tables.filter((table) => table.access === "nobody").length;
+  if (admins === 0 && nobody === 0) {
+    return "Everyone who signs in can read every table.";
+  }
+  const parts = [];
+  if (admins) {
+    parts.push(`${admins} for admins only`);
+  }
+  if (nobody) {
+    parts.push(`${nobody} for nobody`);
+  }
+  return `${parts.join(", ")}. Everyone can read the rest.`;
+}
+
+// TableAccess lets the admin choose who can read each table of a database:
+// everyone who signs in, admins only, or nobody. The server enforces the
+// choice for every query. A table that is not for everyone is also left out
+// of the catalog the agent reads, so the agent does not use it for anyone.
+function TableAccess({ database, onSaved }) {
+  const tables = database.table_list || [];
+  const [open, setOpen] = React.useState(false);
+  const [choice, setChoice] = React.useState({});
+  const [pending, setPending] = React.useState(false);
+  const [error, setError] = React.useState("");
+
+  if (tables.length === 0) {
+    return null;
+  }
+  const current = (table) => choice[table.name] ?? table.access;
+  const changedAny = tables.some((table) => current(table) !== table.access);
+
+  async function save(event) {
+    event.preventDefault();
+    if (pending || !changedAny) {
+      return;
+    }
+    setPending(true);
+    setError("");
+    try {
+      const hidden = {};
+      for (const table of tables) {
+        if (current(table) !== "everyone") {
+          hidden[table.name] = current(table);
+        }
+      }
+      const reply = await saveTableAccess(database.name, hidden);
+      await waitForRestart({ boot: reply.boot, restarting: reply.restarting });
+      onSaved?.();
+    } catch (err) {
+      setError(errorText(err, "The change could not be saved."));
+      setPending(false);
+    }
+  }
+
+  const quiet = "text-muted-foreground underline underline-offset-4 hover:text-foreground";
+  if (!open) {
+    return (
+      <p className="mt-1.5 flex flex-wrap items-baseline gap-x-3 text-muted-foreground">
+        <span>{accessSummary(tables)}</span>
+        <button type="button" className={quiet} aria-label={`Choose who can read each table of ${database.name}`} onClick={() => setOpen(true)}>
+          Change
+        </button>
+      </p>
+    );
+  }
+  return (
+    <form className="mt-3 grid max-w-md gap-3" onSubmit={save} aria-label={`Who can read each table of ${database.name}`}>
+      <p className="text-muted-foreground">Choose who can read each table. The agent only uses tables that are open to everyone.</p>
+      <ul className="grid gap-2">
+        {tables.map((table) => (
+          <li key={table.name} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
+            <span className="truncate font-mono">{table.name}</span>
+            <Select aria-label={`Who can read ${table.name}`} className="w-40" value={current(table)} disabled={pending} onChange={(event) => setChoice((previous) => ({ ...previous, [table.name]: event.target.value }))}>
+              {ACCESS_CHOICES.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </Select>
+          </li>
+        ))}
+      </ul>
+      {error && <p role="alert" className="text-destructive">{error}</p>}
+      <div className="flex flex-wrap items-center gap-4">
+        <Button type="submit" variant="secondary" disabled={!changedAny || pending}>
+          {pending ? "Saving…" : "Save"}
+        </Button>
+        <button type="button" className={quiet} disabled={pending} onClick={() => { setOpen(false); setChoice({}); setError(""); }}>
+          Cancel
+        </button>
+        <span className="text-xs text-muted-foreground">Saving restarts DeepORG, which takes a few seconds.</span>
+      </div>
+    </form>
+  );
+}
 
 // People lists who has an account and lets the admin invite someone, change
 // what a person may do, give them a link for a new password, or remove them.

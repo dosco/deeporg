@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -228,5 +229,33 @@ func TestClientAddressBehindAWebServer(t *testing.T) {
 		if got := clientAddress(req); got != tc.want {
 			t.Errorf("%s: clientAddress = %q, want %q", name, got, tc.want)
 		}
+	}
+}
+
+// Connecting a database again under the same name changes where it is, not
+// who may read its tables.
+func TestReconnectingADatabaseKeepsWhoCanReadItsTables(t *testing.T) {
+	doc, err := storedConfigWithSource("", map[string]any{"name": "shop", "kind": "database", "type": "postgres", "host": "old"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if doc, err = storedConfigWithTableAccess(doc, "Shop", []string{"salaries"}, []string{"audit_log"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := storedConfigWithTableAccess(doc, "warehouse", nil, nil); err == nil {
+		t.Fatal("a database that is not in the document was accepted")
+	}
+	doc, err = storedConfigWithSource(doc, map[string]any{"name": "shop", "kind": "database", "type": "postgres", "host": "new"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"host: new", "admin_tables:", "- salaries", "blocked_tables:", "- audit_log", "default: true"} {
+		if !strings.Contains(doc, want) {
+			t.Fatalf("after reconnecting, the document is missing %q:\n%s", want, doc)
+		}
+	}
+	// Opening every table again removes the setting.
+	if doc, err = storedConfigWithTableAccess(doc, "shop", nil, nil); err != nil || strings.Contains(doc, "access") {
+		t.Fatalf("the access setting was left behind (%v):\n%s", err, doc)
 	}
 }

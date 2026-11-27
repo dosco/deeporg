@@ -58,6 +58,23 @@ export function waitForModel(options) {
   return waitForSetupStep("needs_model", options);
 }
 
+// saveTableAccess saves who can read each table of one database. tables maps
+// a table's name to "admins" or "nobody"; a table left out is for everyone.
+// The server restarts with the change, so follow this with waitForRestart.
+export function saveTableAccess(database, tables) {
+  return fetchJSON("/api/v1/setup/access", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ database, tables }),
+  });
+}
+
+// waitForRestart resolves once the server is back up after a change that
+// restarted it.
+export function waitForRestart(options) {
+  return waitForSetupStep("", options);
+}
+
 // waitForSetupStep resolves with the setup state once the server reports the
 // step is done. A setup step restarts the server; while it does, requests
 // fail, which is expected. The server's reply to the step carries a marker

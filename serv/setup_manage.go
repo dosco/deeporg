@@ -75,10 +75,18 @@ func (s *graphjinService) setupDetails(w http.ResponseWriter, r *http.Request, a
 		if source.Kind != "" && !strings.EqualFold(source.Kind, "database") {
 			continue
 		}
+		// Each table with who can read it, for the admin to change. A table
+		// that is hidden from everyone is still one of the database's tables.
+		tableList := s.databaseTables(source)
+		count := tables[strings.ToLower(source.Name)]
+		if len(tableList) > count {
+			count = len(tableList)
+		}
 		databases = append(databases, map[string]any{
-			"name":   source.Name,
-			"type":   source.Type,
-			"tables": tables[strings.ToLower(source.Name)],
+			"name":       source.Name,
+			"type":       source.Type,
+			"tables":     count,
+			"table_list": tableList,
 		})
 	}
 	out["databases"] = databases

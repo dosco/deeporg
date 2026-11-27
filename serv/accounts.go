@@ -456,6 +456,8 @@ func (s1 *HttpService) Setup(ah auth.HandlerFunc) http.Handler {
 			s.setupPeople(w, r, ah)
 		case r.URL.Path == routeSetupPeopleReset:
 			s.setupPeopleReset(w, r, ah)
+		case r.URL.Path == routeSetupAccess:
+			s.setupAccess(w, r, ah)
 		default:
 			http.Error(w, "not found", http.StatusNotFound)
 		}

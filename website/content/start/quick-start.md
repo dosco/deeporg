@@ -31,7 +31,7 @@ Paste your database's connection URL, such as `postgres://user:password@host:543
 
 If you have no database to hand, choose **Use sample data**. It connects a small sample company: accounts, users, subscriptions, invoices, payments, support tickets and usage events.
 
-By default everyone who signs in can read every table in the databases you connect, and nobody can write to them. You limit this later with [roles and filters](/configure/auth-rbac/).
+By default everyone who signs in can read every table in the databases you connect, and nobody can write to them. Later, in **Admin → Setup**, you can make a table readable by admins only, or by nobody.
 
 ## 4. Choose a model
 
