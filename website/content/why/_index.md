@@ -14,17 +14,3 @@ actions:
 landing: true
 toc: false
 ---
-
-{{< band label="Or skip the reading" title="Run it and ask it something." >}}
-
-Install DeepORG, add a model key and start the demo company.
-
-```bash
-curl -fsSL https://deeporg.io/install.sh | bash
-echo 'OPENAI_API_KEY=your-key' >> .env
-deeporg serve --demo
-```
-
-Then open `localhost:8083/agent` and ask which account is most at risk of churning. The [quick start](/start/quick-start/) goes on from there.
-
-{{< endband >}}
