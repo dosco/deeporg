@@ -278,6 +278,35 @@ func openStorePostgres(store string) (*sql.DB, error) {
 	return connectConfiguredDatabase(driver, conf.DB, storeConnectTimeout)
 }
 
+// storeTablesLockKey names the lock copies take while they create or change
+// the store's tables. Any number will do as long as every copy uses it.
+const storeTablesLockKey = 0x64656570_6f7267 // "deeporg"
+
+// lockStoreTables makes copies of a server take turns creating the store's
+// tables. Postgres does not let two sessions create the same schema or table
+// at the same moment, even with IF NOT EXISTS: the one that loses fails, and
+// a copy starting beside another on an empty store would stop there. The lock
+// is held on a connection of its own until unlock is called. A file store has
+// one process and needs no lock.
+func lockStoreTables(ctx context.Context, db *sql.DB, dbType string) (unlock func(), err error) {
+	if dbType != "postgres" {
+		return func() {}, nil
+	}
+	conn, err := db.Conn(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := conn.ExecContext(ctx, `SELECT pg_advisory_lock($1)`, int64(storeTablesLockKey)); err != nil {
+		conn.Close() //nolint:errcheck
+		return nil, err
+	}
+	return func() {
+		// Closing the connection would release it too; say so plainly.
+		conn.ExecContext(context.Background(), `SELECT pg_advisory_unlock($1)`, int64(storeTablesLockKey)) //nolint:errcheck
+		conn.Close()                                                                                       //nolint:errcheck
+	}, nil
+}
+
 // storeAddressForError is a store setting with any password taken out, for a
 // message someone will read.
 func storeAddressForError(store string) string {
@@ -334,6 +363,12 @@ func openStoreSettings(ctx context.Context, store string) (*sqlAuthStore, func()
 	}
 	done := func() { db.Close() } //nolint:errcheck
 	where := storeAddressForError(store)
+	unlock, err := lockStoreTables(ctx, db, dbType)
+	if err != nil {
+		done()
+		return nil, nil, fmt.Errorf("store %s: %s", where, redactRuntimeError(err))
+	}
+	defer unlock()
 	for _, stmt := range authStoreDDL(dbType, schema) {
 		if _, err := db.ExecContext(ctx, stmt); err != nil {
 			done()

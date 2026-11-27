@@ -1,7 +1,28 @@
 # Design: DeepORG's own data in Postgres
 
-Status: step 1 is built (2026-11-27): one copy on Postgres, with no disk.
-Steps 2 and 3 are proposed and not built. Written 2026-11-26.
+Status: steps 1 and 2 are built (2026-11-27): the store in Postgres with no
+disk, and more than one copy on it. Step 3, moving a file store into Postgres,
+is proposed and not built. Written 2026-11-26.
+
+What step 2 changed from this design, and what it found:
+
+- Every copy checks the stored configuration's version every five seconds
+  (`serv/store_watch.go`), for a file store too. That is what makes
+  `deeporg config import` take effect on a running server.
+- The copy that saves a change and the check itself both go through
+  `applyStoredConfig`, which is version based, so one change is one restart
+  however many ways it is noticed.
+- Two copies starting at the same moment on an empty store both ran
+  `CREATE SCHEMA IF NOT EXISTS`, and Postgres failed one of them with a
+  duplicate key error. Copies now take turns behind an advisory lock
+  (`lockStoreTables`). Two real processes found this; the first in-process test
+  did not, and the test now empties and reopens the store twelve times to hit it.
+- What a copy keeps through the engine, such as a task, reaches the other
+  copies when they next poll the store, within `artifacts.poll_seconds` (15).
+- Checked by `TestTwoCopiesShareAPostgresStore` and by two real processes on
+  one Postgres. Not run for this step: a watch firing with two copies on
+  Postgres. `TestWatchScheduleTwoRunnersFireOncePerTick` and
+  `TestMetricWatchFiresOnceOnCrossingAcrossReplicas` cover the claim logic.
 
 What step 1 changed from this design: the secret key is required from the
 environment when the store is Postgres and there is no start config file, and

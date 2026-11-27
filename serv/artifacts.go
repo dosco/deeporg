@@ -603,6 +603,12 @@ func (s *graphjinService) ensureStoreTables() error {
 	if !ok {
 		return fmt.Errorf("artifact store database is not configured")
 	}
+	// Another copy may be starting on the same store at this moment.
+	unlock, err := lockStoreTables(context.Background(), db, dbType)
+	if err != nil {
+		return err
+	}
+	defer unlock()
 	for _, stmt := range artifactDDL(dbType, s.conf.Core.EffectiveArtifactsConfig().Schema) {
 		if _, err := db.ExecContext(context.Background(), stmt); err != nil {
 			return err

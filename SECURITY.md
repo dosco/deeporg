@@ -276,6 +276,11 @@ stored as the source's `admin_tables` and `blocked_tables`, the same settings a
 config file uses, so the engine enforces it for every query. A table in either
 list is left out of the catalog for every caller, so the agent does not use it.
 
+While no admin exists, a server whose store is Postgres offers a setup link
+whose token is derived from the store's key with HMAC, so every copy offers the
+same one. It says nothing about the key and stops working once an admin exists.
+Set `DEEPORG_SETUP_TOKEN` to choose the token yourself.
+
 DeepORG's own data is kept in a local file or, on a server with no disk, in a
 Postgres database named by `DEEPORG_STORE`. Database passwords and the model key
 in it are encrypted with a key derived from `DEEPORG_SECRET_KEY`, so reading the

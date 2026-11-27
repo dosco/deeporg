@@ -154,6 +154,10 @@ type graphjinService struct {
 	accounts             *accountService                       // local accounts (agentic, optional)
 	accountOAuth         *authLoginService                     // signs MCP clients in with a local account
 	configApplier        func() error                          // makes a changed stored configuration take effect
+	storeApplyMu         sync.Mutex                            // one apply at a time, see applyStoredConfig
+	storeSeenVersion     string                                // the stored configuration version this server runs or last applied
+	storeWatchStop       chan struct{}                         // closes this copy's check for a newer stored configuration
+	storeWatchWG         sync.WaitGroup
 	sampleData           func(context.Context) (string, error) // builds the sample database, returns its file
 }
 
@@ -486,6 +490,7 @@ func (s *HttpService) Shutdown(ctx context.Context) error {
 // It is safe to call more than once: every step either nils what it released or
 // is idempotent already.
 func (s *graphjinService) closeServResources() {
+	s.stopStoreWatch()
 	s.closeMCPHTTPTransport()
 	if s.semantic != nil {
 		s.semantic.Close()
@@ -868,6 +873,8 @@ func newGraphJinService(conf *Config, dbs map[string]*sql.DB, options ...Option)
 	}
 	s.accountOAuth = accountOAuth
 	s.conf.accountOAuth = accountOAuth != nil
+	// A copy of a server looks for setup changes other copies made.
+	s.startStoreWatch()
 
 	// if s.deployActive {
 	// 	err = s.hotStart()

@@ -118,7 +118,15 @@ DEEPORG_SECRET_KEY=a-long-secret-of-32-characters-or-more
 
 `DEEPORG_STORE` is the address of a Postgres database for DeepORG's own tables. It is best to give DeepORG a database of its own. `DEEPORG_SECRET_KEY` encrypts the database passwords and the model key kept there. If you leave it out, DeepORG stops and prints a new key for you to use. Keep the key somewhere safe and use the same one every time, because without it the stored passwords cannot be read.
 
-Two things differ from a server with a disk. The sample company is not offered in setup, because it is a file. And you still run one copy: a second copy would not learn about a change made on the first until it restarts.
+The sample company is not offered in setup on such a server, because it is a file.
+
+With the store in Postgres you can run more than one copy. Start each with the same two settings.
+
+- Every copy prints the same setup link, so it works whichever copy your browser reaches.
+- Accounts, sessions and what DeepORG stores are shared. Something saved through one copy shows up on the others within about 15 seconds.
+- When an admin connects a database, changes the model or hides a table, the copy that took the request restarts to load the change. The other copies notice within a few seconds and restart too. Each is away for a few seconds.
+- The limit on wrong sign-in guesses is counted by each copy on its own.
+- A person who is removed can keep working for up to 15 seconds on a copy other than the one that removed them.
 
 ### 2. Put HTTPS in front of it
 
@@ -191,7 +199,7 @@ It prints a link written for the server itself, like the setup link. Replace the
 ### What to know before you rely on it
 
 - **Back up DeepORG's folder.** That is `~/.deeporg/`, or the Docker volume. With the store in Postgres, back up that database and keep the secret key. The file `deeporg.yml` in it holds a secret key, and `store.db` holds the accounts and settings. Database passwords and the model key are encrypted with that key. If you lose it, everyone is signed out and the stored passwords cannot be read.
-- **Run one copy.** With a local file, two servers cannot share it. With the store in Postgres, running two is not supported yet: a change made in setup on one does not reach the other until it restarts.
+- **One copy with a local file.** Two servers cannot share the file. To run more than one copy, keep the store in Postgres.
 - **The health address is `/health`.** It answers as soon as DeepORG is running, before setup is finished too. If your hosting restarts a program that fails its health check, you can turn that check on from the start.
 - **To update,** read the [release notes](/releases/), install the new version, and start it again.
 

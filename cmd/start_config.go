@@ -505,6 +505,13 @@ func dropAgentChoiceFromEnv(doc string) []string {
 // loadStartFlowConfig builds the running configuration for a start-config
 // install: the base, with the document read from the store laid over it.
 func loadStartFlowConfig(sc *startConfig) (*serv.Config, error) {
+	// The version is read before the configuration. A change that lands in
+	// between is then newer than what this server believes it loaded, and it
+	// reloads.
+	version, err := serv.StoredConfigVersion(context.Background(), sc.Store)
+	if err != nil {
+		return nil, err
+	}
 	doc, err := serv.ReadStoredConfig(context.Background(), sc.Store, sc.sealKey())
 	if err != nil {
 		return nil, err
@@ -526,6 +533,7 @@ func loadStartFlowConfig(sc *startConfig) (*serv.Config, error) {
 	// Relative paths, such as the discovery cache, sit beside the store.
 	c.Serv.ConfigPath = sc.localDir()
 	c.SetStore(sc.Store, sc.sealKey())
+	c.SetStoreVersion(version)
 
 	// The model provider's key is kept encrypted in the store. The agent
 	// reads its key from an environment variable, so hand it over in one of
@@ -634,8 +642,8 @@ func configImportCmd() *cobra.Command {
 		Long: `Replace the configuration kept in the store with the contents of a YAML file.
 
 The file uses the same settings as a config file, without the ones that belong
-to the start config (mode, auth, host_port, artifacts, secrets). DeepORG reads
-the stored configuration when it starts, so restart it afterwards.
+to the start config (mode, auth, host_port, artifacts, secrets). A running
+DeepORG notices the change within a few seconds and restarts itself to load it.
 
 Examples:
   deeporg config import sources.yml
@@ -666,7 +674,7 @@ Examples:
 			if err := serv.WriteStoredConfig(context.Background(), sc.Store, sc.sealKey(), doc); err != nil {
 				log.Fatalf("%s", err)
 			}
-			fmt.Printf("Stored the configuration from %s. Restart DeepORG for it to take effect.\n", args[0])
+			fmt.Printf("Stored the configuration from %s. A running DeepORG loads it within a few seconds.\n", args[0])
 		},
 	}
 }

@@ -339,9 +339,9 @@ func (s *graphjinService) applyStoredConfigSoon() {
 	}
 	go func() {
 		time.Sleep(400 * time.Millisecond)
-		if err := apply(); err != nil && s.log != nil {
-			s.log.Errorf("setup: the saved configuration could not be applied; restart the server: %s", err)
-		}
+		// Version based, like the check every copy runs, so a change is
+		// applied once whichever of the two notices it first.
+		s.applyStoredConfig(context.Background())
 	}()
 }
 

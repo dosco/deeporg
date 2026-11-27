@@ -60,6 +60,9 @@ type Config struct {
 	// start-config install names it; otherwise the store sits under the
 	// config directory.
 	storePath string
+	// storeVersion is the version of the stored configuration this config
+	// was built from, so a running server can tell when it is out of date.
+	storeVersion string
 	// storeSealKey encrypts the configuration document kept in the store.
 	storeSealKey string
 	// accountOAuth is set by the service when MCP clients sign in with a

@@ -7,6 +7,8 @@ import (
 	"net/http/httptest"
 	"os"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -245,3 +247,212 @@ func TestStoreInPostgresNeedsNoDisk(t *testing.T) {
 	}
 	nothingOnDisk("at the end")
 }
+
+// Two copies of a server can run on one Postgres store. They offer the same
+// setup link, share accounts and what is kept in the store, and a setup
+// change made on one reaches the other within a few seconds.
+func TestTwoCopiesShareAPostgresStore(t *testing.T) {
+	if testing.Short() {
+		t.Skip("needs a Postgres container")
+	}
+	storeURL, appURL := startStorePostgres(t)
+	inEmptyDir(t)
+	t.Setenv(startStoreEnv, storeURL)
+	t.Setenv(startSecretKeyEnv, "two-copies-test-secret-0123456789abcdef")
+	// No setup token is given, so each copy has to arrive at the same one.
+	t.Setenv("DEEPORG_SETUP_TOKEN", "")
+
+	file, ok := usesStartConfig(nil)
+	if !ok {
+		t.Fatal("an empty directory did not take the new flow")
+	}
+	sc, err := loadStartConfig(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Copies that start at the same moment on an empty store all try to
+	// create its tables. None of them may fail for having lost that race.
+	// The race is a narrow one, so the store is emptied and opened again a
+	// number of times.
+	admin, err := sql.Open("pgx", storeURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for round := 0; round < 12; round++ {
+		if _, err := admin.Exec(`DROP SCHEMA IF EXISTS "_graphjin" CASCADE`); err != nil {
+			t.Fatal(err)
+		}
+		var opening sync.WaitGroup
+		openErrs := make(chan error, 8)
+		for i := 0; i < cap(openErrs); i++ {
+			opening.Add(1)
+			go func() {
+				defer opening.Done()
+				_, err := serv.StoredConfigVersion(context.Background(), storeURL)
+				openErrs <- err
+			}()
+		}
+		opening.Wait()
+		close(openErrs)
+		for err := range openErrs {
+			if err != nil {
+				t.Fatalf("round %d: a copy could not open a store another copy was creating: %v", round, err)
+			}
+		}
+	}
+	admin.Close() //nolint:errcheck
+
+	// A copy is one server process. Its restart is counted here, and the
+	// test then starts it again, as the real one replaces itself.
+	type copyOf struct {
+		base     string
+		link     string
+		restarts *atomic.Int32
+		stop     func()
+	}
+	boot := func() copyOf {
+		t.Helper()
+		conf, err := loadStartFlowConfig(sc)
+		if err != nil {
+			t.Fatalf("load from the store: %v", err)
+		}
+		restarts := &atomic.Int32{}
+		hs, err := serv.NewGraphJinService(conf,
+			serv.OptionSetLogOutput(zapcore.AddSync(&lockedBuffer{})),
+			serv.OptionSetConfigApplier(func() error { restarts.Add(1); return nil }))
+		if err != nil {
+			t.Fatalf("start: %v", err)
+		}
+		mux := http.NewServeMux()
+		if err := hs.Attach(mux); err != nil {
+			t.Fatal(err)
+		}
+		server := httptest.NewServer(mux)
+		return copyOf{base: server.URL, link: hs.SetupLink(), restarts: restarts, stop: func() { server.Close(); hs.Close() }} //nolint:errcheck
+	}
+	// restarted waits for a copy to ask for its restart. The copy that took
+	// the request asks at once; the others when their next check sees the
+	// change.
+	restarted := func(c copyOf, who string) {
+		t.Helper()
+		deadline := time.Now().Add(15 * time.Second)
+		for c.restarts.Load() == 0 {
+			if time.Now().After(deadline) {
+				t.Fatalf("%s never noticed the change", who)
+			}
+			time.Sleep(100 * time.Millisecond)
+		}
+		// One change is one restart, however many ways it was noticed.
+		time.Sleep(600 * time.Millisecond)
+		if n := c.restarts.Load(); n != 1 {
+			t.Fatalf("%s asked for %d restarts for one change", who, n)
+		}
+	}
+	reads := func(base, cookie, query, field string) bool {
+		t.Helper()
+		return strings.Contains(accountsGraphQL(t, base, cookie, query), field)
+	}
+	const ordersQuery = `query { orders(order_by: { id: asc }) { id total } }`
+
+	first, second := boot(), boot()
+	token := first.link[strings.Index(first.link, "token=")+len("token="):]
+	if first.link == "" || !strings.HasSuffix(second.link, "token="+token) {
+		t.Fatalf("the two copies do not offer the same setup link: %q and %q", first.link, second.link)
+	}
+
+	// The admin is created through one copy and signs in on the other.
+	status, body, ada := accountsPost(t, first.base+"/api/v1/setup/admin", "", map[string]any{"token": token, "email": "ada@example.com", "password": "a long enough password"})
+	if status != http.StatusOK || ada == "" {
+		t.Fatalf("creating the admin answered %d: %s", status, body)
+	}
+	if status, body, _ := accountsPost(t, second.base+"/api/v1/setup/admin", "", map[string]any{"token": token, "email": "eve@example.com", "password": "another long password"}); status != http.StatusConflict {
+		t.Fatalf("the other copy made a second first admin (%d): %s", status, body)
+	}
+	if status, _, cookie := accountsPost(t, second.base+"/api/v1/auth/session", "", map[string]any{"method": "password", "email": "ada@example.com", "password": "a long enough password"}); status != http.StatusOK || cookie == "" {
+		t.Fatalf("the admin could not sign in on the other copy (%d)", status)
+	}
+	// A session from one copy is good on the other: both sign with the same key.
+	if !strings.Contains(accountsGet(t, second.base+"/api/v1/console/bootstrap", ada), `"authenticated":true`) {
+		t.Fatal("a session from one copy was refused by the other")
+	}
+
+	// A database is connected through the first copy. The second notices.
+	if status, body, _ := accountsPost(t, first.base+"/api/v1/setup/database", ada, map[string]any{"name": "app", "url": appURL}); status != http.StatusOK {
+		t.Fatalf("connecting the database answered %d: %s", status, body)
+	}
+	restarted(first, "the copy that connected the database")
+	restarted(second, "the other copy")
+	first.stop()
+	second.stop()
+	first, second = boot(), boot()
+	if !reads(second.base, ada, ordersQuery, `"total"`) {
+		t.Fatal("the other copy cannot read the database connected through the first")
+	}
+
+	// A teammate is invited on one copy and joins on the other.
+	_, body, _ = accountsPost(t, first.base+"/api/v1/setup/invites", ada, map[string]any{"email": "sam@example.com"})
+	var invite struct {
+		Link string `json:"link"`
+	}
+	connectJSON(t, body, &invite)
+	status, body, sam := accountsPost(t, second.base+"/api/v1/setup/invite", "", map[string]any{"token": invite.Link[strings.Index(invite.Link, "token=")+len("token="):], "password": "sam's long password"})
+	if status != http.StatusOK || sam == "" {
+		t.Fatalf("joining through the other copy answered %d: %s", status, body)
+	}
+	// What one copy keeps, the other reads.
+	if body := accountsGraphQL(t, first.base, sam, `mutation { gj_task(insert: { goal: "seen by both" }) { id } }`); !strings.Contains(body, `"id"`) {
+		t.Fatalf("a task could not be kept: %s", clip(body))
+	}
+	// The other copy reads what the first kept the next time it looks for
+	// changes in the store, which it does every few seconds.
+	seen := time.Now()
+	for !reads(second.base, sam, `query { gj_task(limit: 5) { goal } }`, `"goal":"seen by both"`) {
+		if time.Since(seen) > 40*time.Second {
+			t.Fatalf("a task kept through one copy never reached the other: %s", clip(accountsGraphQL(t, second.base, sam, `query { gj_task(limit: 5) { goal } }`)))
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+	t.Logf("a task kept through one copy was read through the other after %s", time.Since(seen).Round(time.Second))
+
+	// This time the change is made on the second copy, and the first notices.
+	if status, body, _ := accountsPost(t, second.base+"/api/v1/setup/access", ada, map[string]any{"database": "app", "tables": map[string]string{"orders": "admins"}}); status != http.StatusOK {
+		t.Fatalf("hiding a table answered %d: %s", status, body)
+	}
+	restarted(second, "the copy that hid the table")
+	restarted(first, "the other copy")
+	first.stop()
+	second.stop()
+	first, second = boot(), boot()
+	if reads(first.base, sam, ordersQuery, `"total"`) || reads(second.base, sam, ordersQuery, `"total"`) {
+		t.Fatal("a table hidden through one copy can still be read through a copy")
+	}
+
+	// A change made from the command line, as `deeporg config import` makes
+	// it, reaches both without anyone restarting them.
+	stored, err := serv.ReadStoredConfig(context.Background(), sc.Store, sc.sealKey())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := serv.WriteStoredConfig(context.Background(), sc.Store, sc.sealKey(), strings.Replace(stored, "admin_tables", "blocked_tables", 1)); err != nil {
+		t.Fatal(err)
+	}
+	restarted(first, "the first copy, after a change from the command line")
+	restarted(second, "the second copy, after a change from the command line")
+	first.stop()
+	second.stop()
+	first = boot()
+	defer first.stop()
+	if reads(first.base, ada, ordersQuery, `"total"`) {
+		t.Fatal("the change made from the command line was not loaded")
+	}
+	// A copy that is up to date does not restart itself.
+	time.Sleep(storeCheckWait)
+	if n := first.restarts.Load(); n != 0 {
+		t.Fatalf("a copy with nothing new to load asked for %d restarts", n)
+	}
+}
+
+// storeCheckWait is a little longer than a running server waits between
+// looks at the stored configuration.
+const storeCheckWait = 6 * time.Second

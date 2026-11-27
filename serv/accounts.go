@@ -121,6 +121,11 @@ func (s *graphjinService) initAccounts(ctx context.Context) (*accountService, er
 		return nil, nil
 	}
 	schema := s.conf.Core.EffectiveArtifactsConfig().Schema
+	unlock, err := lockStoreTables(ctx, db, dbType)
+	if err != nil {
+		return nil, fmt.Errorf("create account store: %w", err)
+	}
+	defer unlock()
 	for _, stmt := range authStoreDDL(dbType, schema) {
 		if _, err := db.ExecContext(ctx, stmt); err != nil {
 			return nil, fmt.Errorf("create account store: %w", err)
@@ -140,6 +145,10 @@ func (s *graphjinService) initAccounts(ctx context.Context) (*accountService, er
 	}
 	if !has {
 		svc.setupToken = strings.TrimSpace(os.Getenv(setupTokenEnv))
+		if svc.setupToken == "" && StoreIsPostgres(s.conf.storePath) && s.conf.storeSealKey != "" {
+			// Other copies may share this store. They all offer this link.
+			svc.setupToken = sharedSetupToken(s.conf.storeSealKey)
+		}
 		if svc.setupToken == "" {
 			if svc.setupToken, err = randomURLToken(24); err != nil {
 				return nil, err
