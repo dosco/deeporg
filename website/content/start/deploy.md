@@ -120,13 +120,7 @@ DEEPORG_SECRET_KEY=a-long-secret-of-32-characters-or-more
 
 The sample company is not offered in setup on such a server, because it is a file.
 
-With the store in Postgres you can run more than one copy. Start each with the same two settings.
-
-- Every copy prints the same setup link, so it works whichever copy your browser reaches.
-- Accounts, sessions and what DeepORG stores are shared. Something saved through one copy shows up on the others within about 15 seconds.
-- When an admin connects a database, changes the model or hides a table, the copy that took the request restarts to load the change. The other copies notice within a few seconds and restart too. Each is away for a few seconds.
-- The limit on wrong sign-in guesses is counted by each copy on its own.
-- A person who is removed can keep working for up to 15 seconds on a copy other than the one that removed them.
+If your hosting runs several of this server at once, give each the same two settings. They share the accounts and settings, and a change an admin makes on one reaches the others within a few seconds. Do the setup steps while only one is running, or on your laptop with the same two settings.
 
 ### 2. Put HTTPS in front of it
 
@@ -199,7 +193,7 @@ It prints a link written for the server itself, like the setup link. Replace the
 ### What to know before you rely on it
 
 - **Back up DeepORG's folder.** That is `~/.deeporg/`, or the Docker volume. With the store in Postgres, back up that database and keep the secret key. The file `deeporg.yml` in it holds a secret key, and `store.db` holds the accounts and settings. Database passwords and the model key are encrypted with that key. If you lose it, everyone is signed out and the stored passwords cannot be read.
-- **One copy with a local file.** Two servers cannot share the file. To run more than one copy, keep the store in Postgres.
+- **One server with a local file.** Two servers cannot share the file. To run more than one, keep the store in Postgres.
 - **The health address is `/health`.** It answers as soon as DeepORG is running, before setup is finished too. If your hosting restarts a program that fails its health check, you can turn that check on from the start.
 - **To update,** read the [release notes](/releases/), install the new version, and start it again.
 

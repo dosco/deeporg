@@ -243,7 +243,7 @@ const requiredRenderedContent = [
   // A server with no disk keeps the store in Postgres.
   ['start/deploy/index.html', 'If the server has no disk'],
   ['start/deploy/index.html', 'Some hosting gives a program no disk that survives a restart'],
-  ['start/deploy/index.html', 'Every copy prints the same setup link'],
+  ['start/deploy/index.html', 'If your hosting runs several of this server at once'],
   ['releases/index.html', 'What DeepORG does not do yet'],
   ['releases/index.html', 'deeporg reset-password'],
   // Looking after accounts, and the way back in for a locked-out admin.

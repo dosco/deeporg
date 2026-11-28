@@ -6,6 +6,9 @@ is proposed and not built. Written 2026-11-26.
 
 What step 2 changed from this design, and what it found:
 
+- The shared setup link was built and then removed the same day. Setup is done
+  once, on a laptop or while one server is running, so servers do not need to
+  agree on a link. Each makes its own, as on a file store.
 - Every copy checks the stored configuration's version every five seconds
   (`serv/store_watch.go`), for a file store too. That is what makes
   `deeporg config import` take effect on a running server.

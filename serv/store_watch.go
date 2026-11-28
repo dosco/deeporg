@@ -2,25 +2,17 @@ package serv
 
 import (
 	"context"
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/base64"
 	"strconv"
 	"time"
 )
 
-// More than one copy of a server can run on one store. Two things make that
-// work.
+// More than one server can run on one store.
 //
-// A setup change is written to the store by the copy that took the request,
-// which then restarts itself to load it. The other copies have to load it
-// too, so every copy looks at the stored configuration's version every few
-// seconds and restarts itself when it is not the one it started with. The
-// same check is what makes `deeporg config import` take effect on a running
-// server.
-//
-// While no admin exists, every copy offers the same setup link, so the link
-// one copy printed works whichever copy the browser reaches.
+// A setup change is written to the store by the server that took the request,
+// which then restarts itself to load it. The others have to load it too, so
+// every server looks at the stored configuration's version every few seconds
+// and restarts itself when it is not the one it started with. The same check
+// is what makes `deeporg config import` take effect on a running server.
 
 // storeConfigCheckEvery is how often a running server looks for a newer
 // stored configuration.
@@ -123,15 +115,4 @@ func (s *graphjinService) stopStoreWatch() {
 	close(s.storeWatchStop)
 	s.storeWatchStop = nil
 	s.storeWatchWG.Wait()
-}
-
-// sharedSetupToken is the setup link's token on a server whose store is a
-// database that other copies may share. It is worked out from the store's
-// key, so every copy offers the same link and none of them has to be told
-// it. Knowing the token says nothing about the key, and it stops working
-// once an admin exists, like any setup token.
-func sharedSetupToken(sealKey string) string {
-	mac := hmac.New(sha256.New, []byte(sealKey))
-	mac.Write([]byte("deeporg/setup-link/v1"))
-	return base64.RawURLEncoding.EncodeToString(mac.Sum(nil))[:32]
 }

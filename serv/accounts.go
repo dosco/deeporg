@@ -145,10 +145,6 @@ func (s *graphjinService) initAccounts(ctx context.Context) (*accountService, er
 	}
 	if !has {
 		svc.setupToken = strings.TrimSpace(os.Getenv(setupTokenEnv))
-		if svc.setupToken == "" && StoreIsPostgres(s.conf.storePath) && s.conf.storeSealKey != "" {
-			// Other copies may share this store. They all offer this link.
-			svc.setupToken = sharedSetupToken(s.conf.storeSealKey)
-		}
 		if svc.setupToken == "" {
 			if svc.setupToken, err = randomURLToken(24); err != nil {
 				return nil, err
