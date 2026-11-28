@@ -1044,9 +1044,25 @@ func normalizedReasoningEffort(reasoning string) string {
 	}
 }
 
+// defaultModels names the model a provider gets when the configuration names
+// none. Without it the choice falls to the Ax library, and its choice for
+// OpenAI is gpt-5-mini from August 2025. On the sample company (2026-11-27)
+// that model took 68 seconds and seven calls to count the rows of a table, and
+// ran a second question past the lead's two-minute limit. gpt-6-luna answered
+// the same two in 12 and 23 seconds. A provider that is not listed keeps the
+// library's choice, which has not been measured here.
+var defaultModels = map[string]string{
+	"openai": "gpt-6-luna",
+}
+
 func (c Config) withDefaults() Config {
 	if c.Provider == "" {
 		c.Provider = defaultProvider
+	}
+	// A base URL means some other server that speaks the provider's protocol,
+	// with model names of its own.
+	if strings.TrimSpace(c.Model) == "" && strings.TrimSpace(c.BaseURL) == "" {
+		c.Model = defaultModels[strings.ToLower(strings.TrimSpace(c.Provider))]
 	}
 	// A key file replaces the environment source; defaulting the variable
 	// as well would make the two sources conflict.

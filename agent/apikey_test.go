@@ -153,3 +153,30 @@ func TestLeadOnOtherProviderDropsWorkerKeyFile(t *testing.T) {
 		t.Fatalf("lead on the worker's provider should share its key file, got %q", same.APIKeyFile)
 	}
 }
+
+// A configuration that names no model gets one DeepORG chose, not the Ax
+// library's default, which for OpenAI is a model too slow to answer inside
+// the lead's time limit.
+func TestUnnamedModelGetsACurrentOne(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		cfg  Config
+		want string
+	}{
+		{"openai with no model", Config{Provider: "openai"}, "gpt-6-luna"},
+		{"no provider at all", Config{}, "gpt-6-luna"},
+		{"provider in capitals", Config{Provider: "OpenAI"}, "gpt-6-luna"},
+		{"a named model is kept", Config{Provider: "openai", Model: "gpt-6-astra"}, "gpt-6-astra"},
+		{"another server keeps its own names", Config{Provider: "openai", BaseURL: "http://localhost:11434/v1"}, ""},
+		{"a provider not measured keeps the library's choice", Config{Provider: "anthropic"}, ""},
+	} {
+		if got := tc.cfg.withDefaults().Model; got != tc.want {
+			t.Errorf("%s: model = %q, want %q", tc.name, got, tc.want)
+		}
+	}
+	// The lead on another provider must not inherit the data agent's default.
+	lead := Config{Provider: "openai", Lead: LeadConfig{Provider: "anthropic"}}.LeadModelConfig()
+	if got := lead.withDefaults().Model; got != "" {
+		t.Errorf("a lead on another provider got the model %q", got)
+	}
+}
