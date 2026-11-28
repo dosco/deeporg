@@ -394,16 +394,25 @@ func (s *graphjinService) agentSSE(ctx context.Context, w http.ResponseWriter, r
 // http.Server WriteTimeout closing the connection before a JSON response is
 // written.
 func extendDeadlineForAgent(w http.ResponseWriter, conf *Config) {
-	timeoutSecs := defaultAgentTimeoutSeconds
-	if conf != nil {
-		timeoutSecs = gjagent.EffectiveTimeoutSeconds(conf.Agent.TimeoutSeconds)
-	}
-	deadline := time.Now().Add(time.Duration(timeoutSecs+30) * time.Second)
+	deadline := time.Now().Add(agentRequestDeadline(conf))
 	rc := http.NewResponseController(w)
 	if err := rc.SetWriteDeadline(deadline); err != nil {
 		return
 	}
 	_ = rc.SetReadDeadline(deadline)
+}
+
+// agentRequestDeadline is how long a request that is not streamed keeps its
+// connection: the longest a turn may run, and half a minute to write the
+// answer. With the lead on, that is the lead's limit, not the data agent's;
+// sized from the data agent's alone, the connection closed while the lead was
+// still working and the answer was never delivered.
+func agentRequestDeadline(conf *Config) time.Duration {
+	seconds := defaultAgentTimeoutSeconds
+	if conf != nil {
+		seconds = conf.Agent.TurnSeconds()
+	}
+	return time.Duration(seconds+30) * time.Second
 }
 
 func writeAgentError(w http.ResponseWriter, status int, message string) {

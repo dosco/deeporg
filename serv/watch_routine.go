@@ -21,7 +21,6 @@ import (
 
 const (
 	watchRoutinePromptMaxBytes = 2048
-	watchRoutineBusyWait       = 2 * time.Minute
 	watchRoutineDefaultPrompt  = "This watch just fired. Explain what changed, why it matters, and what to look at next, quoting the numbers you find."
 )
 
@@ -337,9 +336,10 @@ func (s *graphjinService) notifyRoutineAnswer(ctx context.Context, def watchRunt
 }
 
 // prepareWatchRoutineRun waits for a thread that is busy with another turn,
-// such as the owner asking a follow-up, instead of dropping the routine.
+// such as the owner asking a follow-up, instead of dropping the routine. It
+// waits as long as a turn may take.
 func (s *graphjinService) prepareWatchRoutineRun(ctx context.Context, threadID string, req *gjagent.Request, opts threadRunOptions) (*threadRun, error) {
-	deadline := time.Now().Add(watchRoutineBusyWait)
+	deadline := time.Now().Add(time.Duration(agentConfigFromService(s.conf).TurnSeconds()) * time.Second)
 	wait := time.Second
 	for {
 		run, err := s.prepareThreadRunWith(ctx, threadID, req, opts)

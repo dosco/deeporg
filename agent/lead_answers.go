@@ -33,7 +33,7 @@ import (
 // turns, and it asked nothing no more often than before. Conversations: 39 of
 // 45 runs right against 36. Routines that finished decided alike (acted when
 // due 8 of 10 against 5 of 7); 10 of the 48 firings ran into the lead's
-// 120-second turn limit, either way. It costs about a quarter more tokens
+// turn limit, then 120 seconds, either way. It costs about a quarter more tokens
 // and, in conversations, 5 seconds.
 //
 // A second routine pair on gpt-6-luna with a 300-second turn limit, 48

@@ -1390,7 +1390,7 @@
 				"timeout_seconds": {
 					"type": "integer",
 					"title": "Lead Timeout Seconds",
-					"default": 120
+					"default": 300
 				}
 			},
 			"additionalProperties": false,

@@ -1135,3 +1135,28 @@ func TestRecordAgentUsageObservabilityLogsStableTokenFields(t *testing.T) {
 		t.Fatalf("usage span attributes = %+v", attributes)
 	}
 }
+
+// A request that is not streamed, such as an agent's ask_graphjin_agent call,
+// must keep its connection for as long as the lead may work. It was sized
+// from the data agent's limit, 80 seconds, under a lead allowed 120.
+func TestANonStreamedAgentRequestWaitsForTheLead(t *testing.T) {
+	conf := &Config{}
+	if got, want := agentRequestDeadline(conf), 80*time.Second; got != want {
+		t.Fatalf("with the data agent alone the connection is kept %s, want %s", got, want)
+	}
+	conf.Agent.Lead.Enabled = true
+	lead := time.Duration(conf.Agent.TurnSeconds()) * time.Second
+	if lead != 300*time.Second {
+		t.Fatalf("the lead may work %s, want 5m0s", lead)
+	}
+	if got := agentRequestDeadline(conf); got < lead+30*time.Second {
+		t.Fatalf("the connection is kept %s and the lead may work %s", got, lead)
+	}
+	conf.Agent.Lead.TimeoutSeconds = 600
+	if got, want := agentRequestDeadline(conf), 630*time.Second; got != want {
+		t.Fatalf("with a ten-minute lead the connection is kept %s, want %s", got, want)
+	}
+	if got, want := agentRequestDeadline(nil), 80*time.Second; got != want {
+		t.Fatalf("with no configuration the connection is kept %s, want %s", got, want)
+	}
+}

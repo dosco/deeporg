@@ -67,7 +67,7 @@ agent:
     model: gemini-3.5-pro
     max_parallel: 4     # questions running at once (max 16)
     max_questions: 8    # questions per turn
-    timeout_seconds: 120
+    timeout_seconds: 300  # the whole turn, including its questions
 ```
 
 `agent.lead.provider`, `api_key_env`, `base_url`, `reasoning`, and `max_steps`

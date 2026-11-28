@@ -23,10 +23,13 @@ import (
 // an agent profile — reaches the lead only.
 
 const (
-	defaultLeadMaxSteps       = 6
-	defaultLeadMaxParallel    = 4
-	defaultLeadMaxQuestions   = 8
-	defaultLeadTimeoutSeconds = 120
+	defaultLeadMaxSteps     = 6
+	defaultLeadMaxParallel  = 4
+	defaultLeadMaxQuestions = 8
+	// A turn is several model calls one after another. Two minutes cut off an
+	// open-ended question and 10 of 48 routine firings on gpt-6-luna; none of
+	// 96 firings ran into five (see lead_answers.go).
+	defaultLeadTimeoutSeconds = 300
 	// leadResultDataBytes bounds each delegated result the lead model reads;
 	// the full result still lands in the response and the grounding corpus.
 	leadResultDataBytes = 8 << 10
@@ -97,7 +100,7 @@ type LeadConfig struct {
 	MaxParallel int `mapstructure:"max_parallel" json:"max_parallel,omitempty" jsonschema:"title=Lead Max Parallel Questions,default=4"`
 	// MaxQuestions bounds delegated questions in one turn.
 	MaxQuestions   int `mapstructure:"max_questions" json:"max_questions,omitempty" jsonschema:"title=Lead Max Questions Per Turn,default=8"`
-	TimeoutSeconds int `mapstructure:"timeout_seconds" json:"timeout_seconds,omitempty" jsonschema:"title=Lead Timeout Seconds,default=120"`
+	TimeoutSeconds int `mapstructure:"timeout_seconds" json:"timeout_seconds,omitempty" jsonschema:"title=Lead Timeout Seconds,default=300"`
 }
 
 func (c LeadConfig) withDefaults() LeadConfig {
@@ -114,6 +117,17 @@ func (c LeadConfig) withDefaults() LeadConfig {
 		c.TimeoutSeconds = defaultLeadTimeoutSeconds
 	}
 	return c
+}
+
+// TurnSeconds is the longest one request may run: the lead's whole-turn limit
+// when the lead answers, the data agent's own limit otherwise. Whatever holds
+// a connection or a thread for a turn sizes its wait from this.
+func (c Config) TurnSeconds() int {
+	seconds := EffectiveTimeoutSeconds(c.TimeoutSeconds)
+	if c.Lead.Enabled {
+		seconds = max(seconds, c.Lead.withDefaults().TimeoutSeconds)
+	}
+	return seconds
 }
 
 // ValidateLead checks the lead section against the worker it falls back to.

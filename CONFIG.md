@@ -1254,7 +1254,7 @@ they inherit that deployment's capabilities rather than OpenAI's.
 | `agent.lead.max_steps` | integer | `6` | Lead model calls per turn |
 | `agent.lead.max_parallel` | integer | `4` | Delegated questions running at once (max 16). Env `GJ_AGENT_LEAD_MAX_PARALLEL` |
 | `agent.lead.max_questions` | integer | `8` | Delegated questions per turn |
-| `agent.lead.timeout_seconds` | integer | `120` | Whole-turn timeout for the lead, including its questions |
+| `agent.lead.timeout_seconds` | integer | `300` | Whole-turn timeout for the lead, including its questions |
 
 What a provider actually does with a temperature varies more than the key
 suggests: some adaptive models never receive it, some manage sampling

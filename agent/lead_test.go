@@ -1348,3 +1348,26 @@ func TestLeadFunctionErrorReachesTheModelUnderEitherName(t *testing.T) {
 		}
 	}
 }
+
+func TestTurnSecondsIsTheLongestARequestMayRun(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		conf Config
+		want int
+	}{
+		{"the data agent alone", Config{}, defaultTimeoutSeconds},
+		{"the data agent with its own limit", Config{TimeoutSeconds: 90}, 90},
+		{"the lead", Config{Lead: LeadConfig{Enabled: true}}, defaultLeadTimeoutSeconds},
+		{"the lead with its own limit", Config{Lead: LeadConfig{Enabled: true, TimeoutSeconds: 45}}, defaultTimeoutSeconds},
+		{"a data agent given longer than the lead", Config{TimeoutSeconds: 600, Lead: LeadConfig{Enabled: true}}, 600},
+		{"a lead limit that is set and the lead off", Config{Lead: LeadConfig{TimeoutSeconds: 900}}, defaultTimeoutSeconds},
+	} {
+		if got := tc.conf.TurnSeconds(); got != tc.want {
+			t.Errorf("%s: a turn may run %d seconds, want %d", tc.name, got, tc.want)
+		}
+	}
+	// Five minutes: two cut off an open-ended question on a current model.
+	if defaultLeadTimeoutSeconds != 300 {
+		t.Fatalf("the lead's turn limit is %d seconds, want 300", defaultLeadTimeoutSeconds)
+	}
+}
