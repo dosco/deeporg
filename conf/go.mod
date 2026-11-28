@@ -3,7 +3,7 @@ module github.com/dosco/graphjin/conf/v3
 go 1.25.0
 
 require (
-	github.com/dosco/graphjin/core/v3 v3.27.2
+	github.com/dosco/graphjin/core/v3 v3.27.3
 	gopkg.in/yaml.v3 v3.0.1
 )
 
