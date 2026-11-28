@@ -196,6 +196,11 @@ func (s *graphjinService) handleMCPOAuthProtectedResourceMetadata(w http.Respons
 
 func (s *graphjinService) handleMCPOAuthAuthorizationServerMetadata(w http.ResponseWriter, r *http.Request) {
 	issuer := s.conf.mcpOAuthIssuer(r)
+	// A client such as Claude Code skips registering and uses a web address
+	// as its id when the server says it accepts one. Sign-in with local
+	// accounts takes registered clients only (initAccountOAuth), so it must
+	// not say so, or the client is refused at the next step.
+	metadataDocuments := s.conf.MCP.OAuth.ClientIDMetadataDocuments && s.conf.mcpOAuthMode() != mcpOAuthModeAccounts
 	body := map[string]any{
 		"issuer":                                issuer,
 		"authorization_endpoint":                issuer + routeMCPOAuthAuthorize,
@@ -205,7 +210,7 @@ func (s *graphjinService) handleMCPOAuthAuthorizationServerMetadata(w http.Respo
 		"code_challenge_methods_supported":      []string{"S256"},
 		"scopes_supported":                      s.conf.mcpOAuthScopes(),
 		"token_endpoint_auth_methods_supported": []string{"none"},
-		"client_id_metadata_document_supported": s.conf.MCP.OAuth.ClientIDMetadataDocuments,
+		"client_id_metadata_document_supported": metadataDocuments,
 	}
 	if s.conf.MCP.OAuth.DynamicClientRegistration || s.conf.mcpOAuthMode() == mcpOAuthModeAccounts {
 		body["registration_endpoint"] = issuer + routeMCPOAuthRegister

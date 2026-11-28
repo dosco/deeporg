@@ -57,10 +57,17 @@ func TestAnAgentSignsInWithAnAccount(t *testing.T) {
 		TokenEndpoint         string   `json:"token_endpoint"`
 		RegistrationEndpoint  string   `json:"registration_endpoint"`
 		Methods               []string `json:"code_challenge_methods_supported"`
+		MetadataDocuments     bool     `json:"client_id_metadata_document_supported"`
 	}
 	connectJSON(t, accountsGet(t, resource.AuthorizationServers[0]+"/.well-known/oauth-authorization-server", ""), &server)
 	if server.AuthorizationEndpoint == "" || server.TokenEndpoint == "" || server.RegistrationEndpoint == "" || len(server.Methods) != 1 || server.Methods[0] != "S256" {
 		t.Fatalf("the authorization server metadata is incomplete: %+v", server)
+	}
+	// Claude Code skips registering and uses a web address as its id when a
+	// server says it accepts one. This server takes registered clients only,
+	// so saying so got Claude Code refused at the next step.
+	if server.MetadataDocuments {
+		t.Fatal("the server says it accepts a client id that is a web address, and it does not")
 	}
 
 	// The agent registers itself, naming where it will listen for the answer.
